@@ -19,9 +19,10 @@ public:
     template<typename T>
     static void registerComponent(const std::string& componentName);
     
-private:
     static nlohmann::json sceneToJson(Scene* scene);
     static void jsonToScene(const nlohmann::json& sceneJson, Scene* scene);
+    
+private:
 };
 
 } // namespace GameEngine

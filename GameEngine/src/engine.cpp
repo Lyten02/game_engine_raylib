@@ -18,6 +18,7 @@
 #include "serialization/component_registry.h"
 #include "build/build_system.h"
 #include "build/async_build_system.h"
+#include "engine/play_mode.h"
 
 // Standard library includes
 #include <iostream>
@@ -169,6 +170,10 @@ bool Engine::initialize() {
     asyncBuildSystem = std::make_unique<GameEngine::AsyncBuildSystem>();
     spdlog::info("Engine::initialize - Build system initialized");
     
+    // Initialize play mode
+    playMode = std::make_unique<GameEngine::PlayMode>();
+    spdlog::info("Engine::initialize - Play mode initialized");
+    
     // Register components for serialization
     GameEngine::ComponentRegistry::getInstance().registerComponent<TransformComponent>("Transform");
     GameEngine::ComponentRegistry::getInstance().registerComponent<Sprite>("Sprite");
@@ -203,9 +208,37 @@ void Engine::run() {
             console->update(deltaTime);
         }
         
-        // Update the current scene only if a project is loaded
-        if (currentScene && !console->isOpen() && projectManager && projectManager->getCurrentProject()) {
+        // Update play mode if active
+        if (playMode && playMode->isPlaying()) {
+            playMode->update(deltaTime);
+        }
+        // Otherwise update the current scene only if a project is loaded
+        else if (currentScene && !console->isOpen() && projectManager && projectManager->getCurrentProject()) {
             currentScene->onUpdate(deltaTime);
+        }
+        
+        // Handle play mode controls
+        if (IsKeyPressed(KEY_F5)) {
+            if (playMode->isPlaying() || playMode->isPaused()) {
+                playMode->stop();
+                console->addLine("Play mode stopped", YELLOW);
+            } else if (currentScene && projectManager && projectManager->getCurrentProject()) {
+                if (playMode->start(currentScene.get(), projectManager->getCurrentProject())) {
+                    console->addLine("Play mode started - Press F5 to stop, F6 to pause", GREEN);
+                } else {
+                    console->addLine("Failed to start play mode", RED);
+                }
+            }
+        }
+        
+        if (IsKeyPressed(KEY_F6) && playMode) {
+            if (playMode->isPlaying()) {
+                playMode->pause();
+                console->addLine("Play mode paused", YELLOW);
+            } else if (playMode->isPaused()) {
+                playMode->resume();
+                console->addLine("Play mode resumed", GREEN);
+            }
         }
         
         // Check for async build messages
@@ -222,9 +255,20 @@ void Engine::run() {
         BeginDrawing();
         ClearBackground(GRAY);
         
-        // Update render system with current scene's registry
-        if (renderSystem && currentScene) {
-            renderSystem->update(currentScene->registry);
+        // Update render system with appropriate scene
+        if (renderSystem) {
+            if (playMode && !playMode->isStopped() && playMode->getPlayScene()) {
+                // Render play scene when in play mode
+                renderSystem->update(playMode->getPlayScene()->registry);
+            } else if (currentScene) {
+                // Render editor scene
+                renderSystem->update(currentScene->registry);
+            }
+        }
+        
+        // Render play mode UI
+        if (playMode && !playMode->isStopped()) {
+            playMode->renderUI(console.get());
         }
         
         // Render console on top
@@ -1083,4 +1127,78 @@ void Engine::registerEngineCommands() {
                 console->addLine("Failed to clean build directory: " + std::string(e.what()), RED);
             }
         }), "Clean the build directory");
+    
+    // Play mode commands
+    REGISTER_COMMAND(commandProcessor, "play",
+        ([this](const std::vector<std::string>& args) {
+            if (!currentScene) {
+                console->addLine("No scene to play", RED);
+                return;
+            }
+            
+            if (!projectManager || !projectManager->getCurrentProject()) {
+                console->addLine("No project open", RED);
+                return;
+            }
+            
+            if (playMode->isPlaying() || playMode->isPaused()) {
+                console->addLine("Already in play mode. Press F5 to stop.", YELLOW);
+                return;
+            }
+            
+            if (playMode->start(currentScene.get(), projectManager->getCurrentProject())) {
+                console->addLine("Play mode started - Press F5 to stop, F6 to pause", GREEN);
+            } else {
+                console->addLine("Failed to start play mode", RED);
+            }
+        }), "Start play mode (debug run)");
+    
+    REGISTER_COMMAND(commandProcessor, "stop",
+        ([this](const std::vector<std::string>& args) {
+            if (playMode->isStopped()) {
+                console->addLine("Not in play mode", YELLOW);
+                return;
+            }
+            
+            playMode->stop();
+            console->addLine("Play mode stopped", YELLOW);
+        }), "Stop play mode");
+    
+    REGISTER_COMMAND(commandProcessor, "pause",
+        ([this](const std::vector<std::string>& args) {
+            if (!playMode->isPlaying()) {
+                console->addLine("Not playing", YELLOW);
+                return;
+            }
+            
+            playMode->pause();
+            console->addLine("Play mode paused", YELLOW);
+        }), "Pause play mode");
+    
+    REGISTER_COMMAND(commandProcessor, "resume",
+        ([this](const std::vector<std::string>& args) {
+            if (!playMode->isPaused()) {
+                console->addLine("Not paused", YELLOW);
+                return;
+            }
+            
+            playMode->resume();
+            console->addLine("Play mode resumed", GREEN);
+        }), "Resume play mode");
+    
+    REGISTER_COMMAND(commandProcessor, "play.toggle",
+        ([this](const std::vector<std::string>& args) {
+            if (playMode->isPlaying() || playMode->isPaused()) {
+                playMode->stop();
+                console->addLine("Play mode stopped", YELLOW);
+            } else if (currentScene && projectManager && projectManager->getCurrentProject()) {
+                if (playMode->start(currentScene.get(), projectManager->getCurrentProject())) {
+                    console->addLine("Play mode started", GREEN);
+                } else {
+                    console->addLine("Failed to start play mode", RED);
+                }
+            } else {
+                console->addLine("No scene to play", RED);
+            }
+        }), "Toggle play mode");
 }

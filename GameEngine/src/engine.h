@@ -17,6 +17,7 @@ namespace GameEngine {
     class SceneSerializer;
     class BuildSystem;
     class AsyncBuildSystem;
+    class PlayMode;
 }
 
 class Engine {
@@ -70,6 +71,9 @@ private:
     std::unique_ptr<GameEngine::SceneSerializer> sceneSerializer;
     std::unique_ptr<GameEngine::BuildSystem> buildSystem;
     std::unique_ptr<GameEngine::AsyncBuildSystem> asyncBuildSystem;
+    
+    // Play mode for debug testing
+    std::unique_ptr<GameEngine::PlayMode> playMode;
     
     // Current active scene
     std::unique_ptr<Scene> currentScene;

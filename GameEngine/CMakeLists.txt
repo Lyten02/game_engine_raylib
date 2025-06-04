@@ -74,6 +74,7 @@ add_executable(game
     src/build/build_system.cpp
     src/build/build_config.cpp
     src/build/async_build_system.cpp
+    src/engine/play_mode.cpp
 )
 
 # Include directories

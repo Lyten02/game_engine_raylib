@@ -45,6 +45,11 @@ add_executable(game
     src/engine.cpp
     src/systems/render_system.cpp
     src/scene/scene.cpp
+    src/resources/resource_manager.cpp
+    src/console/console.cpp
+    src/console/command_processor.cpp
+    src/utils/file_utils.cpp
+    src/utils/string_utils.cpp
 )
 
 # Include directories
@@ -57,3 +62,6 @@ target_link_libraries(game
     EnTT::EnTT
     glm::glm
 )
+
+# Copy assets directory to build directory
+file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})

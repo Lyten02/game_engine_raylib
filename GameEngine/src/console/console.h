@@ -1,0 +1,61 @@
+#pragma once
+
+#include <vector>
+#include <string>
+#include <raylib.h>
+
+class CommandProcessor;
+
+class Console {
+private:
+    std::vector<std::string> outputLines;
+    std::string currentInput;
+    std::vector<std::string> commandHistory;
+    int historyIndex = -1;
+    bool isVisible = false;
+    Font consoleFont;
+    int maxLines = 20;
+    float consoleHeight = 300.0f;
+    
+    // Visual settings
+    const int fontSize = 16;
+    const int lineSpacing = 20;
+    const Color backgroundColor = {0, 0, 0, 200};
+    const Color textColor = WHITE;
+    const Color inputColor = GREEN;
+    
+    // Store colored output
+    struct ColoredLine {
+        std::string text;
+        Color color;
+    };
+    std::vector<ColoredLine> coloredOutput;
+    
+    CommandProcessor* commandProcessor = nullptr;
+    
+    // Scrolling
+    int scrollOffset = 0;
+    int getMaxScroll() const;
+    
+    // Key repeat for backspace
+    float backspaceTimer = 0.0f;
+    const float backspaceDelay = 0.5f;  // Initial delay before repeat
+    const float backspaceRepeat = 0.03f; // Repeat rate
+
+public:
+    Console() = default;
+    ~Console() = default;
+    
+    void initialize();
+    void shutdown();
+    void toggle();
+    void show();
+    void hide();
+    void update(float deltaTime);
+    void render();
+    void addLine(const std::string& text, Color color = WHITE);
+    void executeCommand(const std::string& command);
+    bool isOpen() const;
+    void clear();
+    void setCommandProcessor(CommandProcessor* processor) { commandProcessor = processor; }
+};

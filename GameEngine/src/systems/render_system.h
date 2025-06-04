@@ -1,20 +1,21 @@
 #pragma once
 
 #include <entt/fwd.hpp>
+#include <raylib.h>
 
-// Render System for Entity Component System
-// Responsible for rendering all entities with Transform and Sprite components
 class RenderSystem {
+private:
+    Camera2D camera;
+
 public:
     RenderSystem() = default;
     ~RenderSystem() = default;
     
-    // Initialize the render system
     void initialize();
-    
-    // Update/render all entities with Transform and Sprite components
     void update(entt::registry& registry);
-    
-    // Shutdown and cleanup
     void shutdown();
+    
+    void setCamera2D(Camera2D& camera);
+    void beginCamera();
+    void endCamera();
 };

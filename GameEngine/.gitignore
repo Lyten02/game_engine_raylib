@@ -36,6 +36,9 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps/
+*.cmake
+!CMakeLists.txt
+Testing/
 
 # Assets (if large)
 assets/textures/large/
@@ -62,3 +65,58 @@ venv/
 docs/_build/
 docs/_static/
 docs/_templates/
+
+# Game executable
+game
+GameEngine
+
+# Debug symbols
+*.dSYM/
+*.pdb
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Backup files
+*.bak
+*.backup
+
+# macOS specific
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux specific
+.directory
+.Trash-*/
+
+# CLion specific
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/vcs.xml
+.idea/jsLibraryMappings.xml
+.idea/dataSources.ids
+.idea/dataSources.xml
+.idea/sqlDataSources.xml
+.idea/dynamic.xml
+
+# Visual Studio Code specific
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/

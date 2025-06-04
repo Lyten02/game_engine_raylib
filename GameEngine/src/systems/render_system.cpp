@@ -33,10 +33,8 @@ void RenderSystem::update(entt::registry& registry) {
     
     endCamera();
     
-    static int frameCounter = 0;
-    if (frameCounter++ % 60 == 0) {
-        spdlog::info("RenderSystem: FPS: {}, Sprites rendered: {}", GetFPS(), spriteCount);
-    }
+    // Remove all logging from render loop to prevent FPS drops
+    // Use console commands to get render statistics instead
 }
 
 void RenderSystem::shutdown() {

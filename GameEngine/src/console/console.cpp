@@ -141,6 +141,38 @@ void Console::update(float deltaTime) {
     if (IsKeyPressed(KEY_END)) {
         scrollOffset = getMaxScroll();
     }
+    
+    // Handle text selection
+    Vector2 mousePos = GetMousePosition();
+    
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && mousePos.y < consoleHeight - 40) {
+        // Start selection
+        isSelecting = true;
+        selectionStart = mousePos;
+        selectionEnd = mousePos;
+        selectionStartLine = getLineAtPosition(mousePos.y);
+        selectionEndLine = selectionStartLine;
+    }
+    
+    if (isSelecting && IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+        // Update selection
+        selectionEnd = mousePos;
+        selectionEndLine = getLineAtPosition(mousePos.y);
+    }
+    
+    if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON) && isSelecting) {
+        // End selection
+        isSelecting = false;
+        selectedText = getSelectedText();
+    }
+    
+    // Copy selection with Ctrl+C / Cmd+C
+    if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL) || 
+         IsKeyDown(KEY_LEFT_SUPER) || IsKeyDown(KEY_RIGHT_SUPER)) && 
+        IsKeyPressed(KEY_C) && !selectedText.empty()) {
+        copyToClipboard(selectedText);
+        addLine("Copied to clipboard", GRAY);
+    }
 }
 
 void Console::render() {
@@ -161,6 +193,19 @@ void Console::render() {
     int totalLines = static_cast<int>(coloredOutput.size());
     int startLine = scrollOffset;
     int endLine = std::min(startLine + visibleLines, totalLines);
+    
+    // Draw selection highlight
+    if (!selectedText.empty() || isSelecting) {
+        int minLine = std::min(selectionStartLine, selectionEndLine);
+        int maxLine = std::max(selectionStartLine, selectionEndLine);
+        
+        for (int i = startLine; i < endLine; i++) {
+            if (i >= minLine - scrollOffset && i <= maxLine - scrollOffset) {
+                int lineY = 10 + (i - startLine) * lineSpacing;
+                DrawRectangle(10, lineY, screenWidth - 40, lineSpacing, {100, 100, 255, 50});
+            }
+        }
+    }
     
     // Draw output lines
     int y = 10;
@@ -199,6 +244,13 @@ void Console::render() {
     if (static_cast<int>(GetTime() * 2) % 2 == 0) {
         int cursorX = 10 + MeasureText(inputLine.c_str(), fontSize);
         DrawRectangle(cursorX, consoleHeight - 30, 2, fontSize, inputColor);
+    }
+    
+    // Draw FPS in console header if enabled
+    if (showFPS) {
+        std::string fpsText = "FPS: " + std::to_string(GetFPS());
+        int textWidth = MeasureText(fpsText.c_str(), fontSize);
+        DrawText(fpsText.c_str(), screenWidth - textWidth - 120, 10, fontSize, GREEN);
     }
 }
 
@@ -250,4 +302,29 @@ int Console::getMaxScroll() const {
     int visibleLines = (consoleHeight - 40) / lineSpacing;
     int totalLines = static_cast<int>(coloredOutput.size());
     return std::max(0, totalLines - visibleLines);
+}
+
+int Console::getLineAtPosition(float y) const {
+    if (y < 10) return scrollOffset;
+    int line = scrollOffset + static_cast<int>((y - 10) / lineSpacing);
+    return std::min(line, static_cast<int>(coloredOutput.size()) - 1);
+}
+
+std::string Console::getSelectedText() const {
+    if (selectionStartLine < 0 || selectionEndLine < 0) return "";
+    
+    int minLine = std::min(selectionStartLine, selectionEndLine);
+    int maxLine = std::max(selectionStartLine, selectionEndLine);
+    
+    std::stringstream ss;
+    for (int i = minLine; i <= maxLine && i < static_cast<int>(coloredOutput.size()); i++) {
+        ss << coloredOutput[i].text;
+        if (i < maxLine) ss << "\n";
+    }
+    
+    return ss.str();
+}
+
+void Console::copyToClipboard(const std::string& text) {
+    SetClipboardText(text.c_str());
 }

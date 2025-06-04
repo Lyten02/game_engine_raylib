@@ -55,4 +55,7 @@ private:
     
     // Engine stats
     float totalTime = 0.0f;
+    bool showDebugInfo = true;
+    bool vsyncEnabled = false;
+    int targetFPS = 0;
 };

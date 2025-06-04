@@ -41,6 +41,22 @@ private:
     float backspaceTimer = 0.0f;
     const float backspaceDelay = 0.5f;  // Initial delay before repeat
     const float backspaceRepeat = 0.03f; // Repeat rate
+    
+    // FPS display
+    bool showFPS = true;
+    
+    // Text selection
+    bool isSelecting = false;
+    Vector2 selectionStart = {0, 0};
+    Vector2 selectionEnd = {0, 0};
+    int selectionStartLine = -1;
+    int selectionEndLine = -1;
+    std::string selectedText;
+    
+    // Helper methods
+    int getLineAtPosition(float y) const;
+    std::string getSelectedText() const;
+    void copyToClipboard(const std::string& text);
 
 public:
     Console() = default;
@@ -58,4 +74,6 @@ public:
     bool isOpen() const;
     void clear();
     void setCommandProcessor(CommandProcessor* processor) { commandProcessor = processor; }
+    void setShowFPS(bool show) { showFPS = show; }
+    bool isShowingFPS() const { return showFPS; }
 };

@@ -9,14 +9,30 @@
 #include "console/console.h"
 #include "console/command_processor.h"
 #include "console/command_registry.h"
+
+// Standard library includes
+#include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <string>
+#include <vector>
+#include <memory>
+#include <chrono>
+#include <cstdlib>
+#include <filesystem>
+
+// spdlog includes
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 Engine::Engine() = default;
 Engine::~Engine() = default;
 
 bool Engine::initialize(int width, int height, const std::string& title) {
     spdlog::info("Engine::initialize - Starting engine initialization");
+    
+    // Configure window before initialization
+    SetConfigFlags(FLAG_WINDOW_HIGHDPI);  // High DPI support
     
     // Initialize Raylib window
     InitWindow(width, height, title.c_str());
@@ -26,11 +42,39 @@ bool Engine::initialize(int width, int height, const std::string& title) {
         return false;
     }
     
-    // Set target FPS
-    SetTargetFPS(60);
+    // Disable V-Sync for maximum performance
+    ClearWindowState(FLAG_VSYNC_HINT);
+    SetTargetFPS(0);  // 0 = no limit
     
-    // Initialize spdlog
-    spdlog::set_level(spdlog::level::debug);
+    // Disable event waiting to prevent FPS drops
+    SetExitKey(0);  // Disable ESC key exit
+    
+    // Initialize spdlog with file logging
+    try {
+        // Create logs directory
+        std::filesystem::create_directories("logs");
+        
+        // Create file sink with timestamp
+        auto now = std::chrono::system_clock::now();
+        auto time = std::chrono::system_clock::to_time_t(now);
+        std::stringstream logFileName;
+        logFileName << "logs/engine_" << std::put_time(std::localtime(&time), "%Y%m%d_%H%M%S") << ".log";
+        
+        auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFileName.str());
+        auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+        
+        std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
+        auto logger = std::make_shared<spdlog::logger>("engine", sinks.begin(), sinks.end());
+        
+        spdlog::set_default_logger(logger);
+        spdlog::set_level(spdlog::level::info);
+        spdlog::flush_on(spdlog::level::info);
+        
+        spdlog::info("Log file created: {}", logFileName.str());
+    } catch (const std::exception& e) {
+        spdlog::error("Failed to create log file: {}", e.what());
+        spdlog::set_level(spdlog::level::info);
+    }
     
     // Initialize resource manager
     resourceManager = std::make_unique<ResourceManager>();
@@ -145,6 +189,36 @@ void Engine::run() {
         // Draw help text if console is not open
         if (console && !console->isOpen()) {
             DrawText("Press F1 to open console", 10, 10, 20, LIGHTGRAY);
+        }
+        
+        // Draw debug info in bottom right corner
+        if (showDebugInfo) {
+            int screenWidth = GetScreenWidth();
+            int screenHeight = GetScreenHeight();
+            
+            // FPS
+            std::string fpsText = "FPS: " + std::to_string(GetFPS());
+            int fpsWidth = MeasureText(fpsText.c_str(), 16);
+            DrawText(fpsText.c_str(), screenWidth - fpsWidth - 10, screenHeight - 60, 16, GREEN);
+            
+            // Frame time
+            std::stringstream ss;
+            ss << std::fixed << std::setprecision(2) << GetFrameTime() * 1000.0f << " ms";
+            std::string frameTimeText = ss.str();
+            int frameTimeWidth = MeasureText(frameTimeText.c_str(), 14);
+            DrawText(frameTimeText.c_str(), screenWidth - frameTimeWidth - 10, screenHeight - 40, 14, LIGHTGRAY);
+            
+            // Entity count
+            if (currentScene) {
+                int entityCount = 0;
+                auto view = currentScene->registry.view<entt::entity>();
+                for (auto entity : view) {
+                    entityCount++;
+                }
+                std::string entityText = "Entities: " + std::to_string(entityCount);
+                int entityWidth = MeasureText(entityText.c_str(), 14);
+                DrawText(entityText.c_str(), screenWidth - entityWidth - 10, screenHeight - 20, 14, LIGHTGRAY);
+            }
         }
         
         EndDrawing();
@@ -343,10 +417,173 @@ void Engine::registerEngineCommands() {
             console->addLine("  Texture: test_sprite", WHITE);
         }, "List all loaded resources");
     
+    // render.stats command
+    REGISTER_COMMAND(commandProcessor, "render.stats",
+        ([this](const std::vector<std::string>& args) {
+            if (!currentScene) {
+                console->addLine("No active scene", RED);
+                return;
+            }
+            
+            auto view = currentScene->registry.view<TransformComponent, Sprite>();
+            size_t spriteCount = 0;
+            for (auto entity : view) {
+                const auto& sprite = view.get<Sprite>(entity);
+                if (sprite.texture != nullptr) {
+                    spriteCount++;
+                }
+            }
+            
+            std::stringstream ss;
+            ss << "Render Statistics:\n";
+            ss << "  FPS: " << GetFPS() << "\n";
+            ss << "  Frame Time: " << std::fixed << std::setprecision(3) << GetFrameTime() * 1000 << " ms\n";
+            ss << "  Sprites Rendered: " << spriteCount << "\n";
+            ss << "  Draw Calls: ~" << spriteCount;
+            
+            console->addLine(ss.str(), YELLOW);
+        }), "Display render system statistics");
+    
     // quit command override
     REGISTER_COMMAND(commandProcessor, "quit",
         [this](const std::vector<std::string>& args) {
             console->addLine("Shutting down...", YELLOW);
             requestQuit();
         }, "Quit the application");
+    
+    // debug.toggle command
+    REGISTER_COMMAND(commandProcessor, "debug.toggle",
+        ([this](const std::vector<std::string>& args) {
+            showDebugInfo = !showDebugInfo;
+            console->addLine("Debug info " + std::string(showDebugInfo ? "enabled" : "disabled"), YELLOW);
+        }), "Toggle debug info display");
+    
+    // console.fps command
+    REGISTER_COMMAND(commandProcessor, "console.fps",
+        ([this](const std::vector<std::string>& args) {
+            bool currentState = console->isShowingFPS();
+            console->setShowFPS(!currentState);
+            console->addLine("Console FPS display " + std::string(!currentState ? "enabled" : "disabled"), YELLOW);
+        }), "Toggle FPS display in console");
+    
+    // engine.fps command
+    REGISTER_COMMAND(commandProcessor, "engine.fps",
+        ([this](const std::vector<std::string>& args) {
+            if (args.empty()) {
+                console->addLine("Usage: engine.fps <limit>", RED);
+                console->addLine("  limit: 0 (unlimited), 30, 60, 120, 144, 240", GRAY);
+                console->addLine("Current FPS limit: " + std::string(targetFPS == 0 ? "Unlimited" : std::to_string(targetFPS)), YELLOW);
+                return;
+            }
+            
+            try {
+                int newFPS = std::stoi(args[0]);
+                if (newFPS < 0) {
+                    console->addLine("Invalid FPS limit. Use 0 for unlimited.", RED);
+                    return;
+                }
+                
+                targetFPS = newFPS;
+                SetTargetFPS(targetFPS);
+                
+                if (targetFPS == 0) {
+                    console->addLine("FPS limit removed - running at maximum speed", GREEN);
+                } else {
+                    console->addLine("FPS limit set to " + std::to_string(targetFPS), GREEN);
+                }
+            } catch (const std::exception& e) {
+                console->addLine("Invalid FPS value: " + args[0], RED);
+            }
+        }), "Set FPS limit (0 for unlimited)");
+    
+    // engine.vsync command
+    REGISTER_COMMAND(commandProcessor, "engine.vsync",
+        ([this](const std::vector<std::string>& args) {
+            vsyncEnabled = !vsyncEnabled;
+            
+            if (vsyncEnabled) {
+                SetWindowState(FLAG_VSYNC_HINT);
+                console->addLine("V-Sync enabled", GREEN);
+            } else {
+                ClearWindowState(FLAG_VSYNC_HINT);
+                console->addLine("V-Sync disabled", GREEN);
+            }
+        }), "Toggle V-Sync");
+    
+    // engine.diag command
+    REGISTER_COMMAND(commandProcessor, "engine.diag",
+        ([this](const std::vector<std::string>& args) {
+            std::stringstream ss;
+            ss << "Performance Diagnostics:\n";
+            ss << "  Window Focused: " << (IsWindowFocused() ? "Yes" : "No") << "\n";
+            ss << "  Window Hidden: " << (IsWindowHidden() ? "Yes" : "No") << "\n";
+            ss << "  Window Minimized: " << (IsWindowMinimized() ? "Yes" : "No") << "\n";
+            ss << "  V-Sync: " << (vsyncEnabled ? "Enabled" : "Disabled") << "\n";
+            ss << "  Target FPS: " << (targetFPS == 0 ? "Unlimited" : std::to_string(targetFPS)) << "\n";
+            ss << "  Current FPS: " << GetFPS() << "\n";
+            ss << "  Frame Time: " << std::fixed << std::setprecision(3) << GetFrameTime() * 1000 << " ms\n";
+            
+            #ifdef __APPLE__
+            ss << "  Platform: macOS (pthread priority set)\n";
+            #else
+            ss << "  Platform: Other\n";
+            #endif
+            
+            console->addLine(ss.str(), YELLOW);
+        }), "Show performance diagnostics");
+    
+    // logs.open command
+    REGISTER_COMMAND(commandProcessor, "logs.open",
+        ([this](const std::vector<std::string>& args) {
+            std::string logsPath = std::filesystem::absolute("logs").string();
+            
+            #ifdef _WIN32
+                std::string command = "explorer \"" + logsPath + "\"";
+            #elif __APPLE__
+                std::string command = "open \"" + logsPath + "\"";
+            #else
+                std::string command = "xdg-open \"" + logsPath + "\"";
+            #endif
+            
+            int result = std::system(command.c_str());
+            if (result == 0) {
+                console->addLine("Opened logs folder: " + logsPath, GREEN);
+            } else {
+                console->addLine("Failed to open logs folder", RED);
+                console->addLine("Path: " + logsPath, GRAY);
+            }
+        }), "Open logs folder in file manager");
+    
+    // logs.list command
+    REGISTER_COMMAND(commandProcessor, "logs.list",
+        ([this](const std::vector<std::string>& args) {
+            try {
+                if (!std::filesystem::exists("logs")) {
+                    console->addLine("No logs directory found", YELLOW);
+                    return;
+                }
+                
+                console->addLine("Log files:", YELLOW);
+                int count = 0;
+                
+                for (const auto& entry : std::filesystem::directory_iterator("logs")) {
+                    if (entry.path().extension() == ".log") {
+                        auto fileSize = std::filesystem::file_size(entry.path());
+                        std::stringstream ss;
+                        ss << "  " << entry.path().filename().string() 
+                           << " (" << fileSize / 1024 << " KB)";
+                        console->addLine(ss.str(), WHITE);
+                        count++;
+                    }
+                }
+                
+                if (count == 0) {
+                    console->addLine("  No log files found", GRAY);
+                } else {
+                    console->addLine("Total: " + std::to_string(count) + " log files", GRAY);
+                }
+            } catch (const std::exception& e) {
+                console->addLine("Error listing logs: " + std::string(e.what()), RED);
+            }
+        }), "List all log files");
 }

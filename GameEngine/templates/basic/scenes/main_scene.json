@@ -1,0 +1,20 @@
+{
+    "name": "main_scene",
+    "entities": [
+        {
+            "name": "Player",
+            "components": {
+                "Transform": {
+                    "position": [0, 0, 0],
+                    "rotation": [0, 0, 0],
+                    "scale": [1, 1, 1]
+                },
+                "Sprite": {
+                    "texture": "player.png",
+                    "source": [0, 0, 32, 32],
+                    "tint": [255, 255, 255, 255]
+                }
+            }
+        }
+    ]
+}

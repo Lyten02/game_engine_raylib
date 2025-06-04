@@ -12,6 +12,10 @@ class Console;
 class CommandProcessor;
 class ScriptManager;
 
+namespace GameEngine {
+    class ProjectManager;
+}
+
 class Engine {
 public:
     Engine();
@@ -33,6 +37,7 @@ public:
     Console* getConsole() const { return console.get(); }
     CommandProcessor* getCommandProcessor() const { return commandProcessor.get(); }
     ScriptManager* getScriptManager() const { return scriptManager.get(); }
+    GameEngine::ProjectManager* getProjectManager() const { return projectManager.get(); }
     
     // Engine control
     void requestQuit() { running = false; }
@@ -54,6 +59,9 @@ private:
     
     // Scripting
     std::unique_ptr<ScriptManager> scriptManager;
+    
+    // Project management
+    std::unique_ptr<GameEngine::ProjectManager> projectManager;
     
     // Current active scene
     std::unique_ptr<Scene> currentScene;

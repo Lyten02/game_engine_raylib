@@ -11,6 +11,9 @@
 #include "console/command_registry.h"
 #include "utils/config.h"
 #include "scripting/script_manager.h"
+#include "project/project_manager.h"
+#include "project/project.h"
+#include "project/project_validator.h"
 
 // Standard library includes
 #include <iostream>
@@ -151,34 +154,13 @@ bool Engine::initialize() {
         }
     }
     
-    // Create a test scene
-    currentScene = std::make_unique<Scene>();
-    currentScene->onCreate();
+    // Initialize project manager
+    projectManager = std::make_unique<GameEngine::ProjectManager>();
+    spdlog::info("Engine::initialize - Project manager initialized");
+    console->addLine("Project Manager initialized. Use 'project.create' or 'project.open' to begin.", YELLOW);
     
-    // Load test texture
-    Texture2D* testTexture = resourceManager->loadTexture("assets/textures/test_sprite.png", "test_sprite");
-    
-    if (testTexture) {
-        // Create a test entity with Transform and Sprite components
-        auto testEntity = currentScene->registry.create();
-        currentScene->registry.emplace<TransformComponent>(testEntity, 
-            TransformComponent{
-                Vector3{100.0f, 100.0f, 0.0f},    // Position
-                Vector3{0.0f, 0.0f, 0.0f},        // No rotation
-                Vector3{1.0f, 1.0f, 1.0f}         // Normal scale
-            }
-        );
-        
-        // Create sprite component with loaded texture
-        Sprite& sprite = currentScene->registry.emplace<Sprite>(testEntity);
-        sprite.texture = testTexture;
-        sprite.sourceRect = {0.0f, 0.0f, 64.0f, 64.0f};  // Full texture
-        sprite.tint = WHITE;
-        
-        spdlog::info("Engine::initialize - Test scene created with textured entity");
-    } else {
-        spdlog::error("Engine::initialize - Failed to load test texture");
-    }
+    // Don't create a test scene - wait for user to create/open a project
+    spdlog::info("Engine::initialize - Engine initialized in project management mode");
     
     running = true;
     spdlog::info("Engine::initialize - Engine initialized successfully ({}x{}, \"{}\")", 
@@ -206,8 +188,8 @@ void Engine::run() {
             console->update(deltaTime);
         }
         
-        // Update the current scene
-        if (currentScene && !console->isOpen()) {
+        // Update the current scene only if a project is loaded
+        if (currentScene && !console->isOpen() && projectManager && projectManager->getCurrentProject()) {
             currentScene->onUpdate(deltaTime);
         }
         
@@ -287,6 +269,13 @@ void Engine::shutdown() {
         scriptManager->shutdown();
         scriptManager.reset();
         spdlog::info("Engine::shutdown - Script manager shut down");
+    }
+    
+    // Cleanup project manager
+    if (projectManager) {
+        projectManager->closeProject();
+        projectManager.reset();
+        spdlog::info("Engine::shutdown - Project manager shut down");
     }
     
     // Cleanup scene
@@ -753,4 +742,142 @@ void Engine::registerEngineCommands() {
                 }
             }), "Execute Lua code directly");
     }
+    
+    // Project management commands
+    REGISTER_COMMAND(commandProcessor, "project.create",
+        ([this](const std::vector<std::string>& args) {
+            if (args.empty()) {
+                console->addLine("Usage: project.create <name>", RED);
+                return;
+            }
+            
+            if (projectManager->createProject(args[0])) {
+                console->addLine("Project created: " + args[0], GREEN);
+                console->addLine("Use 'project.open " + args[0] + "' to open it", YELLOW);
+            } else {
+                console->addLine("Failed to create project: " + args[0], RED);
+            }
+        }), "Create a new project");
+    
+    REGISTER_COMMAND(commandProcessor, "project.open",
+        ([this](const std::vector<std::string>& args) {
+            if (args.empty()) {
+                console->addLine("Usage: project.open <name>", RED);
+                return;
+            }
+            
+            if (projectManager->openProject(args[0])) {
+                console->addLine("Project opened: " + args[0], GREEN);
+                
+                // Create a new scene for the project
+                if (!currentScene) {
+                    currentScene = std::make_unique<Scene>();
+                    currentScene->onCreate();
+                }
+            } else {
+                console->addLine("Failed to open project: " + args[0], RED);
+            }
+        }), "Open an existing project");
+    
+    REGISTER_COMMAND(commandProcessor, "project.close",
+        ([this](const std::vector<std::string>& args) {
+            if (!projectManager->getCurrentProject()) {
+                console->addLine("No project currently open", RED);
+                return;
+            }
+            
+            // Destroy current scene
+            if (currentScene) {
+                currentScene->onDestroy();
+                currentScene.reset();
+            }
+            
+            projectManager->closeProject();
+            console->addLine("Project closed", YELLOW);
+        }), "Close the current project");
+    
+    REGISTER_COMMAND(commandProcessor, "project.list",
+        ([this](const std::vector<std::string>& args) {
+            auto projects = projectManager->listProjects();
+            if (projects.empty()) {
+                console->addLine("No projects found", YELLOW);
+                console->addLine("Use 'project.create <name>' to create a new project", GRAY);
+            } else {
+                console->addLine("Available projects:", YELLOW);
+                for (const auto& project : projects) {
+                    console->addLine("  " + project, WHITE);
+                }
+            }
+        }), "List all projects");
+    
+    REGISTER_COMMAND(commandProcessor, "project.current",
+        ([this](const std::vector<std::string>& args) {
+            if (auto* project = projectManager->getCurrentProject()) {
+                console->addLine("Current project: " + project->getName(), YELLOW);
+                console->addLine("Path: " + project->getPath(), GRAY);
+            } else {
+                console->addLine("No project currently open", YELLOW);
+            }
+        }), "Show current project info");
+    
+    // Scene management commands
+    REGISTER_COMMAND(commandProcessor, "scene.create",
+        ([this](const std::vector<std::string>& args) {
+            if (args.empty()) {
+                console->addLine("Usage: scene.create <name>", RED);
+                return;
+            }
+            
+            auto* project = projectManager->getCurrentProject();
+            if (!project) {
+                console->addLine("No project open. Use 'project.open <name>' first", RED);
+                return;
+            }
+            
+            if (project->createScene(args[0])) {
+                console->addLine("Scene created: " + args[0], GREEN);
+            } else {
+                console->addLine("Failed to create scene: " + args[0], RED);
+            }
+        }), "Create a new scene in the current project");
+    
+    REGISTER_COMMAND(commandProcessor, "scene.delete",
+        ([this](const std::vector<std::string>& args) {
+            if (args.empty()) {
+                console->addLine("Usage: scene.delete <name>", RED);
+                return;
+            }
+            
+            auto* project = projectManager->getCurrentProject();
+            if (!project) {
+                console->addLine("No project open", RED);
+                return;
+            }
+            
+            if (project->deleteScene(args[0])) {
+                console->addLine("Scene deleted: " + args[0], GREEN);
+            } else {
+                console->addLine("Failed to delete scene: " + args[0], RED);
+            }
+        }), "Delete a scene from the current project");
+    
+    REGISTER_COMMAND(commandProcessor, "scene.list",
+        ([this](const std::vector<std::string>& args) {
+            auto* project = projectManager->getCurrentProject();
+            if (!project) {
+                console->addLine("No project open", RED);
+                return;
+            }
+            
+            auto scenes = project->getScenes();
+            if (scenes.empty()) {
+                console->addLine("No scenes in project", YELLOW);
+                console->addLine("Use 'scene.create <name>' to create a scene", GRAY);
+            } else {
+                console->addLine("Scenes in project:", YELLOW);
+                for (const auto& scene : scenes) {
+                    console->addLine("  " + scene, WHITE);
+                }
+            }
+        }), "List all scenes in the current project");
 }

@@ -66,6 +66,9 @@ add_executable(game
     src/utils/config.cpp
     src/scripting/script_manager.cpp
     src/scripting/lua_bindings.cpp
+    src/project/project.cpp
+    src/project/project_manager.cpp
+    src/project/project_validator.cpp
 )
 
 # Include directories
@@ -92,3 +95,9 @@ file(COPY ${CMAKE_SOURCE_DIR}/scripts DESTINATION ${CMAKE_BINARY_DIR})
 
 # Copy config.json to build directory
 file(COPY ${CMAKE_SOURCE_DIR}/config.json DESTINATION ${CMAKE_BINARY_DIR})
+
+# Copy templates directory to build directory
+file(COPY ${CMAKE_SOURCE_DIR}/templates DESTINATION ${CMAKE_BINARY_DIR})
+
+# Create projects directory in build directory
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/projects)

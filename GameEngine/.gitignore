@@ -1,0 +1,64 @@
+# Build directories
+build/
+cmake-build-*/
+out/
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Compiled output
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# Log files
+logs/
+*.log
+
+# Package manager directories
+vcpkg_installed/
+conan/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# Assets (if large)
+assets/textures/large/
+assets/models/large/
+assets/sounds/large/
+
+# User-specific files
+*.user
+*.userosscache
+*.suo
+*.sublime-project
+*.sublime-workspace
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+env/
+venv/
+.env
+
+# Documentation build
+docs/_build/
+docs/_static/
+docs/_templates/

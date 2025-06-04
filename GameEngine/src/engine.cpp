@@ -14,6 +14,10 @@
 #include "project/project_manager.h"
 #include "project/project.h"
 #include "project/project_validator.h"
+#include "serialization/scene_serializer.h"
+#include "serialization/component_registry.h"
+#include "build/build_system.h"
+#include "build/async_build_system.h"
 
 // Standard library includes
 #include <iostream>
@@ -25,6 +29,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
+
 
 // spdlog includes
 #include <spdlog/sinks/basic_file_sink.h>
@@ -159,6 +164,16 @@ bool Engine::initialize() {
     spdlog::info("Engine::initialize - Project manager initialized");
     console->addLine("Project Manager initialized. Use 'project.create' or 'project.open' to begin.", YELLOW);
     
+    // Initialize build system
+    buildSystem = std::make_unique<GameEngine::BuildSystem>();
+    asyncBuildSystem = std::make_unique<GameEngine::AsyncBuildSystem>();
+    spdlog::info("Engine::initialize - Build system initialized");
+    
+    // Register components for serialization
+    GameEngine::ComponentRegistry::getInstance().registerComponent<TransformComponent>("Transform");
+    GameEngine::ComponentRegistry::getInstance().registerComponent<Sprite>("Sprite");
+    spdlog::info("Engine::initialize - Components registered for serialization");
+    
     // Don't create a test scene - wait for user to create/open a project
     spdlog::info("Engine::initialize - Engine initialized in project management mode");
     
@@ -193,6 +208,16 @@ void Engine::run() {
             currentScene->onUpdate(deltaTime);
         }
         
+        // Check for async build messages
+        if (asyncBuildSystem && asyncBuildSystem->getStatus() == GameEngine::AsyncBuildSystem::BuildStatus::InProgress) {
+            while (asyncBuildSystem->hasMessages()) {
+                std::string msg = asyncBuildSystem->getNextMessage();
+                if (!msg.empty()) {
+                    console->addLine(msg, GRAY);
+                }
+            }
+        }
+        
         // Draw phase
         BeginDrawing();
         ClearBackground(GRAY);
@@ -210,6 +235,33 @@ void Engine::run() {
         // Draw help text if console is not open
         if (console && !console->isOpen()) {
             DrawText("Press F1 to open console", 10, 10, 20, LIGHTGRAY);
+            
+            // Show build progress if building
+            if (asyncBuildSystem && asyncBuildSystem->getStatus() == GameEngine::AsyncBuildSystem::BuildStatus::InProgress) {
+                float progress = asyncBuildSystem->getProgress();
+                std::string status = asyncBuildSystem->getCurrentStep();
+                
+                int barWidth = 400;
+                int barHeight = 20;
+                int barX = (GetScreenWidth() - barWidth) / 2;
+                int barY = GetScreenHeight() / 2;
+                
+                // Draw progress bar background
+                DrawRectangle(barX - 2, barY - 2, barWidth + 4, barHeight + 4, BLACK);
+                DrawRectangle(barX, barY, barWidth, barHeight, DARKGRAY);
+                
+                // Draw progress
+                DrawRectangle(barX, barY, (int)(barWidth * progress), barHeight, GREEN);
+                
+                // Draw status text
+                int textWidth = MeasureText(status.c_str(), 16);
+                DrawText(status.c_str(), (GetScreenWidth() - textWidth) / 2, barY - 25, 16, WHITE);
+                
+                // Draw percentage
+                std::string percentText = std::to_string((int)(progress * 100)) + "%";
+                int percentWidth = MeasureText(percentText.c_str(), 14);
+                DrawText(percentText.c_str(), (GetScreenWidth() - percentWidth) / 2, barY + barHeight + 5, 14, WHITE);
+            }
         }
         
         // Draw debug info in bottom right corner
@@ -880,4 +932,155 @@ void Engine::registerEngineCommands() {
                 }
             }
         }), "List all scenes in the current project");
+    
+    // Scene serialization commands
+    REGISTER_COMMAND(commandProcessor, "scene.save",
+        ([this](const std::vector<std::string>& args) {
+            if (args.empty()) {
+                console->addLine("Usage: scene.save <name>", RED);
+                return;
+            }
+            
+            auto* project = projectManager->getCurrentProject();
+            if (!project) {
+                console->addLine("No project open", RED);
+                return;
+            }
+            
+            if (!currentScene) {
+                console->addLine("No active scene to save", RED);
+                return;
+            }
+            
+            std::string scenePath = project->getPath() + "/scenes/" + args[0] + ".json";
+            if (GameEngine::SceneSerializer::saveScene(currentScene.get(), scenePath)) {
+                console->addLine("Scene saved: " + args[0], GREEN);
+                
+                // Add to project if new
+                bool isNew = true;
+                for (const auto& scene : project->getScenes()) {
+                    if (scene == args[0]) {
+                        isNew = false;
+                        break;
+                    }
+                }
+                if (isNew) {
+                    project->createScene(args[0]);
+                }
+            } else {
+                console->addLine("Failed to save scene", RED);
+            }
+        }), "Save current scene to JSON");
+    
+    REGISTER_COMMAND(commandProcessor, "scene.load",
+        ([this](const std::vector<std::string>& args) {
+            if (args.empty()) {
+                console->addLine("Usage: scene.load <name>", RED);
+                return;
+            }
+            
+            auto* project = projectManager->getCurrentProject();
+            if (!project) {
+                console->addLine("No project open", RED);
+                return;
+            }
+            
+            std::string scenePath = project->getPath() + "/scenes/" + args[0] + ".json";
+            
+            if (!currentScene) {
+                currentScene = std::make_unique<Scene>();
+                currentScene->onCreate();
+            }
+            
+            if (GameEngine::SceneSerializer::loadScene(currentScene.get(), scenePath)) {
+                console->addLine("Scene loaded: " + args[0], GREEN);
+            } else {
+                console->addLine("Failed to load scene: " + args[0], RED);
+            }
+        }), "Load scene from JSON");
+    
+    // Build commands
+    REGISTER_COMMAND(commandProcessor, "project.build",
+        ([this](const std::vector<std::string>& args) {
+            auto* project = projectManager->getCurrentProject();
+            if (!project) {
+                console->addLine("No project open", RED);
+                return;
+            }
+            
+            if (asyncBuildSystem->getStatus() == GameEngine::AsyncBuildSystem::BuildStatus::InProgress) {
+                console->addLine("Build already in progress!", YELLOW);
+                return;
+            }
+            
+            console->addLine("Starting build for project: " + project->getName() + "...", YELLOW);
+            
+            std::string buildConfig = args.empty() ? "Release" : args[0];
+            asyncBuildSystem->startBuild(project, buildConfig);
+            
+            console->addLine("Build started. Check console for progress.", GREEN);
+        }), "Build the current project");
+    
+    REGISTER_COMMAND(commandProcessor, "project.run",
+        ([this](const std::vector<std::string>& args) {
+            auto* project = projectManager->getCurrentProject();
+            if (!project) {
+                console->addLine("No project open", RED);
+                return;
+            }
+            
+            std::string exePath = "output/" + project->getName() + "/bin/";
+            #ifdef _WIN32
+                exePath += project->getName() + ".exe";
+            #else
+                exePath += project->getName();
+            #endif
+            
+            if (!std::filesystem::exists(exePath)) {
+                console->addLine("Executable not found. Build the project first.", RED);
+                return;
+            }
+            
+            console->addLine("Running: " + exePath, YELLOW);
+            
+            // Change to the executable directory before running
+            std::string exeDir = std::filesystem::path(exePath).parent_path().string();
+            
+            #ifdef _WIN32
+                std::string command = "cd /d \"" + exeDir + "\" && start \"\" \"" + project->getName() + ".exe\"";
+            #elif __APPLE__
+                std::string command = "cd \"" + exeDir + "\" && ./" + project->getName() + " &";
+            #else
+                std::string command = "cd \"" + exeDir + "\" && ./" + project->getName() + " &";
+            #endif
+            
+            int result = std::system(command.c_str());
+            if (result == 0) {
+                console->addLine("Game launched successfully", GREEN);
+            } else {
+                console->addLine("Failed to launch game", RED);
+            }
+        }), "Run the built project");
+    
+    REGISTER_COMMAND(commandProcessor, "build.clean",
+        ([this](const std::vector<std::string>& args) {
+            auto* project = projectManager->getCurrentProject();
+            if (!project) {
+                console->addLine("No project open", RED);
+                return;
+            }
+            
+            std::string buildPath = "output/" + project->getName();
+            
+            try {
+                if (std::filesystem::exists(buildPath)) {
+                    std::filesystem::remove_all(buildPath);
+                    console->addLine("Build directory cleaned", GREEN);
+                } else {
+                    console->addLine("Build directory not found", YELLOW);
+                }
+            } catch (const std::exception& e) {
+                console->addLine("Failed to clean build directory: " + std::string(e.what()), RED);
+            }
+        }), "Clean the build directory");
 }

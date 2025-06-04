@@ -14,6 +14,9 @@ class ScriptManager;
 
 namespace GameEngine {
     class ProjectManager;
+    class SceneSerializer;
+    class BuildSystem;
+    class AsyncBuildSystem;
 }
 
 class Engine {
@@ -62,6 +65,11 @@ private:
     
     // Project management
     std::unique_ptr<GameEngine::ProjectManager> projectManager;
+    
+    // Serialization and build systems
+    std::unique_ptr<GameEngine::SceneSerializer> sceneSerializer;
+    std::unique_ptr<GameEngine::BuildSystem> buildSystem;
+    std::unique_ptr<GameEngine::AsyncBuildSystem> asyncBuildSystem;
     
     // Current active scene
     std::unique_ptr<Scene> currentScene;

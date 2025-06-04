@@ -69,6 +69,11 @@ add_executable(game
     src/project/project.cpp
     src/project/project_manager.cpp
     src/project/project_validator.cpp
+    src/serialization/scene_serializer.cpp
+    src/serialization/component_registry.cpp
+    src/build/build_system.cpp
+    src/build/build_config.cpp
+    src/build/async_build_system.cpp
 )
 
 # Include directories

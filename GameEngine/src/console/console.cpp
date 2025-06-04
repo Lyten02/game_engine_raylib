@@ -1,11 +1,24 @@
 #include "console.h"
 #include "command_processor.h"
+#include "utils/config.h"
 #include <spdlog/spdlog.h>
 #include <algorithm>
 #include <sstream>
 
 void Console::initialize() {
     consoleFont = GetFontDefault();
+    
+    // Load settings from config
+    if (Config::isConfigLoaded()) {
+        fontSize = Config::getInt("console.font_size", 14);
+        maxLines = Config::getInt("console.max_lines", 20);
+        float alpha = Config::getFloat("console.background_alpha", 0.8f);
+        backgroundColor.a = static_cast<unsigned char>(alpha * 255);
+        
+        // Update console height based on max lines
+        consoleHeight = (maxLines * lineSpacing) + 50;
+    }
+    
     spdlog::info("Console::initialize - Developer console initialized");
 }
 
@@ -34,6 +47,7 @@ void Console::show() {
 void Console::hide() {
     isVisible = false;
     currentInput.clear();
+    cursorPosition = 0;
     historyIndex = -1;
     scrollOffset = getMaxScroll();  // Reset to bottom
 }
@@ -61,13 +75,15 @@ void Console::update(float deltaTime) {
         
         // Clear input
         currentInput.clear();
+        cursorPosition = 0;
     }
     
     // Handle backspace with repeat
-    if (IsKeyDown(KEY_BACKSPACE) && !currentInput.empty()) {
+    if (IsKeyDown(KEY_BACKSPACE) && !currentInput.empty() && cursorPosition > 0) {
         if (IsKeyPressed(KEY_BACKSPACE)) {
             // Initial press
-            currentInput.pop_back();
+            currentInput.erase(cursorPosition - 1, 1);
+            cursorPosition--;
             backspaceTimer = 0.0f;
         } else {
             // Key is held down
@@ -76,14 +92,20 @@ void Console::update(float deltaTime) {
                 // Start repeating
                 float repeatTime = backspaceTimer - backspaceDelay;
                 int repeats = static_cast<int>(repeatTime / backspaceRepeat);
-                if (repeats > 0) {
-                    currentInput.pop_back();
+                if (repeats > 0 && cursorPosition > 0) {
+                    currentInput.erase(cursorPosition - 1, 1);
+                    cursorPosition--;
                     backspaceTimer = backspaceDelay + (repeatTime - repeats * backspaceRepeat);
                 }
             }
         }
     } else {
         backspaceTimer = 0.0f;
+    }
+    
+    // Handle Delete key
+    if (IsKeyPressed(KEY_DELETE) && cursorPosition < currentInput.length()) {
+        currentInput.erase(cursorPosition, 1);
     }
     
     // Handle history navigation
@@ -94,6 +116,7 @@ void Console::update(float deltaTime) {
             historyIndex--;
         }
         currentInput = commandHistory[historyIndex];
+        cursorPosition = currentInput.length();
     }
     
     if (IsKeyPressed(KEY_DOWN) && historyIndex != -1) {
@@ -103,14 +126,34 @@ void Console::update(float deltaTime) {
         } else {
             historyIndex = -1;
             currentInput.clear();
+            cursorPosition = 0;
         }
+    }
+    
+    // Handle cursor movement with arrow keys
+    if (IsKeyPressed(KEY_LEFT) && cursorPosition > 0) {
+        cursorPosition--;
+    }
+    
+    if (IsKeyPressed(KEY_RIGHT) && cursorPosition < currentInput.length()) {
+        cursorPosition++;
+    }
+    
+    // Handle HOME and END keys for cursor
+    if (IsKeyPressed(KEY_HOME)) {
+        cursorPosition = 0;
+    }
+    
+    if (IsKeyPressed(KEY_END)) {
+        cursorPosition = currentInput.length();
     }
     
     // Handle text input
     int key = GetCharPressed();
     while (key > 0) {
         if (key >= 32 && key <= 126) {
-            currentInput += static_cast<char>(key);
+            currentInput.insert(cursorPosition, 1, static_cast<char>(key));
+            cursorPosition++;
         }
         key = GetCharPressed();
     }
@@ -200,7 +243,7 @@ void Console::render() {
         int maxLine = std::max(selectionStartLine, selectionEndLine);
         
         for (int i = startLine; i < endLine; i++) {
-            if (i >= minLine - scrollOffset && i <= maxLine - scrollOffset) {
+            if (i >= minLine && i <= maxLine) {
                 int lineY = 10 + (i - startLine) * lineSpacing;
                 DrawRectangle(10, lineY, screenWidth - 40, lineSpacing, {100, 100, 255, 50});
             }
@@ -242,7 +285,8 @@ void Console::render() {
     
     // Draw cursor
     if (static_cast<int>(GetTime() * 2) % 2 == 0) {
-        int cursorX = 10 + MeasureText(inputLine.c_str(), fontSize);
+        std::string beforeCursor = "> " + currentInput.substr(0, cursorPosition);
+        int cursorX = 10 + MeasureText(beforeCursor.c_str(), fontSize);
         DrawRectangle(cursorX, consoleHeight - 30, 2, fontSize, inputColor);
     }
     

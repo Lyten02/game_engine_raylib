@@ -1,0 +1,25 @@
+{
+    "window": {
+        "width": 1280,
+        "height": 720,
+        "title": "Game Engine",
+        "fullscreen": false,
+        "vsync": true,
+        "target_fps": 60
+    },
+    "console": {
+        "enabled": true,
+        "font_size": 14,
+        "background_alpha": 0.8,
+        "max_lines": 20,
+        "toggle_key": "GRAVE"
+    },
+    "rendering": {
+        "clear_color": [64, 64, 64, 255]
+    },
+    "scripting": {
+        "lua_enabled": true,
+        "auto_reload": true,
+        "script_directory": "scripts/"
+    }
+}

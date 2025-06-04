@@ -10,6 +10,7 @@ class Console {
 private:
     std::vector<std::string> outputLines;
     std::string currentInput;
+    size_t cursorPosition = 0;  // Position of cursor in currentInput
     std::vector<std::string> commandHistory;
     int historyIndex = -1;
     bool isVisible = false;
@@ -18,11 +19,11 @@ private:
     float consoleHeight = 300.0f;
     
     // Visual settings
-    const int fontSize = 16;
-    const int lineSpacing = 20;
-    const Color backgroundColor = {0, 0, 0, 200};
-    const Color textColor = WHITE;
-    const Color inputColor = GREEN;
+    int fontSize = 16;
+    int lineSpacing = 20;
+    Color backgroundColor = {0, 0, 0, 200};
+    Color textColor = WHITE;
+    Color inputColor = GREEN;
     
     // Store colored output
     struct ColoredLine {

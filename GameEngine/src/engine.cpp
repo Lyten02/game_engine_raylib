@@ -9,6 +9,8 @@
 #include "console/console.h"
 #include "console/command_processor.h"
 #include "console/command_registry.h"
+#include "utils/config.h"
+#include "scripting/script_manager.h"
 
 // Standard library includes
 #include <iostream>
@@ -28,11 +30,27 @@
 Engine::Engine() = default;
 Engine::~Engine() = default;
 
-bool Engine::initialize(int width, int height, const std::string& title) {
+bool Engine::initialize() {
     spdlog::info("Engine::initialize - Starting engine initialization");
+    
+    // Load configuration
+    if (!Config::load("config.json")) {
+        spdlog::warn("Engine::initialize - Failed to load config.json, using defaults");
+    }
+    
+    // Get window settings from config
+    int width = Config::getInt("window.width", 1280);
+    int height = Config::getInt("window.height", 720);
+    std::string title = Config::getString("window.title", "Game Engine");
+    bool fullscreen = Config::getBool("window.fullscreen", false);
+    vsyncEnabled = Config::getBool("window.vsync", true);
+    targetFPS = Config::getInt("window.target_fps", 60);
     
     // Configure window before initialization
     SetConfigFlags(FLAG_WINDOW_HIGHDPI);  // High DPI support
+    if (fullscreen) {
+        SetConfigFlags(FLAG_FULLSCREEN_MODE);
+    }
     
     // Initialize Raylib window
     InitWindow(width, height, title.c_str());
@@ -42,9 +60,13 @@ bool Engine::initialize(int width, int height, const std::string& title) {
         return false;
     }
     
-    // Disable V-Sync for maximum performance
-    ClearWindowState(FLAG_VSYNC_HINT);
-    SetTargetFPS(0);  // 0 = no limit
+    // Apply V-Sync and FPS settings from config
+    if (vsyncEnabled) {
+        SetWindowState(FLAG_VSYNC_HINT);
+    } else {
+        ClearWindowState(FLAG_VSYNC_HINT);
+    }
+    SetTargetFPS(targetFPS);
     
     // Disable event waiting to prevent FPS drops
     SetExitKey(0);  // Disable ESC key exit
@@ -111,6 +133,23 @@ bool Engine::initialize(int width, int height, const std::string& title) {
     // Add initial console message
     console->addLine("Developer Console initialized. Press F1 to toggle.", YELLOW);
     console->addLine("Type 'help' for a list of commands.", GRAY);
+    
+    // Initialize script manager if enabled
+    if (Config::getBool("scripting.lua_enabled", true)) {
+        scriptManager = std::make_unique<ScriptManager>();
+        if (scriptManager->initialize()) {
+            spdlog::info("Engine::initialize - Script manager initialized");
+            
+            // Execute test script
+            std::string scriptDir = Config::getString("scripting.script_directory", "scripts/");
+            if (scriptManager->executeScript(scriptDir + "test.lua")) {
+                console->addLine("Lua scripting initialized successfully", GREEN);
+            }
+        } else {
+            spdlog::error("Engine::initialize - Failed to initialize script manager");
+            scriptManager.reset();
+        }
+    }
     
     // Create a test scene
     currentScene = std::make_unique<Scene>();
@@ -241,6 +280,13 @@ void Engine::shutdown() {
     if (commandProcessor) {
         commandProcessor.reset();
         spdlog::info("Engine::shutdown - Command processor shut down");
+    }
+    
+    // Cleanup script manager
+    if (scriptManager) {
+        scriptManager->shutdown();
+        scriptManager.reset();
+        spdlog::info("Engine::shutdown - Script manager shut down");
     }
     
     // Cleanup scene
@@ -586,4 +632,125 @@ void Engine::registerEngineCommands() {
                 console->addLine("Error listing logs: " + std::string(e.what()), RED);
             }
         }), "List all log files");
+    
+    // config.reload command
+    REGISTER_COMMAND(commandProcessor, "config.reload",
+        ([this](const std::vector<std::string>& args) {
+            Config::reload();
+            console->addLine("Configuration reloaded", GREEN);
+            
+            // Apply new settings
+            vsyncEnabled = Config::getBool("window.vsync", true);
+            targetFPS = Config::getInt("window.target_fps", 60);
+            
+            if (vsyncEnabled) {
+                SetWindowState(FLAG_VSYNC_HINT);
+            } else {
+                ClearWindowState(FLAG_VSYNC_HINT);
+            }
+            SetTargetFPS(targetFPS);
+            
+            console->addLine("Window settings updated", YELLOW);
+        }), "Reload configuration from config.json");
+    
+    // config.get command
+    REGISTER_COMMAND(commandProcessor, "config.get",
+        ([this](const std::vector<std::string>& args) {
+            if (args.empty()) {
+                console->addLine("Usage: config.get <key>", RED);
+                return;
+            }
+            
+            auto value = Config::get(args[0]);
+            if (value.is_null()) {
+                console->addLine("Key not found: " + args[0], RED);
+            } else {
+                console->addLine(args[0] + " = " + value.dump(), YELLOW);
+            }
+        }), "Get configuration value by key");
+    
+    // config.set command
+    REGISTER_COMMAND(commandProcessor, "config.set",
+        ([this](const std::vector<std::string>& args) {
+            if (args.size() < 2) {
+                console->addLine("Usage: config.set <key> <value>", RED);
+                return;
+            }
+            
+            try {
+                // Try to parse as JSON first
+                nlohmann::json value = nlohmann::json::parse(args[1]);
+                Config::set(args[0], value);
+                console->addLine("Set " + args[0] + " = " + value.dump(), GREEN);
+            } catch (...) {
+                // If not valid JSON, treat as string
+                Config::set(args[0], args[1]);
+                console->addLine("Set " + args[0] + " = \"" + args[1] + "\"", GREEN);
+            }
+        }), "Set configuration value (runtime only)");
+    
+    // script.execute command
+    if (scriptManager) {
+        REGISTER_COMMAND(commandProcessor, "script.execute",
+            ([this](const std::vector<std::string>& args) {
+                if (args.empty()) {
+                    console->addLine("Usage: script.execute <path>", RED);
+                    return;
+                }
+                
+                if (scriptManager->executeScript(args[0])) {
+                    console->addLine("Script executed: " + args[0], GREEN);
+                } else {
+                    console->addLine("Failed to execute script: " + args[0], RED);
+                }
+            }), "Execute a Lua script");
+        
+        // script.reload command
+        REGISTER_COMMAND(commandProcessor, "script.reload",
+            ([this](const std::vector<std::string>& args) {
+                if (args.empty()) {
+                    console->addLine("Usage: script.reload <path>", RED);
+                    return;
+                }
+                
+                scriptManager->reloadScript(args[0]);
+                console->addLine("Script reloaded: " + args[0], GREEN);
+            }), "Reload and execute a Lua script");
+        
+        // script.list command
+        REGISTER_COMMAND(commandProcessor, "script.list",
+            ([this](const std::vector<std::string>& args) {
+                auto scripts = scriptManager->getLoadedScripts();
+                if (scripts.empty()) {
+                    console->addLine("No scripts loaded", YELLOW);
+                } else {
+                    console->addLine("Loaded scripts:", YELLOW);
+                    for (const auto& script : scripts) {
+                        console->addLine("  " + script, WHITE);
+                    }
+                }
+            }), "List all loaded scripts");
+        
+        // script.eval command
+        REGISTER_COMMAND(commandProcessor, "script.eval",
+            ([this](const std::vector<std::string>& args) {
+                if (args.empty()) {
+                    console->addLine("Usage: script.eval <lua code>", RED);
+                    return;
+                }
+                
+                // Join all arguments as Lua code
+                std::string luaCode;
+                for (size_t i = 0; i < args.size(); ++i) {
+                    if (i > 0) luaCode += " ";
+                    luaCode += args[i];
+                }
+                
+                if (scriptManager->executeString(luaCode)) {
+                    console->addLine("Lua code executed", GREEN);
+                } else {
+                    console->addLine("Lua execution failed", RED);
+                }
+            }), "Execute Lua code directly");
+    }
 }

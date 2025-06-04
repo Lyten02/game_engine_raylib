@@ -39,8 +39,18 @@ FetchContent_Declare(
     GIT_TAG 1.0.1
 )
 
+# Download and configure nlohmann/json
+FetchContent_Declare(
+    json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.11.3
+)
+
 # Make dependencies available
-FetchContent_MakeAvailable(raylib spdlog EnTT glm)
+FetchContent_MakeAvailable(raylib spdlog EnTT glm json)
+
+# Find Lua
+find_package(Lua REQUIRED)
 
 # Add executable
 add_executable(game 
@@ -53,10 +63,16 @@ add_executable(game
     src/console/command_processor.cpp
     src/utils/file_utils.cpp
     src/utils/string_utils.cpp
+    src/utils/config.cpp
+    src/scripting/script_manager.cpp
+    src/scripting/lua_bindings.cpp
 )
 
 # Include directories
-target_include_directories(game PRIVATE src)
+target_include_directories(game PRIVATE 
+    src
+    ${LUA_INCLUDE_DIR}
+)
 
 # Link libraries
 target_link_libraries(game 
@@ -64,7 +80,15 @@ target_link_libraries(game
     spdlog::spdlog
     EnTT::EnTT
     glm::glm
+    nlohmann_json::nlohmann_json
+    ${LUA_LIBRARIES}
 )
 
 # Copy assets directory to build directory
 file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})
+
+# Copy scripts directory to build directory
+file(COPY ${CMAKE_SOURCE_DIR}/scripts DESTINATION ${CMAKE_BINARY_DIR})
+
+# Copy config.json to build directory
+file(COPY ${CMAKE_SOURCE_DIR}/config.json DESTINATION ${CMAKE_BINARY_DIR})

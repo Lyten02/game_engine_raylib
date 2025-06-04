@@ -16,8 +16,8 @@ int main() {
     // Create engine instance
     Engine engine;
     
-    // Initialize engine
-    if (!engine.initialize(1280, 720, "Game Engine")) {
+    // Initialize engine (loads config automatically)
+    if (!engine.initialize()) {
         spdlog::error("Failed to initialize engine");
         return -1;
     }

@@ -10,14 +10,15 @@ class Scene;
 class ResourceManager;
 class Console;
 class CommandProcessor;
+class ScriptManager;
 
 class Engine {
 public:
     Engine();
     ~Engine();
     
-    // Initialize the engine with window parameters
-    bool initialize(int width, int height, const std::string& title);
+    // Initialize the engine (loads config and uses those parameters)
+    bool initialize();
     
     // Main game loop
     void run();
@@ -31,6 +32,7 @@ public:
     ResourceManager* getResourceManager() const { return resourceManager.get(); }
     Console* getConsole() const { return console.get(); }
     CommandProcessor* getCommandProcessor() const { return commandProcessor.get(); }
+    ScriptManager* getScriptManager() const { return scriptManager.get(); }
     
     // Engine control
     void requestQuit() { running = false; }
@@ -49,6 +51,9 @@ private:
     // Developer console
     std::unique_ptr<Console> console;
     std::unique_ptr<CommandProcessor> commandProcessor;
+    
+    // Scripting
+    std::unique_ptr<ScriptManager> scriptManager;
     
     // Current active scene
     std::unique_ptr<Scene> currentScene;

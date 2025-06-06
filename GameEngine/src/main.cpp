@@ -17,6 +17,11 @@ int main(int argc, char* argv[]) {
     // Parse command line arguments
     auto args = CLIArgumentParser::parse(argc, argv);
     
+    // Suppress logging for CLI mode when JSON output is enabled
+    if (args.jsonOutput) {
+        spdlog::set_level(spdlog::level::off);
+    }
+    
     if (args.help) {
         CLIArgumentParser::printHelp();
         return 0;

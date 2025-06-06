@@ -61,26 +61,31 @@ CLIResult CLIEngine::executeCommand(const std::string& command) {
             return CLIResult::Failure("Command processor not available");
         }
         
-        // Create a string stream to capture console output
-        std::stringstream outputStream;
-        
-        // Get console and temporarily redirect output
+        // Get console
         auto* console = m_engine->getConsole();
         if (!console) {
             return CLIResult::Failure("Console not available");
         }
         
-        // Store original console state
-        std::vector<std::string> preCommandLines;
+        // Enable capture mode
+        console->enableCapture();
         
         // Execute command
         commandProcessor->executeCommand(command);
         
-        // In a real implementation, we'd capture the console output
-        // For now, we'll return a simple success message
-        // TODO: Implement proper output capture from console
+        // Get captured output
+        std::string output = console->disableCapture();
         
-        return CLIResult::Success("Command executed: " + command);
+        // Check for errors in output
+        bool hasError = output.find("Error:") != std::string::npos || 
+                       output.find("Unknown command") != std::string::npos ||
+                       output.find("Failed") != std::string::npos;
+        
+        if (hasError) {
+            return CLIResult::Failure(output);
+        } else {
+            return CLIResult::Success(output);
+        }
         
     } catch (const std::exception& e) {
         return CLIResult::Failure(std::string("Command execution failed: ") + e.what());

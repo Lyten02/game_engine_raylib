@@ -500,6 +500,11 @@ void Console::render() {
 }
 
 void Console::addLine(const std::string& text, Color color) {
+    // If in capture mode, capture to buffer
+    if (captureMode) {
+        captureBuffer << text << "\n";
+    }
+    
     // Split text by newlines
     std::stringstream ss(text);
     std::string line;
@@ -825,4 +830,20 @@ std::vector<std::string> Console::getParameterSuggestions(const std::string& com
         return {};
     }
     return commandProcessor->getParameterSuggestions(command, paramIndex);
+}
+
+void Console::enableCapture() {
+    captureMode = true;
+    captureBuffer.str("");  // Clear the buffer
+    captureBuffer.clear();  // Clear any error flags
+}
+
+std::string Console::disableCapture() {
+    captureMode = false;
+    std::string result = captureBuffer.str();
+    // Remove trailing newline if present
+    if (!result.empty() && result.back() == '\n') {
+        result.pop_back();
+    }
+    return result;
 }

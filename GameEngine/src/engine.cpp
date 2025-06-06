@@ -46,6 +46,8 @@ bool Engine::initialize() {
     } else {
         // Set silent mode for config in headless mode
         Config::setSilentMode(true);
+        // Suppress spdlog output in headless mode
+        spdlog::set_level(spdlog::level::off);
     }
     
     // Load configuration

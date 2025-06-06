@@ -23,6 +23,7 @@ def clean_test_data():
     # List of test project patterns
     test_patterns = [
         "test_",
+        "test",
         "cli_test",
         "automation_test",
         "batch_test"

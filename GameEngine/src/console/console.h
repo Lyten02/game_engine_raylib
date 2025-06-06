@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <sstream>
 #include <raylib.h>
 
 class CommandProcessor;
@@ -75,6 +76,10 @@ private:
     int getLineAtPosition(float y) const;
     std::string getSelectedText() const;
     void copyToClipboard(const std::string& text);
+    
+    // Capture mode
+    bool captureMode = false;
+    std::stringstream captureBuffer;
 
 public:
     Console() = default;
@@ -94,4 +99,9 @@ public:
     void setCommandProcessor(CommandProcessor* processor) { commandProcessor = processor; }
     void setShowFPS(bool show) { showFPS = show; }
     bool isShowingFPS() const { return showFPS; }
+    
+    // Output capture mode
+    void enableCapture();
+    std::string disableCapture();
+    bool isCaptureMode() const { return captureMode; }
 };

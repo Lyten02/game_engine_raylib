@@ -60,4 +60,4 @@ target_link_libraries({{PROJECT_NAME}}
 # Copy assets and scenes to build directory
 file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/scenes DESTINATION ${CMAKE_BINARY_DIR})
-file(COPY ${CMAKE_SOURCE_DIR}/{{PROJECT_NAME}}_config.json DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/game_config.json DESTINATION ${CMAKE_BINARY_DIR})

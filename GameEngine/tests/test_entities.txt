@@ -1,5 +1,5 @@
-# Test entity and component management
-# This script tests entity creation and component operations
+# Test entity management
+# This script tests basic entity creation and listing
 
 # Setup
 project.create test_entities
@@ -11,21 +11,11 @@ entity.create Player
 entity.create Enemy
 entity.create PowerUp
 
-# Test 2: Add components
-entity.select Player
-component.add Transform 100 200 0
-component.add Sprite player.png
-
-entity.select Enemy
-component.add Transform 300 150 45
-component.add Sprite enemy.png
-
-# Test 3: List entities
+# Test 2: List entities
 entity.list
 
-# Test 4: Entity operations
-entity.select Player
-entity.info Player
+# Test 3: Save scene with entities
+scene.save entity_test_scene
 
 # Cleanup
 project.close

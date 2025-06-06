@@ -1,0 +1,2 @@
+# This file has been moved to BUILD_TEST_INSTRUCTIONS.md
+# Please see BUILD_TEST_INSTRUCTIONS.md for manual build testing instructions

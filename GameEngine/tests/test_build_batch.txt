@@ -1,0 +1,2 @@
+# This file is auto-generated and should not be run as a test
+# Build testing requires manual interaction - see BUILD_TEST_INSTRUCTIONS.md

@@ -299,7 +299,7 @@ def main():
     print("-"*40)
     runner.run_command_test("Help", "help")
     runner.run_command_test("Project List", "project.list")
-    runner.run_command_test("Invalid Command", "invalid.command", expected_success=True)  # TODO: should fail
+    runner.run_command_test("Invalid Command", "invalid.command", expected_success=False)  # Should fail
     runner.run_command_test("Engine Info", "engine.info")
     
     # Print summary

@@ -219,7 +219,7 @@ public:
 int main() {
     GameRuntime runtime;
     
-    if (!runtime.initialize("{{PROJECT_NAME}}_config.json")) {
+    if (!runtime.initialize("game_config.json")) {
         return -1;
     }
     

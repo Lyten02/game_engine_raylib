@@ -63,15 +63,37 @@ void Console::update(float deltaTime) {
     
     // Handle dropdown navigation
     if (showSuggestionDropdown && !autocompleteSuggestions.empty()) {
+        bool dropdownHandled = false;
+        
         if (IsKeyPressed(KEY_DOWN)) {
             dropdownSelectedIndex = (dropdownSelectedIndex + 1) % autocompleteSuggestions.size();
             currentSuggestion = autocompleteSuggestions[dropdownSelectedIndex];
+            dropdownHandled = true;
         } else if (IsKeyPressed(KEY_UP)) {
             dropdownSelectedIndex = (dropdownSelectedIndex - 1 + autocompleteSuggestions.size()) % autocompleteSuggestions.size();
             currentSuggestion = autocompleteSuggestions[dropdownSelectedIndex];
-        } else if (IsKeyPressed(KEY_TAB) || IsKeyPressed(KEY_ENTER)) {
+            dropdownHandled = true;
+        } else if (IsKeyPressed(KEY_TAB) || (IsKeyPressed(KEY_ENTER) && dropdownSelectedIndex >= 0)) {
             // Accept selected suggestion
-            currentInput = autocompleteSuggestions[dropdownSelectedIndex];
+            std::vector<std::string> tokens = commandProcessor->parseCommand(currentInput);
+            bool endsWithSpace = !currentInput.empty() && currentInput.back() == ' ';
+            
+            if (tokens.size() > 1 || (tokens.size() == 1 && endsWithSpace)) {
+                // We're completing a parameter
+                if (endsWithSpace) {
+                    currentInput += autocompleteSuggestions[dropdownSelectedIndex];
+                } else {
+                    // Replace the last token
+                    tokens[tokens.size() - 1] = autocompleteSuggestions[dropdownSelectedIndex];
+                    currentInput = tokens[0];
+                    for (size_t i = 1; i < tokens.size(); i++) {
+                        currentInput += " " + tokens[i];
+                    }
+                }
+            } else {
+                // Completing a command
+                currentInput = autocompleteSuggestions[dropdownSelectedIndex];
+            }
             cursorPosition = currentInput.length();
             hideDropdown();
             updateInlineSuggestion();
@@ -79,8 +101,15 @@ void Console::update(float deltaTime) {
                 // If Enter was pressed, also execute the command
                 goto handle_enter;  // Jump to enter handling
             }
+            dropdownHandled = true;
         } else if (IsKeyPressed(KEY_ESCAPE)) {
             hideDropdown();
+            dropdownHandled = true;
+        }
+        
+        // If dropdown handled the input, skip normal input processing
+        if (dropdownHandled) {
+            return;
         }
     } else {
         // Handle Tab for autocompletion when dropdown is not shown
@@ -93,7 +122,11 @@ void Console::update(float deltaTime) {
                 updateInlineSuggestion();
             } else {
                 // Show dropdown
-                updateAutocompleteSuggestions();
+                updateParameterSuggestions();
+                if (autocompleteSuggestions.empty()) {
+                    // No parameter suggestions, try command suggestions
+                    updateAutocompleteSuggestions();
+                }
                 if (!autocompleteSuggestions.empty()) {
                     showDropdown();
                 }
@@ -102,11 +135,21 @@ void Console::update(float deltaTime) {
     }
     
     // Handle input
+    // Handle ENTER key normally when dropdown is visible but not selecting
+    if (IsKeyPressed(KEY_ENTER) && !currentInput.empty() && showSuggestionDropdown && !IsKeyDown(KEY_LEFT_SHIFT)) {
+        // Just hide dropdown and execute command
+        hideDropdown();
+        currentSuggestion.clear();
+        autocompleteSuggestions.clear();
+        goto handle_enter;
+    }
+    
 handle_enter:
     if (IsKeyPressed(KEY_ENTER) && !currentInput.empty()) {
         // Clear autocompletion and suggestion
         hideDropdown();
         currentSuggestion.clear();
+        autocompleteSuggestions.clear();
         
         // Add to history
         commandHistory.push_back(currentInput);
@@ -130,14 +173,7 @@ handle_enter:
             currentInput.erase(cursorPosition - 1, 1);
             cursorPosition--;
             backspaceTimer = 0.0f;
-            updateAutocompleteSuggestions();
-            if (currentInput.empty()) {
-                hideDropdown();
-            } else if (autocompleteSuggestions.size() > 1) {
-                showDropdown();
-            } else {
-                hideDropdown();
-            }
+            updateParameterSuggestions();
             updateInlineSuggestion();
         } else {
             // Key is held down
@@ -150,14 +186,7 @@ handle_enter:
                     currentInput.erase(cursorPosition - 1, 1);
                     cursorPosition--;
                     backspaceTimer = backspaceDelay + (repeatTime - repeats * backspaceRepeat);
-                    updateAutocompleteSuggestions();
-                    if (currentInput.empty()) {
-                        hideDropdown();
-                    } else if (autocompleteSuggestions.size() > 1) {
-                        showDropdown();
-                    } else {
-                        hideDropdown();
-                    }
+                    updateParameterSuggestions();
                     updateInlineSuggestion();
                 }
             }
@@ -169,14 +198,7 @@ handle_enter:
     // Handle Delete key
     if (IsKeyPressed(KEY_DELETE) && cursorPosition < currentInput.length()) {
         currentInput.erase(cursorPosition, 1);
-        updateAutocompleteSuggestions();
-        if (currentInput.empty()) {
-            hideDropdown();
-        } else if (autocompleteSuggestions.size() > 1) {
-            showDropdown();
-        } else {
-            hideDropdown();
-        }
+        updateParameterSuggestions();
         updateInlineSuggestion();
     }
     
@@ -233,12 +255,7 @@ handle_enter:
             currentInput.insert(cursorPosition, 1, static_cast<char>(key));
             cursorPosition++;
             // Update suggestions and maybe show dropdown
-            updateAutocompleteSuggestions();
-            if (autocompleteSuggestions.size() > 1) {
-                showDropdown();
-            } else {
-                hideDropdown();
-            }
+            updateParameterSuggestions();
             updateInlineSuggestion();
         }
         key = GetCharPressed();
@@ -397,6 +414,12 @@ void Console::render() {
     
     // Draw suggestion dropdown
     if (showSuggestionDropdown && !autocompleteSuggestions.empty()) {
+        static bool lastDropdownState = false;
+        if (!lastDropdownState) {
+            spdlog::debug("Rendering dropdown with {} items", autocompleteSuggestions.size());
+            lastDropdownState = true;
+        }
+        
         int dropdownY = consoleHeight - 50;
         int itemHeight = 20;
         int visibleItems = std::min(static_cast<int>(autocompleteSuggestions.size()), maxDropdownItems);
@@ -445,6 +468,13 @@ void Console::render() {
         if (startIdx + visibleItems < static_cast<int>(autocompleteSuggestions.size())) {
             DrawText("▼", maxWidth - 15, dropdownY + dropdownHeight - 15, 12, GRAY);
         }
+    } else {
+        // Reset dropdown state tracking
+        static bool* lastDropdownState = nullptr;
+        if (!lastDropdownState) {
+            lastDropdownState = new bool(false);
+        }
+        *lastDropdownState = false;
     }
     
     // Draw cursor
@@ -549,11 +579,13 @@ void Console::updateAutocompleteSuggestions() {
     autocompleteBase = currentInput;
     
     if (!commandProcessor || currentInput.empty()) {
+        spdlog::debug("updateAutocompleteSuggestions: No processor or empty input");
         return;
     }
     
     // Get all command names
     std::vector<std::string> allCommands = commandProcessor->getCommandNames();
+    spdlog::debug("updateAutocompleteSuggestions: Got {} total commands", allCommands.size());
     
     // Filter commands that start with current input
     for (const auto& command : allCommands) {
@@ -564,6 +596,15 @@ void Console::updateAutocompleteSuggestions() {
     
     // Sort suggestions
     std::sort(autocompleteSuggestions.begin(), autocompleteSuggestions.end());
+    
+    spdlog::debug("updateAutocompleteSuggestions: Found {} suggestions for '{}'", 
+                  autocompleteSuggestions.size(), currentInput);
+    
+    if (!autocompleteSuggestions.empty()) {
+        for (const auto& s : autocompleteSuggestions) {
+            spdlog::debug("  - {}", s);
+        }
+    }
 }
 
 std::string Console::getCommonPrefix(const std::vector<std::string>& suggestions) const {
@@ -615,6 +656,9 @@ void Console::updateInlineSuggestion() {
 
 void Console::showDropdown() {
     if (!autocompleteSuggestions.empty()) {
+        if (!showSuggestionDropdown) {
+            spdlog::debug("Showing dropdown with {} suggestions", autocompleteSuggestions.size());
+        }
         showSuggestionDropdown = true;
         dropdownSelectedIndex = 0;
         currentSuggestion = autocompleteSuggestions[0];
@@ -622,9 +666,12 @@ void Console::showDropdown() {
 }
 
 void Console::hideDropdown() {
+    if (showSuggestionDropdown) {
+        spdlog::debug("Hiding dropdown");
+    }
     showSuggestionDropdown = false;
     dropdownSelectedIndex = 0;
-    autocompleteSuggestions.clear();
+    // Don't clear suggestions here - let updateParameterSuggestions handle it
 }
 
 std::string Console::getCurrentCommandHint() const {
@@ -668,4 +715,114 @@ std::string Console::getCurrentCommandHint() const {
     }
     
     return hint;
+}
+
+void Console::updateParameterSuggestions() {
+    static std::string lastLoggedInput;
+    static int lastSuggestionCount = -1;
+    
+    autocompleteSuggestions.clear();
+    
+    if (!commandProcessor || currentInput.empty()) {
+        return;
+    }
+    
+    // Parse current input
+    std::vector<std::string> tokens = commandProcessor->parseCommand(currentInput);
+    if (tokens.empty()) {
+        return;
+    }
+    
+    std::string commandName = tokens[0];
+    
+    // Log input changes (avoid spam)
+    if (currentInput != lastLoggedInput) {
+        spdlog::debug("Console input: '{}', tokens: {}", currentInput, tokens.size());
+        for (size_t i = 0; i < tokens.size(); i++) {
+            spdlog::debug("  Token[{}]: '{}'", i, tokens[i]);
+        }
+        lastLoggedInput = currentInput;
+    }
+    
+    // Check if we're typing the command name
+    bool endsWithSpace = !currentInput.empty() && currentInput.back() == ' ';
+    if (tokens.size() == 1 && !endsWithSpace) {
+        // Get command suggestions
+        spdlog::debug("Getting command suggestions for: '{}'", commandName);
+        updateAutocompleteSuggestions();
+        
+        // Show dropdown if we have suggestions
+        if (!autocompleteSuggestions.empty()) {
+            spdlog::debug("Showing dropdown for command suggestions");
+            showDropdown();
+        }
+        return;
+    }
+    
+    // Check if this is a valid command
+    auto commandNames = commandProcessor->getCommandNames();
+    bool isValidCommand = std::find(commandNames.begin(), commandNames.end(), commandName) != commandNames.end();
+    
+    if (!isValidCommand) {
+        spdlog::debug("Not a valid command: '{}'", commandName);
+        return;
+    }
+    
+    // We're typing a parameter
+    int paramIndex = tokens.size() - 2;  // -1 for command, -1 for current typing
+    if (endsWithSpace) {
+        paramIndex++;  // We're starting a new parameter
+    }
+    
+    spdlog::debug("Getting parameter suggestions for command '{}', param index: {}", commandName, paramIndex);
+    
+    // Get suggestions for this parameter
+    auto suggestions = commandProcessor->getParameterSuggestions(commandName, paramIndex);
+    
+    if (!suggestions.empty()) {
+        spdlog::debug("Got {} parameter suggestions", suggestions.size());
+        
+        // Filter suggestions based on what's already typed
+        std::string currentParam;
+        if (paramIndex < static_cast<int>(tokens.size()) - 1) {
+            currentParam = tokens[paramIndex + 1];
+        }
+        
+        spdlog::debug("Filtering with current param: '{}'", currentParam);
+        
+        for (const auto& suggestion : suggestions) {
+            if (currentParam.empty() || suggestion.find(currentParam) == 0) {
+                autocompleteSuggestions.push_back(suggestion);
+            }
+        }
+        
+        // Log suggestions only if count changed
+        if (static_cast<int>(autocompleteSuggestions.size()) != lastSuggestionCount) {
+            spdlog::debug("Filtered to {} suggestions:", autocompleteSuggestions.size());
+            for (const auto& s : autocompleteSuggestions) {
+                spdlog::debug("  - {}", s);
+            }
+            lastSuggestionCount = autocompleteSuggestions.size();
+        }
+        
+        if (!autocompleteSuggestions.empty()) {
+            showDropdown();
+        } else {
+            hideDropdown();
+        }
+    } else {
+        // No parameter suggestions
+        if (lastSuggestionCount != 0) {
+            spdlog::debug("No parameter suggestions available");
+            lastSuggestionCount = 0;
+        }
+        hideDropdown();
+    }
+}
+
+std::vector<std::string> Console::getParameterSuggestions(const std::string& command, int paramIndex) const {
+    if (!commandProcessor) {
+        return {};
+    }
+    return commandProcessor->getParameterSuggestions(command, paramIndex);
 }

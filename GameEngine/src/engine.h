@@ -46,6 +46,12 @@ public:
     // Engine control
     void requestQuit() { running = false; }
     
+    // Suggestion providers for console commands
+    std::vector<std::string> getSceneList() const;
+    std::vector<std::string> getProjectList() const;
+    std::vector<std::string> getScriptList() const;
+    std::vector<std::string> getConfigKeys() const;
+    
 private:
     void registerEngineCommands();
     

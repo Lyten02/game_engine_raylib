@@ -593,6 +593,59 @@ void Engine::registerEngineCommands() {
             console->addLine("Debug info " + std::string(showDebugInfo ? "enabled" : "disabled"), YELLOW);
         }), "Toggle debug info display", "Debug");
     
+    // debug.log command
+    {
+        std::vector<CommandParameter> logParams = {
+            {"level", "Log level to set", true, []() { 
+                return std::vector<std::string>{"trace", "debug", "info", "warn", "error", "critical", "off"}; 
+            }}
+        };
+        commandProcessor->registerCommand("debug.log",
+        ([this](const std::vector<std::string>& args) {
+            if (args.empty()) {
+                auto level = spdlog::get_level();
+                std::string levelStr = "unknown";
+                switch(level) {
+                    case spdlog::level::trace: levelStr = "trace"; break;
+                    case spdlog::level::debug: levelStr = "debug"; break;
+                    case spdlog::level::info: levelStr = "info"; break;
+                    case spdlog::level::warn: levelStr = "warn"; break;
+                    case spdlog::level::err: levelStr = "error"; break;
+                    case spdlog::level::critical: levelStr = "critical"; break;
+                    case spdlog::level::off: levelStr = "off"; break;
+                    default: break;
+                }
+                console->addLine("Current log level: " + levelStr, YELLOW);
+                console->addLine("Usage: debug.log <level>", GRAY);
+                console->addLine("Levels: trace, debug, info, warn, error, critical, off", GRAY);
+                return;
+            }
+            
+            std::string level = args[0];
+            if (level == "trace") {
+                spdlog::set_level(spdlog::level::trace);
+            } else if (level == "debug") {
+                spdlog::set_level(spdlog::level::debug);
+            } else if (level == "info") {
+                spdlog::set_level(spdlog::level::info);
+            } else if (level == "warn") {
+                spdlog::set_level(spdlog::level::warn);
+            } else if (level == "error") {
+                spdlog::set_level(spdlog::level::err);
+            } else if (level == "critical") {
+                spdlog::set_level(spdlog::level::critical);
+            } else if (level == "off") {
+                spdlog::set_level(spdlog::level::off);
+            } else {
+                console->addLine("Invalid log level: " + level, RED);
+                return;
+            }
+            
+            console->addLine("Log level set to: " + level, GREEN);
+        }), "Set logging level", "Debug",
+        "debug.log <level>", logParams);
+    }
+    
     // console.fps command
     REGISTER_COMMAND_GROUP(commandProcessor, "console.fps",
         ([this](const std::vector<std::string>& args) {
@@ -602,7 +655,13 @@ void Engine::registerEngineCommands() {
         }), "Toggle FPS display in console", "Console");
     
     // engine.fps command
-    REGISTER_COMMAND_GROUP(commandProcessor, "engine.fps",
+    {
+        std::vector<CommandParameter> fpsParams = {
+            {"limit", "FPS limit value", true, []() { 
+                return std::vector<std::string>{"0", "30", "60", "120", "144", "240"}; 
+            }}
+        };
+        commandProcessor->registerCommand("engine.fps",
         ([this](const std::vector<std::string>& args) {
             if (args.empty()) {
                 console->addLine("Usage: engine.fps <limit>", RED);
@@ -629,7 +688,9 @@ void Engine::registerEngineCommands() {
             } catch (const std::exception& e) {
                 console->addLine("Invalid FPS value: " + args[0], RED);
             }
-        }), "Set FPS limit (0 for unlimited)", "Engine");
+        }), "Set FPS limit (0 for unlimited)", "Engine",
+        "engine.fps <limit>", fpsParams);
+    }
     
     // engine.vsync command
     REGISTER_COMMAND_GROUP(commandProcessor, "engine.vsync",
@@ -744,7 +805,9 @@ void Engine::registerEngineCommands() {
     
     // config.get command
     {
-        std::vector<CommandParameter> params = {{"key", "Configuration key to retrieve", true}};
+        std::vector<CommandParameter> params = {
+            {"key", "Configuration key to retrieve", true, [this]() { return getConfigKeys(); }}
+        };
         commandProcessor->registerCommand("config.get",
         ([this](const std::vector<std::string>& args) {
             if (args.empty()) {
@@ -764,7 +827,10 @@ void Engine::registerEngineCommands() {
     
     // config.set command
     {
-        std::vector<CommandParameter> params = {{"key", "Configuration key", true}, {"value", "New value (JSON format)", true}};
+        std::vector<CommandParameter> params = {
+            {"key", "Configuration key", true, [this]() { return getConfigKeys(); }}, 
+            {"value", "New value (JSON format)", true}
+        };
         commandProcessor->registerCommand("config.set",
         ([this](const std::vector<std::string>& args) {
             if (args.size() < 2) {
@@ -788,7 +854,9 @@ void Engine::registerEngineCommands() {
     
     // script.execute command
     if (scriptManager) {
-        std::vector<CommandParameter> scriptParams = {{"path", "Path to Lua script file", true}};
+        std::vector<CommandParameter> scriptParams = {
+            {"path", "Path to Lua script file", true, [this]() { return getScriptList(); }}
+        };
         commandProcessor->registerCommand("script.execute",
             ([this](const std::vector<std::string>& args) {
                 if (args.empty()) {
@@ -874,7 +942,9 @@ void Engine::registerEngineCommands() {
     }
     
     {
-        std::vector<CommandParameter> openParams = {{"name", "Name of the project to open", true}};
+        std::vector<CommandParameter> openParams = {
+            {"name", "Name of the project to open", true, [this]() { return getProjectList(); }}
+        };
         commandProcessor->registerCommand("project.open",
         ([this](const std::vector<std::string>& args) {
             if (args.empty()) {
@@ -1038,7 +1108,11 @@ void Engine::registerEngineCommands() {
             }
         }), "Save current scene to JSON", "Scene");
     
-    REGISTER_COMMAND_GROUP(commandProcessor, "scene.load",
+    {
+        std::vector<CommandParameter> sceneParams = {
+            {"name", "Scene name to load", true, [this]() { return getSceneList(); }}
+        };
+        commandProcessor->registerCommand("scene.load",
         ([this](const std::vector<std::string>& args) {
             if (args.empty()) {
                 console->addLine("Usage: scene.load <name>", RED);
@@ -1063,7 +1137,9 @@ void Engine::registerEngineCommands() {
             } else {
                 console->addLine("Failed to load scene: " + args[0], RED);
             }
-        }), "Load scene from JSON", "Scene");
+        }), "Load scene from JSON", "Scene",
+        "scene.load <name>", sceneParams);
+    }
     
     // Build commands
     REGISTER_COMMAND_GROUP(commandProcessor, "project.build",
@@ -1223,4 +1299,76 @@ void Engine::registerEngineCommands() {
                 console->addLine("No scene to play", RED);
             }
         }), "Toggle play mode", "Play");
+}
+
+std::vector<std::string> Engine::getSceneList() const {
+    std::vector<std::string> scenes;
+    
+    if (projectManager && projectManager->getCurrentProject()) {
+        std::string scenesPath = projectManager->getCurrentProject()->getPath() + "/scenes";
+        
+        if (std::filesystem::exists(scenesPath)) {
+            for (const auto& entry : std::filesystem::directory_iterator(scenesPath)) {
+                if (entry.path().extension() == ".json") {
+                    scenes.push_back(entry.path().stem().string());
+                }
+            }
+        }
+    }
+    
+    return scenes;
+}
+
+std::vector<std::string> Engine::getProjectList() const {
+    std::vector<std::string> projects;
+    
+    std::string projectsDir = "projects";
+    if (std::filesystem::exists(projectsDir)) {
+        for (const auto& entry : std::filesystem::directory_iterator(projectsDir)) {
+            if (entry.is_directory()) {
+                std::string projectFile = entry.path().string() + "/project.json";
+                if (std::filesystem::exists(projectFile)) {
+                    projects.push_back(entry.path().filename().string());
+                }
+            }
+        }
+    }
+    
+    return projects;
+}
+
+std::vector<std::string> Engine::getScriptList() const {
+    std::vector<std::string> scripts;
+    
+    std::string scriptDir = Config::getString("scripting.script_directory", "scripts/");
+    if (std::filesystem::exists(scriptDir)) {
+        for (const auto& entry : std::filesystem::directory_iterator(scriptDir)) {
+            if (entry.path().extension() == ".lua") {
+                scripts.push_back(entry.path().filename().string());
+            }
+        }
+    }
+    
+    return scripts;
+}
+
+std::vector<std::string> Engine::getConfigKeys() const {
+    std::vector<std::string> keys;
+    
+    // Get some common config keys
+    keys.push_back("window.width");
+    keys.push_back("window.height");
+    keys.push_back("window.title");
+    keys.push_back("window.fullscreen");
+    keys.push_back("window.vsync");
+    keys.push_back("window.target_fps");
+    keys.push_back("console.font_size");
+    keys.push_back("console.max_lines");
+    keys.push_back("console.background_alpha");
+    keys.push_back("scripting.lua_enabled");
+    keys.push_back("scripting.script_directory");
+    keys.push_back("graphics.antialiasing");
+    keys.push_back("graphics.texture_filter");
+    
+    return keys;
 }

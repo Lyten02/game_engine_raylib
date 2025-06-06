@@ -52,6 +52,8 @@ private:
     void showDropdown();
     void hideDropdown();
     std::string getCurrentCommandHint() const;
+    void updateParameterSuggestions();
+    std::vector<std::string> getParameterSuggestions(const std::string& command, int paramIndex) const;
     
     // Key repeat for backspace
     float backspaceTimer = 0.0f;

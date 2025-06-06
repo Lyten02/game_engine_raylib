@@ -8,11 +8,13 @@
 class Console;
 
 using CommandFunction = std::function<void(const std::vector<std::string>&)>;
+using ParameterSuggestionProvider = std::function<std::vector<std::string>()>;
 
 struct CommandParameter {
     std::string name;
     std::string description;
     bool required;
+    ParameterSuggestionProvider suggestionProvider;  // Optional function to provide suggestions
 };
 
 struct CommandInfo {
@@ -49,4 +51,7 @@ public:
     
     // Get commands organized by groups
     std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> getCommandsByGroup() const;
+    
+    // Get parameter suggestions for a command
+    std::vector<std::string> getParameterSuggestions(const std::string& command, int paramIndex) const;
 };

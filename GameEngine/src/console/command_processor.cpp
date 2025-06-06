@@ -219,3 +219,27 @@ CommandInfo CommandProcessor::getCommandInfo(const std::string& name) const {
     }
     return CommandInfo{};
 }
+
+std::vector<std::string> CommandProcessor::getParameterSuggestions(const std::string& command, int paramIndex) const {
+    auto it = commands.find(command);
+    if (it != commands.end()) {
+        const auto& params = it->second.parameters;
+        spdlog::debug("Command '{}' has {} parameters, requesting index {}", command, params.size(), paramIndex);
+        
+        if (paramIndex >= 0 && paramIndex < static_cast<int>(params.size())) {
+            if (params[paramIndex].suggestionProvider) {
+                spdlog::debug("Parameter '{}' has suggestion provider", params[paramIndex].name);
+                auto suggestions = params[paramIndex].suggestionProvider();
+                spdlog::debug("Provider returned {} suggestions", suggestions.size());
+                return suggestions;
+            } else {
+                spdlog::debug("Parameter '{}' has no suggestion provider", params[paramIndex].name);
+            }
+        } else {
+            spdlog::debug("Parameter index {} out of range", paramIndex);
+        }
+    } else {
+        spdlog::debug("Command '{}' not found", command);
+    }
+    return {};
+}

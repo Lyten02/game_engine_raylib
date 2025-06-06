@@ -406,7 +406,7 @@ void Engine::shutdown() {
 
 void Engine::registerEngineCommands() {
     // engine.info command
-    REGISTER_COMMAND(commandProcessor, "engine.info", 
+    REGISTER_COMMAND_GROUP(commandProcessor, "engine.info", 
         [this](const std::vector<std::string>& args) {
             std::stringstream ss;
             ss << "Engine Information:\n";
@@ -416,10 +416,10 @@ void Engine::registerEngineCommands() {
             ss << "  Window: " << GetScreenWidth() << "x" << GetScreenHeight();
             
             console->addLine(ss.str(), YELLOW);
-        }, "Display engine information");
+        }, "Display engine information", "Engine");
     
     // scene.info command
-    REGISTER_COMMAND(commandProcessor, "scene.info",
+    REGISTER_COMMAND_GROUP(commandProcessor, "scene.info",
         [this](const std::vector<std::string>& args) {
             if (!currentScene) {
                 console->addLine("No active scene", RED);
@@ -439,10 +439,10 @@ void Engine::registerEngineCommands() {
             ss << "  Total Entities: " << entityCount;
             
             console->addLine(ss.str(), YELLOW);
-        }, "Display current scene information");
+        }, "Display current scene information", "Scene");
     
     // entity.list command
-    REGISTER_COMMAND(commandProcessor, "entity.list",
+    REGISTER_COMMAND_GROUP(commandProcessor, "entity.list",
         [this](const std::vector<std::string>& args) {
             if (!currentScene) {
                 console->addLine("No active scene", RED);
@@ -475,10 +475,10 @@ void Engine::registerEngineCommands() {
             }
             
             console->addLine("Total: " + std::to_string(count) + " entities", GRAY);
-        }, "List all entities and their components");
+        }, "List all entities and their components", "Entity");
     
     // entity.create command
-    REGISTER_COMMAND(commandProcessor, "entity.create",
+    REGISTER_COMMAND_GROUP(commandProcessor, "entity.create",
         [this](const std::vector<std::string>& args) {
             if (!currentScene) {
                 console->addLine("No active scene", RED);
@@ -510,10 +510,12 @@ void Engine::registerEngineCommands() {
             }
             
             console->addLine("Created entity " + std::to_string(static_cast<uint32_t>(entity)), GREEN);
-        }, "Create a new test entity");
+        }, "Create a new test entity", "Entity");
     
     // entity.destroy command
-    REGISTER_COMMAND(commandProcessor, "entity.destroy",
+    {
+        std::vector<CommandParameter> params = {{"id", "Entity ID to destroy", true}};
+        commandProcessor->registerCommand("entity.destroy",
         [this](const std::vector<std::string>& args) {
             if (!validateArgCount(console.get(), args, 1, "entity.destroy <id>")) {
                 return;
@@ -537,19 +539,21 @@ void Engine::registerEngineCommands() {
             } catch (const std::exception& e) {
                 console->addLine("Invalid entity ID: " + args[0], RED);
             }
-        }, "Destroy an entity by ID");
+        }, "Destroy an entity by ID", "Entity", 
+        "entity.destroy <id>", params);
+    }
     
     // resource.list command
-    REGISTER_COMMAND(commandProcessor, "resource.list",
+    REGISTER_COMMAND_GROUP(commandProcessor, "resource.list",
         [this](const std::vector<std::string>& args) {
             console->addLine("Loaded Resources:", YELLOW);
             // Note: ResourceManager would need methods to list resources
             // For now, we know we have test_sprite
             console->addLine("  Texture: test_sprite", WHITE);
-        }, "List all loaded resources");
+        }, "List all loaded resources", "Resource");
     
     // render.stats command
-    REGISTER_COMMAND(commandProcessor, "render.stats",
+    REGISTER_COMMAND_GROUP(commandProcessor, "render.stats",
         ([this](const std::vector<std::string>& args) {
             if (!currentScene) {
                 console->addLine("No active scene", RED);
@@ -573,32 +577,32 @@ void Engine::registerEngineCommands() {
             ss << "  Draw Calls: ~" << spriteCount;
             
             console->addLine(ss.str(), YELLOW);
-        }), "Display render system statistics");
+        }), "Display render system statistics", "Render");
     
     // quit command override
-    REGISTER_COMMAND(commandProcessor, "quit",
+    REGISTER_COMMAND_GROUP(commandProcessor, "quit",
         [this](const std::vector<std::string>& args) {
             console->addLine("Shutting down...", YELLOW);
             requestQuit();
-        }, "Quit the application");
+        }, "Quit the application", "General");
     
     // debug.toggle command
-    REGISTER_COMMAND(commandProcessor, "debug.toggle",
+    REGISTER_COMMAND_GROUP(commandProcessor, "debug.toggle",
         ([this](const std::vector<std::string>& args) {
             showDebugInfo = !showDebugInfo;
             console->addLine("Debug info " + std::string(showDebugInfo ? "enabled" : "disabled"), YELLOW);
-        }), "Toggle debug info display");
+        }), "Toggle debug info display", "Debug");
     
     // console.fps command
-    REGISTER_COMMAND(commandProcessor, "console.fps",
+    REGISTER_COMMAND_GROUP(commandProcessor, "console.fps",
         ([this](const std::vector<std::string>& args) {
             bool currentState = console->isShowingFPS();
             console->setShowFPS(!currentState);
             console->addLine("Console FPS display " + std::string(!currentState ? "enabled" : "disabled"), YELLOW);
-        }), "Toggle FPS display in console");
+        }), "Toggle FPS display in console", "Console");
     
     // engine.fps command
-    REGISTER_COMMAND(commandProcessor, "engine.fps",
+    REGISTER_COMMAND_GROUP(commandProcessor, "engine.fps",
         ([this](const std::vector<std::string>& args) {
             if (args.empty()) {
                 console->addLine("Usage: engine.fps <limit>", RED);
@@ -625,10 +629,10 @@ void Engine::registerEngineCommands() {
             } catch (const std::exception& e) {
                 console->addLine("Invalid FPS value: " + args[0], RED);
             }
-        }), "Set FPS limit (0 for unlimited)");
+        }), "Set FPS limit (0 for unlimited)", "Engine");
     
     // engine.vsync command
-    REGISTER_COMMAND(commandProcessor, "engine.vsync",
+    REGISTER_COMMAND_GROUP(commandProcessor, "engine.vsync",
         ([this](const std::vector<std::string>& args) {
             vsyncEnabled = !vsyncEnabled;
             
@@ -639,10 +643,10 @@ void Engine::registerEngineCommands() {
                 ClearWindowState(FLAG_VSYNC_HINT);
                 console->addLine("V-Sync disabled", GREEN);
             }
-        }), "Toggle V-Sync");
+        }), "Toggle V-Sync", "Engine");
     
     // engine.diag command
-    REGISTER_COMMAND(commandProcessor, "engine.diag",
+    REGISTER_COMMAND_GROUP(commandProcessor, "engine.diag",
         ([this](const std::vector<std::string>& args) {
             std::stringstream ss;
             ss << "Performance Diagnostics:\n";
@@ -661,10 +665,10 @@ void Engine::registerEngineCommands() {
             #endif
             
             console->addLine(ss.str(), YELLOW);
-        }), "Show performance diagnostics");
+        }), "Show performance diagnostics", "Engine");
     
     // logs.open command
-    REGISTER_COMMAND(commandProcessor, "logs.open",
+    REGISTER_COMMAND_GROUP(commandProcessor, "logs.open",
         ([this](const std::vector<std::string>& args) {
             std::string logsPath = std::filesystem::absolute("logs").string();
             
@@ -683,10 +687,10 @@ void Engine::registerEngineCommands() {
                 console->addLine("Failed to open logs folder", RED);
                 console->addLine("Path: " + logsPath, GRAY);
             }
-        }), "Open logs folder in file manager");
+        }), "Open logs folder in file manager", "Logs");
     
     // logs.list command
-    REGISTER_COMMAND(commandProcessor, "logs.list",
+    REGISTER_COMMAND_GROUP(commandProcessor, "logs.list",
         ([this](const std::vector<std::string>& args) {
             try {
                 if (!std::filesystem::exists("logs")) {
@@ -716,10 +720,10 @@ void Engine::registerEngineCommands() {
             } catch (const std::exception& e) {
                 console->addLine("Error listing logs: " + std::string(e.what()), RED);
             }
-        }), "List all log files");
+        }), "List all log files", "Logs");
     
     // config.reload command
-    REGISTER_COMMAND(commandProcessor, "config.reload",
+    REGISTER_COMMAND_GROUP(commandProcessor, "config.reload",
         ([this](const std::vector<std::string>& args) {
             Config::reload();
             console->addLine("Configuration reloaded", GREEN);
@@ -736,10 +740,12 @@ void Engine::registerEngineCommands() {
             SetTargetFPS(targetFPS);
             
             console->addLine("Window settings updated", YELLOW);
-        }), "Reload configuration from config.json");
+        }), "Reload configuration from config.json", "Config");
     
     // config.get command
-    REGISTER_COMMAND(commandProcessor, "config.get",
+    {
+        std::vector<CommandParameter> params = {{"key", "Configuration key to retrieve", true}};
+        commandProcessor->registerCommand("config.get",
         ([this](const std::vector<std::string>& args) {
             if (args.empty()) {
                 console->addLine("Usage: config.get <key>", RED);
@@ -752,10 +758,14 @@ void Engine::registerEngineCommands() {
             } else {
                 console->addLine(args[0] + " = " + value.dump(), YELLOW);
             }
-        }), "Get configuration value by key");
+        }), "Get configuration value by key", "Config",
+        "config.get <key>", params);
+    }
     
     // config.set command
-    REGISTER_COMMAND(commandProcessor, "config.set",
+    {
+        std::vector<CommandParameter> params = {{"key", "Configuration key", true}, {"value", "New value (JSON format)", true}};
+        commandProcessor->registerCommand("config.set",
         ([this](const std::vector<std::string>& args) {
             if (args.size() < 2) {
                 console->addLine("Usage: config.set <key> <value>", RED);
@@ -772,11 +782,14 @@ void Engine::registerEngineCommands() {
                 Config::set(args[0], args[1]);
                 console->addLine("Set " + args[0] + " = \"" + args[1] + "\"", GREEN);
             }
-        }), "Set configuration value (runtime only)");
+        }), "Set configuration value (runtime only)", "Config",
+        "config.set <key> <value>", params);
+    }
     
     // script.execute command
     if (scriptManager) {
-        REGISTER_COMMAND(commandProcessor, "script.execute",
+        std::vector<CommandParameter> scriptParams = {{"path", "Path to Lua script file", true}};
+        commandProcessor->registerCommand("script.execute",
             ([this](const std::vector<std::string>& args) {
                 if (args.empty()) {
                     console->addLine("Usage: script.execute <path>", RED);
@@ -788,10 +801,11 @@ void Engine::registerEngineCommands() {
                 } else {
                     console->addLine("Failed to execute script: " + args[0], RED);
                 }
-            }), "Execute a Lua script");
+            }), "Execute a Lua script", "Script",
+            "script.execute <path>", scriptParams);
         
         // script.reload command
-        REGISTER_COMMAND(commandProcessor, "script.reload",
+        REGISTER_COMMAND_GROUP(commandProcessor, "script.reload",
             ([this](const std::vector<std::string>& args) {
                 if (args.empty()) {
                     console->addLine("Usage: script.reload <path>", RED);
@@ -800,10 +814,10 @@ void Engine::registerEngineCommands() {
                 
                 scriptManager->reloadScript(args[0]);
                 console->addLine("Script reloaded: " + args[0], GREEN);
-            }), "Reload and execute a Lua script");
+            }), "Reload and execute a Lua script", "Script");
         
         // script.list command
-        REGISTER_COMMAND(commandProcessor, "script.list",
+        REGISTER_COMMAND_GROUP(commandProcessor, "script.list",
             ([this](const std::vector<std::string>& args) {
                 auto scripts = scriptManager->getLoadedScripts();
                 if (scripts.empty()) {
@@ -814,10 +828,10 @@ void Engine::registerEngineCommands() {
                         console->addLine("  " + script, WHITE);
                     }
                 }
-            }), "List all loaded scripts");
+            }), "List all loaded scripts", "Script");
         
         // script.eval command
-        REGISTER_COMMAND(commandProcessor, "script.eval",
+        REGISTER_COMMAND_GROUP(commandProcessor, "script.eval",
             ([this](const std::vector<std::string>& args) {
                 if (args.empty()) {
                     console->addLine("Usage: script.eval <lua code>", RED);
@@ -836,11 +850,13 @@ void Engine::registerEngineCommands() {
                 } else {
                     console->addLine("Lua execution failed", RED);
                 }
-            }), "Execute Lua code directly");
+            }), "Execute Lua code directly", "Script");
     }
     
     // Project management commands
-    REGISTER_COMMAND(commandProcessor, "project.create",
+    {
+        std::vector<CommandParameter> projectParams = {{"name", "Name of the new project", true}};
+        commandProcessor->registerCommand("project.create",
         ([this](const std::vector<std::string>& args) {
             if (args.empty()) {
                 console->addLine("Usage: project.create <name>", RED);
@@ -853,9 +869,13 @@ void Engine::registerEngineCommands() {
             } else {
                 console->addLine("Failed to create project: " + args[0], RED);
             }
-        }), "Create a new project");
+        }), "Create a new project", "Project",
+        "project.create <name>", projectParams);
+    }
     
-    REGISTER_COMMAND(commandProcessor, "project.open",
+    {
+        std::vector<CommandParameter> openParams = {{"name", "Name of the project to open", true}};
+        commandProcessor->registerCommand("project.open",
         ([this](const std::vector<std::string>& args) {
             if (args.empty()) {
                 console->addLine("Usage: project.open <name>", RED);
@@ -873,9 +893,11 @@ void Engine::registerEngineCommands() {
             } else {
                 console->addLine("Failed to open project: " + args[0], RED);
             }
-        }), "Open an existing project");
+        }), "Open an existing project", "Project",
+        "project.open <name>", openParams);
+    }
     
-    REGISTER_COMMAND(commandProcessor, "project.close",
+    REGISTER_COMMAND_GROUP(commandProcessor, "project.close",
         ([this](const std::vector<std::string>& args) {
             if (!projectManager->getCurrentProject()) {
                 console->addLine("No project currently open", RED);
@@ -890,9 +912,9 @@ void Engine::registerEngineCommands() {
             
             projectManager->closeProject();
             console->addLine("Project closed", YELLOW);
-        }), "Close the current project");
+        }), "Close the current project", "Project");
     
-    REGISTER_COMMAND(commandProcessor, "project.list",
+    REGISTER_COMMAND_GROUP(commandProcessor, "project.list",
         ([this](const std::vector<std::string>& args) {
             auto projects = projectManager->listProjects();
             if (projects.empty()) {
@@ -904,9 +926,9 @@ void Engine::registerEngineCommands() {
                     console->addLine("  " + project, WHITE);
                 }
             }
-        }), "List all projects");
+        }), "List all projects", "Project");
     
-    REGISTER_COMMAND(commandProcessor, "project.current",
+    REGISTER_COMMAND_GROUP(commandProcessor, "project.current",
         ([this](const std::vector<std::string>& args) {
             if (auto* project = projectManager->getCurrentProject()) {
                 console->addLine("Current project: " + project->getName(), YELLOW);
@@ -914,10 +936,10 @@ void Engine::registerEngineCommands() {
             } else {
                 console->addLine("No project currently open", YELLOW);
             }
-        }), "Show current project info");
+        }), "Show current project info", "Project");
     
     // Scene management commands
-    REGISTER_COMMAND(commandProcessor, "scene.create",
+    REGISTER_COMMAND_GROUP(commandProcessor, "scene.create",
         ([this](const std::vector<std::string>& args) {
             if (args.empty()) {
                 console->addLine("Usage: scene.create <name>", RED);
@@ -935,9 +957,9 @@ void Engine::registerEngineCommands() {
             } else {
                 console->addLine("Failed to create scene: " + args[0], RED);
             }
-        }), "Create a new scene in the current project");
+        }), "Create a new scene in the current project", "Scene");
     
-    REGISTER_COMMAND(commandProcessor, "scene.delete",
+    REGISTER_COMMAND_GROUP(commandProcessor, "scene.delete",
         ([this](const std::vector<std::string>& args) {
             if (args.empty()) {
                 console->addLine("Usage: scene.delete <name>", RED);
@@ -955,9 +977,9 @@ void Engine::registerEngineCommands() {
             } else {
                 console->addLine("Failed to delete scene: " + args[0], RED);
             }
-        }), "Delete a scene from the current project");
+        }), "Delete a scene from the current project", "Scene");
     
-    REGISTER_COMMAND(commandProcessor, "scene.list",
+    REGISTER_COMMAND_GROUP(commandProcessor, "scene.list",
         ([this](const std::vector<std::string>& args) {
             auto* project = projectManager->getCurrentProject();
             if (!project) {
@@ -975,10 +997,10 @@ void Engine::registerEngineCommands() {
                     console->addLine("  " + scene, WHITE);
                 }
             }
-        }), "List all scenes in the current project");
+        }), "List all scenes in the current project", "Scene");
     
     // Scene serialization commands
-    REGISTER_COMMAND(commandProcessor, "scene.save",
+    REGISTER_COMMAND_GROUP(commandProcessor, "scene.save",
         ([this](const std::vector<std::string>& args) {
             if (args.empty()) {
                 console->addLine("Usage: scene.save <name>", RED);
@@ -1014,9 +1036,9 @@ void Engine::registerEngineCommands() {
             } else {
                 console->addLine("Failed to save scene", RED);
             }
-        }), "Save current scene to JSON");
+        }), "Save current scene to JSON", "Scene");
     
-    REGISTER_COMMAND(commandProcessor, "scene.load",
+    REGISTER_COMMAND_GROUP(commandProcessor, "scene.load",
         ([this](const std::vector<std::string>& args) {
             if (args.empty()) {
                 console->addLine("Usage: scene.load <name>", RED);
@@ -1041,10 +1063,10 @@ void Engine::registerEngineCommands() {
             } else {
                 console->addLine("Failed to load scene: " + args[0], RED);
             }
-        }), "Load scene from JSON");
+        }), "Load scene from JSON", "Scene");
     
     // Build commands
-    REGISTER_COMMAND(commandProcessor, "project.build",
+    REGISTER_COMMAND_GROUP(commandProcessor, "project.build",
         ([this](const std::vector<std::string>& args) {
             auto* project = projectManager->getCurrentProject();
             if (!project) {
@@ -1063,9 +1085,9 @@ void Engine::registerEngineCommands() {
             asyncBuildSystem->startBuild(project, buildConfig);
             
             console->addLine("Build started. Check console for progress.", GREEN);
-        }), "Build the current project");
+        }), "Build the current project", "Build");
     
-    REGISTER_COMMAND(commandProcessor, "project.run",
+    REGISTER_COMMAND_GROUP(commandProcessor, "project.run",
         ([this](const std::vector<std::string>& args) {
             auto* project = projectManager->getCurrentProject();
             if (!project) {
@@ -1104,9 +1126,9 @@ void Engine::registerEngineCommands() {
             } else {
                 console->addLine("Failed to launch game", RED);
             }
-        }), "Run the built project");
+        }), "Run the built project", "Build");
     
-    REGISTER_COMMAND(commandProcessor, "build.clean",
+    REGISTER_COMMAND_GROUP(commandProcessor, "build.clean",
         ([this](const std::vector<std::string>& args) {
             auto* project = projectManager->getCurrentProject();
             if (!project) {
@@ -1126,10 +1148,10 @@ void Engine::registerEngineCommands() {
             } catch (const std::exception& e) {
                 console->addLine("Failed to clean build directory: " + std::string(e.what()), RED);
             }
-        }), "Clean the build directory");
+        }), "Clean the build directory", "Build");
     
     // Play mode commands
-    REGISTER_COMMAND(commandProcessor, "play",
+    REGISTER_COMMAND_GROUP(commandProcessor, "play",
         ([this](const std::vector<std::string>& args) {
             if (!currentScene) {
                 console->addLine("No scene to play", RED);
@@ -1151,9 +1173,9 @@ void Engine::registerEngineCommands() {
             } else {
                 console->addLine("Failed to start play mode", RED);
             }
-        }), "Start play mode (debug run)");
+        }), "Start play mode (debug run)", "Play");
     
-    REGISTER_COMMAND(commandProcessor, "stop",
+    REGISTER_COMMAND_GROUP(commandProcessor, "stop",
         ([this](const std::vector<std::string>& args) {
             if (playMode->isStopped()) {
                 console->addLine("Not in play mode", YELLOW);
@@ -1162,9 +1184,9 @@ void Engine::registerEngineCommands() {
             
             playMode->stop();
             console->addLine("Play mode stopped", YELLOW);
-        }), "Stop play mode");
+        }), "Stop play mode", "Play");
     
-    REGISTER_COMMAND(commandProcessor, "pause",
+    REGISTER_COMMAND_GROUP(commandProcessor, "pause",
         ([this](const std::vector<std::string>& args) {
             if (!playMode->isPlaying()) {
                 console->addLine("Not playing", YELLOW);
@@ -1173,9 +1195,9 @@ void Engine::registerEngineCommands() {
             
             playMode->pause();
             console->addLine("Play mode paused", YELLOW);
-        }), "Pause play mode");
+        }), "Pause play mode", "Play");
     
-    REGISTER_COMMAND(commandProcessor, "resume",
+    REGISTER_COMMAND_GROUP(commandProcessor, "resume",
         ([this](const std::vector<std::string>& args) {
             if (!playMode->isPaused()) {
                 console->addLine("Not paused", YELLOW);
@@ -1184,9 +1206,9 @@ void Engine::registerEngineCommands() {
             
             playMode->resume();
             console->addLine("Play mode resumed", GREEN);
-        }), "Resume play mode");
+        }), "Resume play mode", "Play");
     
-    REGISTER_COMMAND(commandProcessor, "play.toggle",
+    REGISTER_COMMAND_GROUP(commandProcessor, "play.toggle",
         ([this](const std::vector<std::string>& args) {
             if (playMode->isPlaying() || playMode->isPaused()) {
                 playMode->stop();
@@ -1200,5 +1222,5 @@ void Engine::registerEngineCommands() {
             } else {
                 console->addLine("No scene to play", RED);
             }
-        }), "Toggle play mode");
+        }), "Toggle play mode", "Play");
 }

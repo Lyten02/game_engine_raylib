@@ -61,8 +61,53 @@ void Console::update(float deltaTime) {
     
     if (!isVisible) return;
     
+    // Handle dropdown navigation
+    if (showSuggestionDropdown && !autocompleteSuggestions.empty()) {
+        if (IsKeyPressed(KEY_DOWN)) {
+            dropdownSelectedIndex = (dropdownSelectedIndex + 1) % autocompleteSuggestions.size();
+            currentSuggestion = autocompleteSuggestions[dropdownSelectedIndex];
+        } else if (IsKeyPressed(KEY_UP)) {
+            dropdownSelectedIndex = (dropdownSelectedIndex - 1 + autocompleteSuggestions.size()) % autocompleteSuggestions.size();
+            currentSuggestion = autocompleteSuggestions[dropdownSelectedIndex];
+        } else if (IsKeyPressed(KEY_TAB) || IsKeyPressed(KEY_ENTER)) {
+            // Accept selected suggestion
+            currentInput = autocompleteSuggestions[dropdownSelectedIndex];
+            cursorPosition = currentInput.length();
+            hideDropdown();
+            updateInlineSuggestion();
+            if (IsKeyPressed(KEY_ENTER)) {
+                // If Enter was pressed, also execute the command
+                goto handle_enter;  // Jump to enter handling
+            }
+        } else if (IsKeyPressed(KEY_ESCAPE)) {
+            hideDropdown();
+        }
+    } else {
+        // Handle Tab for autocompletion when dropdown is not shown
+        if (IsKeyPressed(KEY_TAB)) {
+            if (!currentSuggestion.empty()) {
+                // Accept current inline suggestion
+                currentInput = currentSuggestion;
+                cursorPosition = currentInput.length();
+                currentSuggestion.clear();
+                updateInlineSuggestion();
+            } else {
+                // Show dropdown
+                updateAutocompleteSuggestions();
+                if (!autocompleteSuggestions.empty()) {
+                    showDropdown();
+                }
+            }
+        }
+    }
+    
     // Handle input
+handle_enter:
     if (IsKeyPressed(KEY_ENTER) && !currentInput.empty()) {
+        // Clear autocompletion and suggestion
+        hideDropdown();
+        currentSuggestion.clear();
+        
         // Add to history
         commandHistory.push_back(currentInput);
         historyIndex = -1;
@@ -85,6 +130,15 @@ void Console::update(float deltaTime) {
             currentInput.erase(cursorPosition - 1, 1);
             cursorPosition--;
             backspaceTimer = 0.0f;
+            updateAutocompleteSuggestions();
+            if (currentInput.empty()) {
+                hideDropdown();
+            } else if (autocompleteSuggestions.size() > 1) {
+                showDropdown();
+            } else {
+                hideDropdown();
+            }
+            updateInlineSuggestion();
         } else {
             // Key is held down
             backspaceTimer += deltaTime;
@@ -96,6 +150,15 @@ void Console::update(float deltaTime) {
                     currentInput.erase(cursorPosition - 1, 1);
                     cursorPosition--;
                     backspaceTimer = backspaceDelay + (repeatTime - repeats * backspaceRepeat);
+                    updateAutocompleteSuggestions();
+                    if (currentInput.empty()) {
+                        hideDropdown();
+                    } else if (autocompleteSuggestions.size() > 1) {
+                        showDropdown();
+                    } else {
+                        hideDropdown();
+                    }
+                    updateInlineSuggestion();
                 }
             }
         }
@@ -106,10 +169,19 @@ void Console::update(float deltaTime) {
     // Handle Delete key
     if (IsKeyPressed(KEY_DELETE) && cursorPosition < currentInput.length()) {
         currentInput.erase(cursorPosition, 1);
+        updateAutocompleteSuggestions();
+        if (currentInput.empty()) {
+            hideDropdown();
+        } else if (autocompleteSuggestions.size() > 1) {
+            showDropdown();
+        } else {
+            hideDropdown();
+        }
+        updateInlineSuggestion();
     }
     
     // Handle history navigation
-    if (IsKeyPressed(KEY_UP) && !commandHistory.empty()) {
+    if (IsKeyPressed(KEY_UP) && !commandHistory.empty() && !showSuggestionDropdown) {
         if (historyIndex == -1) {
             historyIndex = commandHistory.size() - 1;
         } else if (historyIndex > 0) {
@@ -117,9 +189,12 @@ void Console::update(float deltaTime) {
         }
         currentInput = commandHistory[historyIndex];
         cursorPosition = currentInput.length();
+        currentSuggestion.clear();
+        hideDropdown();
+        updateInlineSuggestion();
     }
     
-    if (IsKeyPressed(KEY_DOWN) && historyIndex != -1) {
+    if (IsKeyPressed(KEY_DOWN) && historyIndex != -1 && !showSuggestionDropdown) {
         if (historyIndex < static_cast<int>(commandHistory.size()) - 1) {
             historyIndex++;
             currentInput = commandHistory[historyIndex];
@@ -128,6 +203,9 @@ void Console::update(float deltaTime) {
             currentInput.clear();
             cursorPosition = 0;
         }
+        currentSuggestion.clear();
+        hideDropdown();
+        updateInlineSuggestion();
     }
     
     // Handle cursor movement with arrow keys
@@ -154,8 +232,23 @@ void Console::update(float deltaTime) {
         if (key >= 32 && key <= 126) {
             currentInput.insert(cursorPosition, 1, static_cast<char>(key));
             cursorPosition++;
+            // Update suggestions and maybe show dropdown
+            updateAutocompleteSuggestions();
+            if (autocompleteSuggestions.size() > 1) {
+                showDropdown();
+            } else {
+                hideDropdown();
+            }
+            updateInlineSuggestion();
         }
         key = GetCharPressed();
+    }
+    
+    // Accept suggestion with Right arrow at end of input
+    if (IsKeyPressed(KEY_RIGHT) && cursorPosition == currentInput.length() && !currentSuggestion.empty() && !showSuggestionDropdown) {
+        currentInput = currentSuggestion;
+        cursorPosition = currentInput.length();
+        currentSuggestion.clear();
     }
     
     // Handle scrolling
@@ -283,11 +376,89 @@ void Console::render() {
     DrawTextEx(consoleFont, inputLine.c_str(), 
                {10, consoleHeight - 30}, fontSize, 1, inputColor);
     
+    // Draw inline suggestion
+    if (!currentSuggestion.empty() && cursorPosition == currentInput.length()) {
+        std::string suggestionPart = currentSuggestion.substr(currentInput.length());
+        std::string beforeSuggestion = "> " + currentInput;
+        int suggestionX = 10 + MeasureText(beforeSuggestion.c_str(), fontSize);
+        DrawTextEx(consoleFont, suggestionPart.c_str(),
+                   {static_cast<float>(suggestionX), consoleHeight - 30}, 
+                   fontSize, 1, {128, 128, 128, 128}); // Gray transparent
+    }
+    
+    // Draw autocomplete hint
+    if (currentInput.empty()) {
+        DrawText("Press TAB to see suggestions", screenWidth - 220, consoleHeight - 25, 12, DARKGRAY);
+    } else if (!currentSuggestion.empty() && !showSuggestionDropdown) {
+        DrawText("TAB/→ to accept", screenWidth - 150, consoleHeight - 25, 12, DARKGRAY);
+    } else if (showSuggestionDropdown) {
+        DrawText("↑↓ navigate, TAB/ENTER accept", screenWidth - 250, consoleHeight - 25, 12, DARKGRAY);
+    }
+    
+    // Draw suggestion dropdown
+    if (showSuggestionDropdown && !autocompleteSuggestions.empty()) {
+        int dropdownY = consoleHeight - 50;
+        int itemHeight = 20;
+        int visibleItems = std::min(static_cast<int>(autocompleteSuggestions.size()), maxDropdownItems);
+        int dropdownHeight = visibleItems * itemHeight + 10;
+        
+        // Move dropdown up to fit on screen
+        dropdownY -= dropdownHeight;
+        
+        // Calculate dropdown width based on longest suggestion
+        int maxWidth = 200;
+        for (const auto& suggestion : autocompleteSuggestions) {
+            int textWidth = MeasureText(suggestion.c_str(), fontSize) + 20;
+            maxWidth = std::max(maxWidth, textWidth);
+        }
+        
+        // Draw dropdown background
+        DrawRectangle(10, dropdownY, maxWidth, dropdownHeight, {30, 30, 30, 240});
+        DrawRectangleLines(10, dropdownY, maxWidth, dropdownHeight, DARKGRAY);
+        
+        // Draw items
+        int startIdx = 0;
+        if (dropdownSelectedIndex >= maxDropdownItems) {
+            startIdx = dropdownSelectedIndex - maxDropdownItems + 1;
+        }
+        
+        for (int i = 0; i < visibleItems; i++) {
+            int idx = startIdx + i;
+            if (idx >= static_cast<int>(autocompleteSuggestions.size())) break;
+            
+            int itemY = dropdownY + 5 + i * itemHeight;
+            
+            // Highlight selected item
+            if (idx == dropdownSelectedIndex) {
+                DrawRectangle(12, itemY, maxWidth - 4, itemHeight - 2, {70, 70, 200, 200});
+            }
+            
+            // Draw text
+            Color textColor = (idx == dropdownSelectedIndex) ? WHITE : LIGHTGRAY;
+            DrawText(autocompleteSuggestions[idx].c_str(), 15, itemY + 2, fontSize, textColor);
+        }
+        
+        // Draw scroll indicators if needed
+        if (startIdx > 0) {
+            DrawText("▲", maxWidth - 15, dropdownY + 5, 12, GRAY);
+        }
+        if (startIdx + visibleItems < static_cast<int>(autocompleteSuggestions.size())) {
+            DrawText("▼", maxWidth - 15, dropdownY + dropdownHeight - 15, 12, GRAY);
+        }
+    }
+    
     // Draw cursor
     if (static_cast<int>(GetTime() * 2) % 2 == 0) {
         std::string beforeCursor = "> " + currentInput.substr(0, cursorPosition);
         int cursorX = 10 + MeasureText(beforeCursor.c_str(), fontSize);
         DrawRectangle(cursorX, consoleHeight - 30, 2, fontSize, inputColor);
+    }
+    
+    // Draw command parameter hints
+    std::string hint = getCurrentCommandHint();
+    if (!hint.empty()) {
+        // Draw hint above input line
+        DrawText(hint.c_str(), 10, consoleHeight - 55, fontSize - 2, DARKGRAY);
     }
     
     // Draw FPS in console header if enabled
@@ -371,4 +542,130 @@ std::string Console::getSelectedText() const {
 
 void Console::copyToClipboard(const std::string& text) {
     SetClipboardText(text.c_str());
+}
+
+void Console::updateAutocompleteSuggestions() {
+    autocompleteSuggestions.clear();
+    autocompleteBase = currentInput;
+    
+    if (!commandProcessor || currentInput.empty()) {
+        return;
+    }
+    
+    // Get all command names
+    std::vector<std::string> allCommands = commandProcessor->getCommandNames();
+    
+    // Filter commands that start with current input
+    for (const auto& command : allCommands) {
+        if (command.find(currentInput) == 0) {
+            autocompleteSuggestions.push_back(command);
+        }
+    }
+    
+    // Sort suggestions
+    std::sort(autocompleteSuggestions.begin(), autocompleteSuggestions.end());
+}
+
+std::string Console::getCommonPrefix(const std::vector<std::string>& suggestions) const {
+    if (suggestions.empty()) return "";
+    if (suggestions.size() == 1) return suggestions[0];
+    
+    std::string prefix = suggestions[0];
+    for (size_t i = 1; i < suggestions.size(); i++) {
+        size_t j = 0;
+        while (j < prefix.length() && j < suggestions[i].length() && 
+               prefix[j] == suggestions[i][j]) {
+            j++;
+        }
+        prefix = prefix.substr(0, j);
+    }
+    
+    return prefix;
+}
+
+void Console::updateInlineSuggestion() {
+    currentSuggestion.clear();
+    
+    if (!commandProcessor || currentInput.empty() || cursorPosition != currentInput.length()) {
+        return;
+    }
+    
+    // Don't show inline suggestion if dropdown is open
+    if (showSuggestionDropdown) {
+        return;
+    }
+    
+    // Get all command names
+    std::vector<std::string> allCommands = commandProcessor->getCommandNames();
+    
+    // Find best match
+    std::string bestMatch;
+    for (const auto& command : allCommands) {
+        if (command.find(currentInput) == 0 && command != currentInput) {
+            if (bestMatch.empty() || command.length() < bestMatch.length()) {
+                bestMatch = command;
+            }
+        }
+    }
+    
+    if (!bestMatch.empty()) {
+        currentSuggestion = bestMatch;
+    }
+}
+
+void Console::showDropdown() {
+    if (!autocompleteSuggestions.empty()) {
+        showSuggestionDropdown = true;
+        dropdownSelectedIndex = 0;
+        currentSuggestion = autocompleteSuggestions[0];
+    }
+}
+
+void Console::hideDropdown() {
+    showSuggestionDropdown = false;
+    dropdownSelectedIndex = 0;
+    autocompleteSuggestions.clear();
+}
+
+std::string Console::getCurrentCommandHint() const {
+    if (!commandProcessor || currentInput.empty() || showSuggestionDropdown) {
+        return "";
+    }
+    
+    // Parse current input to get command name
+    std::vector<std::string> tokens = commandProcessor->parseCommand(currentInput);
+    if (tokens.empty()) {
+        return "";
+    }
+    
+    std::string commandName = tokens[0];
+    
+    // Check if this is a complete command
+    auto commandNames = commandProcessor->getCommandNames();
+    bool isValidCommand = std::find(commandNames.begin(), commandNames.end(), commandName) != commandNames.end();
+    
+    if (!isValidCommand) {
+        return "";
+    }
+    
+    // Get command info
+    CommandInfo info = commandProcessor->getCommandInfo(commandName);
+    
+    // Build hint
+    std::string hint;
+    if (!info.syntax.empty()) {
+        hint = info.syntax;
+    } else if (!info.parameters.empty()) {
+        hint = commandName;
+        for (const auto& param : info.parameters) {
+            hint += " ";
+            if (param.required) {
+                hint += "<" + param.name + ">";
+            } else {
+                hint += "[" + param.name + "]";
+            }
+        }
+    }
+    
+    return hint;
 }

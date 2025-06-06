@@ -6,9 +6,18 @@
 #define REGISTER_COMMAND(processor, name, func, help) \
     (processor)->registerCommand(name, func, help)
 
+#define REGISTER_COMMAND_GROUP(processor, name, func, help, group) \
+    (processor)->registerCommand(name, func, help, group)
+
+#define REGISTER_COMMAND_EX(processor, name, func, help, group, syntax, params) \
+    (processor)->registerCommand(name, func, help, group, syntax, params)
+
 // Helper macros for common command patterns
 #define REGISTER_SIMPLE_COMMAND(processor, name, code, help) \
     REGISTER_COMMAND(processor, name, [this](const std::vector<std::string>& args) { code; }, help)
+
+#define REGISTER_SIMPLE_COMMAND_GROUP(processor, name, code, help, group) \
+    REGISTER_COMMAND_GROUP(processor, name, [this](const std::vector<std::string>& args) { code; }, help, group)
 
 // Validate argument count
 inline bool validateArgCount(Console* console, const std::vector<std::string>& args, 

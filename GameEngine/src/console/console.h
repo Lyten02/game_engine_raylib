@@ -38,6 +38,21 @@ private:
     int scrollOffset = 0;
     int getMaxScroll() const;
     
+    // Autocompletion
+    std::vector<std::string> autocompleteSuggestions;
+    int autocompleteIndex = -1;
+    std::string autocompleteBase;
+    std::string currentSuggestion;  // Current inline suggestion
+    bool showSuggestionDropdown = false;
+    int dropdownSelectedIndex = 0;
+    const int maxDropdownItems = 8;  // Max items to show in dropdown
+    void updateAutocompleteSuggestions();
+    std::string getCommonPrefix(const std::vector<std::string>& suggestions) const;
+    void updateInlineSuggestion();
+    void showDropdown();
+    void hideDropdown();
+    std::string getCurrentCommandHint() const;
+    
     // Key repeat for backspace
     float backspaceTimer = 0.0f;
     const float backspaceDelay = 0.5f;  // Initial delay before repeat

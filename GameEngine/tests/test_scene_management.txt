@@ -1,0 +1,34 @@
+# Test scene management functionality
+# This script tests scene creation, switching, and management
+
+# Setup project
+project.create test_scenes
+project.open test_scenes
+
+# Test 1: Create multiple scenes
+scene.create main_menu
+scene.create level_1
+scene.create level_2
+scene.create game_over
+
+# Test 2: List scenes
+scene.list
+
+# Test 3: Switch between scenes
+scene.load main_menu
+entity.create MenuTitle
+entity.create PlayButton
+
+scene.load level_1
+entity.create Player
+entity.create Ground
+
+scene.load level_2
+entity.create Boss
+entity.create Platform
+
+# Test 4: Scene info
+scene.info level_1
+
+# Cleanup
+project.close

@@ -1,0 +1,29 @@
+# Basic CLI test script
+# This script tests basic CLI functionality
+
+# Get help
+help
+
+# List projects (should be empty initially)
+project.list
+
+# Create a test project
+project.create cli_test_project
+
+# Open the project
+project.open cli_test_project
+
+# Create a scene
+scene.create test_scene
+
+# Create an entity
+entity.create TestEntity
+
+# List entities
+entity.list
+
+# Get engine info
+engine.info
+
+# Close project
+project.close

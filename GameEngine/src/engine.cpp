@@ -40,13 +40,29 @@ Engine::Engine() = default;
 Engine::~Engine() = default;
 
 bool Engine::initialize() {
-    spdlog::info("Engine::initialize - Starting engine initialization");
+    // Only log in non-headless mode
+    if (!headlessMode) {
+        spdlog::info("Engine::initialize - Starting engine initialization");
+    } else {
+        // Set silent mode for config in headless mode
+        Config::setSilentMode(true);
+    }
     
     // Load configuration
     if (!Config::load("config.json")) {
-        spdlog::warn("Engine::initialize - Failed to load config.json, using defaults");
+        if (!headlessMode) {
+            spdlog::warn("Engine::initialize - Failed to load config.json, using defaults");
+        }
     }
     
+    if (headlessMode) {
+        return initializeHeadless();
+    } else {
+        return initializeGraphics();
+    }
+}
+
+bool Engine::initializeGraphics() {
     // Get window settings from config
     int width = Config::getInt("window.width", 1280);
     int height = Config::getInt("window.height", 720);
@@ -189,11 +205,73 @@ bool Engine::initialize() {
     return true;
 }
 
+bool Engine::initializeHeadless() {
+    // In headless mode, we don't want logging to interfere with JSON output
+    // Set logging to error level only
+    try {
+        auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+        auto logger = std::make_shared<spdlog::logger>("engine", console_sink);
+        
+        spdlog::set_default_logger(logger);
+        spdlog::set_level(spdlog::level::err);  // Only log errors in headless mode
+        spdlog::flush_on(spdlog::level::err);
+    } catch (const std::exception& e) {
+        // Silent failure - we're in headless mode
+    }
+    
+    // Initialize resource manager (without texture loading)
+    resourceManager = std::make_unique<ResourceManager>();
+    resourceManager->setSilentMode(true);
+    
+    // Initialize console (for command processing only)
+    console = std::make_unique<Console>();
+    console->initialize();
+    
+    // Initialize command processor
+    commandProcessor = std::make_unique<CommandProcessor>();
+    commandProcessor->initialize(console.get());
+    console->setCommandProcessor(commandProcessor.get());
+    
+    // Register engine commands
+    registerEngineCommands();
+    
+    // Initialize script manager if enabled
+    if (Config::getBool("scripting.lua_enabled", true)) {
+        scriptManager = std::make_unique<ScriptManager>();
+        if (!scriptManager->initialize()) {
+            scriptManager.reset();
+        }
+    }
+    
+    // Initialize project manager
+    projectManager = std::make_unique<GameEngine::ProjectManager>();
+    
+    // Initialize build system (may be useful in headless mode)
+    buildSystem = std::make_unique<GameEngine::BuildSystem>();
+    asyncBuildSystem = std::make_unique<GameEngine::AsyncBuildSystem>();
+    
+    // Skip play mode in headless
+    
+    // Register components for serialization
+    GameEngine::ComponentRegistry::getInstance().registerComponent<TransformComponent>("Transform");
+    GameEngine::ComponentRegistry::getInstance().registerComponent<Sprite>("Sprite");
+    
+    running = true;
+    
+    return true;
+}
+
 void Engine::run() {
     spdlog::info("Engine::run - Starting main game loop");
     
     if (!running) {
         spdlog::warn("Engine::run - Engine not initialized, aborting run");
+        return;
+    }
+    
+    // In headless mode, we don't run a game loop
+    if (headlessMode) {
+        spdlog::info("Engine::run - Headless mode, skipping game loop");
         return;
     }
     
@@ -395,7 +473,7 @@ void Engine::shutdown() {
         spdlog::info("Engine::shutdown - Resource manager cleaned up");
     }
     
-    if (IsWindowReady()) {
+    if (!headlessMode && IsWindowReady()) {
         CloseWindow();
         spdlog::info("Engine::shutdown - Window closed");
     }

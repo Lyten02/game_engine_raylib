@@ -8,8 +8,11 @@ private:
     static inline nlohmann::json configData;
     static inline std::string configPath;
     static inline bool isLoaded = false;
+    static inline bool silentMode = false;
 
 public:
+    // Set silent mode
+    static void setSilentMode(bool silent) { silentMode = silent; }
     // Load configuration from JSON file
     static bool load(const std::string& path);
     

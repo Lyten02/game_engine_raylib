@@ -34,6 +34,10 @@ public:
     // Shutdown and cleanup
     void shutdown();
     
+    // Headless mode support
+    void setHeadlessMode(bool headless) { headlessMode = headless; }
+    bool isHeadlessMode() const { return headlessMode; }
+    
     // Getters for systems
     RenderSystem* getRenderSystem() const { return renderSystem.get(); }
     Scene* getCurrentScene() const { return currentScene.get(); }
@@ -89,4 +93,9 @@ private:
     bool showDebugInfo = true;
     bool vsyncEnabled = false;
     int targetFPS = 0;
+    bool headlessMode = false;
+    
+    // Headless mode initialization
+    bool initializeHeadless();
+    bool initializeGraphics();
 };

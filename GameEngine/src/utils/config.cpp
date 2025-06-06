@@ -20,7 +20,9 @@ bool Config::load(const std::string& path) {
         configPath = path;
         isLoaded = true;
         
-        spdlog::info("Config::load - Configuration loaded from: {}", path);
+        if (!silentMode) {
+            spdlog::info("Config::load - Configuration loaded from: {}", path);
+        }
         return true;
     } catch (const nlohmann::json::parse_error& e) {
         spdlog::error("Config::load - JSON parse error: {}", e.what());

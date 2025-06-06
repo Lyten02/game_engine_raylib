@@ -69,17 +69,23 @@ Sound* ResourceManager::getSound(const std::string& name) {
 }
 
 void ResourceManager::unloadAll() {
-    std::cout << "[ResourceManager] Unloading all resources..." << std::endl;
+    if (!silentMode) {
+        std::cout << "[ResourceManager] Unloading all resources..." << std::endl;
+    }
     
     for (auto& [name, texture] : textures) {
         UnloadTexture(texture);
-        std::cout << "[ResourceManager] Unloaded texture: " << name << std::endl;
+        if (!silentMode) {
+            std::cout << "[ResourceManager] Unloaded texture: " << name << std::endl;
+        }
     }
     textures.clear();
 
     for (auto& [name, sound] : sounds) {
         UnloadSound(sound);
-        std::cout << "[ResourceManager] Unloaded sound: " << name << std::endl;
+        if (!silentMode) {
+            std::cout << "[ResourceManager] Unloaded sound: " << name << std::endl;
+        }
     }
     sounds.clear();
 }

@@ -75,6 +75,8 @@ add_executable(game
     src/build/build_config.cpp
     src/build/async_build_system.cpp
     src/engine/play_mode.cpp
+    src/cli/cli_engine.cpp
+    src/cli/cli_argument_parser.cpp
 )
 
 # Include directories
@@ -107,3 +109,12 @@ file(COPY ${CMAKE_SOURCE_DIR}/templates DESTINATION ${CMAKE_BINARY_DIR})
 
 # Create projects directory in build directory
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/projects)
+
+# Add custom target for running tests
+add_custom_target(test
+    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests..."
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    DEPENDS game
+    COMMENT "Running all tests"
+)

@@ -7,6 +7,16 @@
 #include <memory>
 #include <filesystem>
 
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+#ifdef _WIN32
+#include <windows.h>
+#endif
+#ifdef __linux__
+#include <unistd.h>
+#endif
+
 // Component definitions
 struct TransformComponent {
     Vector3 position{0.0f, 0.0f, 0.0f};
@@ -89,15 +99,30 @@ private:
     std::unique_ptr<ResourceManager> resourceManager;
     Camera2D camera;
     bool running = false;
+    std::filesystem::path executablePath;
     
 public:
-    bool initialize(const std::string& configPath) {
+    bool initialize(const std::string& configPath, const std::filesystem::path& exePath) {
+        // Store executable path and change to its directory
+        executablePath = exePath.parent_path();
+        std::filesystem::current_path(executablePath);
+        
+        spdlog::info("Changed working directory to: {}", std::filesystem::current_path().string());
+        
         // Load config
         std::ifstream configFile(configPath);
         if (!configFile.is_open()) {
             spdlog::error("Failed to open config file: {}", configPath);
-            spdlog::info("Current working directory: {}", std::filesystem::current_path().string());
-            return false;
+            spdlog::info("Looking in: {}", std::filesystem::current_path().string());
+            
+            // Try with project name prefix for compatibility
+            std::string altConfigPath = "{{PROJECT_NAME}}_config.json";
+            configFile.open(altConfigPath);
+            if (!configFile.is_open()) {
+                spdlog::error("Also failed to open: {}", altConfigPath);
+                return false;
+            }
+            spdlog::info("Opened alternative config: {}", altConfigPath);
         }
         
         nlohmann::json config;
@@ -216,10 +241,46 @@ public:
     }
 };
 
-int main() {
+// Helper function to get executable path
+std::filesystem::path getExecutablePath(char* argv0) {
+    std::filesystem::path exePath;
+    
+    #ifdef __APPLE__
+        // macOS specific
+        char pathbuf[1024];
+        uint32_t bufsize = sizeof(pathbuf);
+        if (_NSGetExecutablePath(pathbuf, &bufsize) == 0) {
+            exePath = std::filesystem::canonical(pathbuf);
+        } else {
+            exePath = std::filesystem::canonical(argv0);
+        }
+    #elif _WIN32
+        // Windows specific
+        char pathbuf[MAX_PATH];
+        GetModuleFileNameA(NULL, pathbuf, MAX_PATH);
+        exePath = pathbuf;
+    #else
+        // Linux
+        char pathbuf[1024];
+        ssize_t len = readlink("/proc/self/exe", pathbuf, sizeof(pathbuf)-1);
+        if (len != -1) {
+            pathbuf[len] = '\0';
+            exePath = pathbuf;
+        } else {
+            exePath = std::filesystem::canonical(argv0);
+        }
+    #endif
+    
+    return exePath;
+}
+
+int main(int argc, char* argv[]) {
+    // Get executable path
+    std::filesystem::path exePath = getExecutablePath(argv[0]);
+    
     GameRuntime runtime;
     
-    if (!runtime.initialize("game_config.json")) {
+    if (!runtime.initialize("game_config.json", exePath)) {
         return -1;
     }
     

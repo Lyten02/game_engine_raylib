@@ -1243,6 +1243,29 @@ void Engine::registerEngineCommands() {
             console->addLine("Build started. Check console for progress.", GREEN);
         }), "Build the current project", "Build");
     
+    REGISTER_COMMAND_GROUP(commandProcessor, "project.build.sync",
+        ([this](const std::vector<std::string>& args) {
+            auto* project = projectManager->getCurrentProject();
+            if (!project) {
+                console->addLine("No project open", RED);
+                return;
+            }
+            
+            console->addLine("Starting synchronous build...", YELLOW);
+            
+            std::string config = args.empty() ? "Release" : args[0];
+            
+            // Call buildProject directly, bypassing AsyncBuildSystem
+            bool success = buildSystem->buildProject(project, config);
+            
+            if (success) {
+                console->addLine("Build completed successfully!", GREEN);
+                console->addLine("Executable created at: output/" + project->getName() + "/bin/", GREEN);
+            } else {
+                console->addLine("Build failed!", RED);
+            }
+        }), "Build project synchronously (for testing)", "Build");
+    
     REGISTER_COMMAND_GROUP(commandProcessor, "project.run",
         ([this](const std::vector<std::string>& args) {
             auto* project = projectManager->getCurrentProject();

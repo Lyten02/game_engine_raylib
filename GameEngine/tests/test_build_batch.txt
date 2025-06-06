@@ -1,2 +1,2 @@
-# This file is auto-generated and should not be run as a test
-# Build testing requires manual interaction - see BUILD_TEST_INSTRUCTIONS.md
+# This file has been replaced by test_build_system.py
+# The build system now supports synchronous building via project.build.sync

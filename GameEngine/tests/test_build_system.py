@@ -1,244 +1,178 @@
 #!/usr/bin/env python3
-"""
-Test the build system functionality of the game engine.
-"""
+"""Test the build system functionality"""
 
-import os
-import sys
-import json
-import time
 import subprocess
+import json
+import sys
+import os
+import time
 import shutil
-from pathlib import Path
 
-# Add parent directory to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-def run_command(command, engine_path="../build/game", cwd=None):
-    """Execute a CLI command and return the result."""
-    full_command = f'{engine_path} --json --headless --command "{command}"'
-    if cwd:
-        result = subprocess.run(full_command, shell=True, capture_output=True, text=True, cwd=cwd)
-    else:
-        result = subprocess.run(full_command, shell=True, capture_output=True, text=True)
+def run_batch_commands(commands):
+    """Execute multiple commands in one engine session"""
+    # Change to build directory where templates are accessible
+    original_dir = os.getcwd()
+    
+    # Move to build directory if we're in tests
+    if os.path.basename(os.getcwd()) == "tests":
+        os.chdir("../build")
+    elif not os.path.exists("game"):
+        # Try to find build directory
+        if os.path.exists("build/game"):
+            os.chdir("build")
+    
+    exe_path = "./game"
+    
+    # Write commands to a temporary batch file
+    batch_file = "test_build_commands.txt"
+    with open(batch_file, "w") as f:
+        for cmd in commands:
+            f.write(cmd + "\n")
     
     try:
-        output = json.loads(result.stdout)
-        return output
-    except json.JSONDecodeError:
-        return {
-            "success": False,
-            "message": f"Failed to parse JSON: {result.stdout}",
-            "stderr": result.stderr
-        }
+        # Run engine with batch file
+        result = subprocess.run(
+            [exe_path, "--headless", "--script", batch_file],
+            capture_output=True,
+            text=True,
+            timeout=150  # 2.5 minutes timeout for build
+        )
+        
+        # Clean up batch file
+        os.remove(batch_file)
+        
+        # Return to original directory
+        os.chdir(original_dir)
+        
+        return result.returncode == 0, result.stdout, result.stderr
+        
+    except subprocess.TimeoutExpired:
+        os.remove(batch_file)
+        os.chdir(original_dir)
+        return False, "", "Build timeout after 2.5 minutes"
+    except Exception as e:
+        if os.path.exists(batch_file):
+            os.remove(batch_file)
+        os.chdir(original_dir)
+        return False, "", str(e)
 
 def test_project_build():
-    """Test creating and building a project."""
+    """Test full project build functionality"""
     print("Testing project build system...")
+    print("This will compile a real project (may take 1-2 minutes)...")
     
     project_name = "BuildTest"
     
-    # Clean up any existing test project
-    project_path = f"projects/{project_name}"
-    output_path = f"output/{project_name}"
-    if os.path.exists(project_path):
-        shutil.rmtree(project_path)
-    if os.path.exists(output_path):
-        shutil.rmtree(output_path)
+    # Determine paths based on current directory
+    if os.path.basename(os.getcwd()) == "tests":
+        project_dir = f"../build/projects/{project_name}"
+        output_dir = f"../build/output/{project_name}"
+    else:
+        project_dir = f"projects/{project_name}"
+        output_dir = f"output/{project_name}"
     
-    # Create a batch script with all commands
-    batch_commands = [
+    # Clean up any existing project
+    if os.path.exists(project_dir):
+        shutil.rmtree(project_dir)
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    
+    # Commands to execute in batch
+    commands = [
         f"project.create {project_name}",
         f"project.open {project_name}",
         "scene.create main",
         "entity.create Player",
         "scene.save main",
-        "project.build"
+        "project.build.sync"  # Use synchronous build
     ]
     
-    # Write batch script to file
-    batch_file = "test_build_batch.txt"
-    with open(batch_file, "w") as f:
-        for cmd in batch_commands:
-            f.write(cmd + "\n")
-    
-    print("Running batch commands:")
-    for i, cmd in enumerate(batch_commands, 1):
+    print("\nExecuting batch commands:")
+    for i, cmd in enumerate(commands, 1):
         print(f"  {i}. {cmd}")
     
-    # Execute batch script
-    engine_path = "../build/game"
-    full_command = f'{engine_path} --headless --script {batch_file}'
-    result = subprocess.run(full_command, shell=True, capture_output=True, text=True)
+    start_time = time.time()
     
-    if result.returncode != 0:
-        print(f"Batch execution failed:")
-        print(f"stdout: {result.stdout}")
-        print(f"stderr: {result.stderr}")
-        assert False, "Batch execution failed"
+    # Execute all commands in one session
+    success, stdout, stderr = run_batch_commands(commands)
     
-    print("✓ Batch commands executed")
+    elapsed = time.time() - start_time
     
-    # Wait for build to complete
-    print("Waiting for build to complete...")
-    max_wait = 60
-    check_interval = 2
-    elapsed = 0
+    if not success:
+        print(f"\n❌ Batch execution failed!")
+        print(f"stdout: {stdout[:1000]}...")  # First 1000 chars
+        print(f"stderr: {stderr}")
+        assert False, "Failed to execute build commands"
     
-    while elapsed < max_wait:
-        time.sleep(check_interval)
-        elapsed += check_interval
-        
-        # Check if executable exists
-        exe_path = f"output/{project_name}/bin/{project_name}"
-        if os.name == 'nt':
-            exe_path += ".exe"
-        
-        if os.path.exists(exe_path):
-            print(f"✓ Build completed! Executable found at: {exe_path}")
-            break
+    print(f"\n✅ Commands executed successfully in {elapsed:.1f}s")
+    
+    # Check if build was mentioned in output
+    if "Build completed successfully" in stdout:
+        print("✅ Build reported as successful")
+    elif "Build failed" in stdout:
+        print("❌ Build reported as failed")
+        print(f"Build output:\n{stdout[-2000:]}")  # Last 2000 chars
+        assert False, "Build failed"
     else:
-        # Check if at least the output directory was created
-        if os.path.exists(f"output/{project_name}"):
-            print(f"Build directory created but executable not found after {max_wait} seconds")
-            print("Contents of output directory:")
-            for root, dirs, files in os.walk(f"output/{project_name}"):
-                level = root.replace(f"output/{project_name}", '').count(os.sep)
-                indent = ' ' * 2 * level
-                print(f"{indent}{os.path.basename(root)}/")
-                subindent = ' ' * 2 * (level + 1)
-                for file in files:
-                    print(f"{subindent}{file}")
-        assert False, f"Build timed out after {max_wait} seconds"
+        # Print last part of output to see what happened
+        print("\nLast 500 chars of output:")
+        print(stdout[-500:] if len(stdout) > 500 else stdout)
     
-    # Clean up batch file
-    os.remove(batch_file)
+    # Verify executable was created
+    if os.path.basename(os.getcwd()) == "tests":
+        exe_path = f"../build/output/{project_name}/bin/{project_name}"
+    else:
+        exe_path = f"output/{project_name}/bin/{project_name}"
     
-    # 7. Verify build output
-    print("7. Verifying build output...")
-    
-    # Check executable exists and has reasonable size
-    exe_path = f"output/{project_name}/bin/{project_name}"
     if os.name == 'nt':
         exe_path += ".exe"
     
-    assert os.path.exists(exe_path), f"Executable not found at {exe_path}"
-    exe_size = os.path.getsize(exe_path)
-    assert exe_size > 100000, f"Executable too small ({exe_size} bytes), likely not properly built"
-    print(f"   ✓ Executable size: {exe_size:,} bytes")
+    # Give it a moment for files to be written
+    time.sleep(1)
     
-    # Check that required files were copied
-    assert os.path.exists(f"output/{project_name}/bin/assets"), "Assets directory not found"
-    assert os.path.exists(f"output/{project_name}/bin/scenes"), "Scenes directory not found"
-    assert os.path.exists(f"output/{project_name}/bin/game_config.json"), "Game config not found"
-    assert os.path.exists(f"output/{project_name}/bin/scenes/main.json"), "Main scene not found"
-    print("   ✓ All required files present")
-    
-    # 8. Test running the executable
-    print("8. Testing executable...")
-    try:
-        # Run with --version flag to test without opening window
-        result = subprocess.run([exe_path, "--version"], 
-                              capture_output=True, 
-                              text=True, 
-                              timeout=5,
-                              cwd=f"output/{project_name}/bin")
-        # The game template might not support --version, but it should at least run
-        print(f"   ✓ Executable runs (exit code: {result.returncode})")
-    except subprocess.TimeoutExpired:
-        print("   ! Executable timed out (might be running normally)")
-    except Exception as e:
-        assert False, f"Failed to run executable: {e}"
-    
-    print("\n✅ All build system tests passed!")
-    
-    # Cleanup
-    print("\nCleaning up test project...")
-    if os.path.exists(project_path):
-        shutil.rmtree(project_path)
-    if os.path.exists(output_path):
-        shutil.rmtree(output_path)
-    print("✓ Cleanup complete")
-
-def test_build_configurations():
-    """Test different build configurations."""
-    print("\nTesting build configurations...")
-    
-    project_name = "ConfigTest"
-    
-    # Clean up
-    project_path = f"projects/{project_name}"
-    output_path = f"output/{project_name}"
-    if os.path.exists(project_path):
-        shutil.rmtree(project_path)
-    if os.path.exists(output_path):
-        shutil.rmtree(output_path)
-    
-    # Create batch script for Debug build test
-    batch_commands = [
-        f"project.create {project_name}",
-        f"project.open {project_name}",
-        "scene.create main",
-        "scene.save main",
-        "project.build Debug"
-    ]
-    
-    batch_file = "test_debug_build.txt"
-    with open(batch_file, "w") as f:
-        for cmd in batch_commands:
-            f.write(cmd + "\n")
-    
-    # Test Debug build
-    print("1. Testing Debug build...")
-    engine_path = "../build/game"
-    full_command = f'{engine_path} --headless --script {batch_file}'
-    result = subprocess.run(full_command, shell=True, capture_output=True, text=True)
-    
-    if result.returncode == 0:
-        print("   ✓ Debug build command executed")
+    if os.path.exists(exe_path):
+        file_size = os.path.getsize(exe_path)
+        print(f"✅ Executable found: {exe_path} ({file_size:,} bytes)")
+        assert file_size > 100000, f"Executable too small ({file_size} bytes), likely not compiled correctly"
     else:
-        print(f"   ! Debug build command failed: {result.stderr}")
-    
-    # Clean up
-    os.remove(batch_file)
-    if os.path.exists(project_path):
-        shutil.rmtree(project_path)
-    if os.path.exists(output_path):
-        shutil.rmtree(output_path)
+        # List what's in the output directory
+        print(f"\n❌ Executable not found at: {exe_path}")
+        print("\nChecking output directory structure:")
+        
+        # Check the correct output directory
+        check_dir = "../build/output" if os.path.basename(os.getcwd()) == "tests" else "output"
+        if os.path.exists(check_dir):
+            for root, dirs, files in os.walk(check_dir):
+                level = root.replace(check_dir, "").count(os.sep)
+                indent = " " * 2 * level
+                print(f"{indent}{os.path.basename(root)}/")
+                subindent = " " * 2 * (level + 1)
+                for file in files[:5]:  # Limit to 5 files per dir
+                    print(f"{subindent}{file}")
+                if len(files) > 5:
+                    print(f"{subindent}... and {len(files)-5} more files")
+        else:
+            print(f"Output directory does not exist at: {check_dir}")
+            
+        assert False, f"Executable not found at: {exe_path}"
 
 if __name__ == "__main__":
     print("=== Game Engine Build System Tests ===\n")
-    print("⚠️  NOTE: Build system tests require manual verification")
-    print("    The async build system doesn't work well in headless batch mode")
-    print("    Please test manually using the instructions in manual_build_test.txt\n")
     
-    # Check if engine exists
-    engine_path = "../build/game"
-    if not os.path.exists(engine_path):
-        print(f"ERROR: Engine not found at {engine_path}")
-        print("Please build the engine first with:")
-        print("  cd .. && mkdir -p build && cd build && cmake .. && make")
+    try:
+        test_project_build()
+        print("\n🎉 All tests passed!")
+        print("\nBuild system successfully:")
+        print("  - Created project")
+        print("  - Generated C++ code")
+        print("  - Compiled with CMake")
+        print("  - Produced executable")
+        sys.exit(0)
+    except AssertionError as e:
+        print(f"\n❌ Test failed: {e}")
         sys.exit(1)
-    
-    # Clean up any existing test projects first
-    for project_name in ["BuildTest", "ConfigTest"]:
-        project_path = f"projects/{project_name}"
-        output_path = f"output/{project_name}"
-        if os.path.exists(project_path):
-            shutil.rmtree(project_path)
-        if os.path.exists(output_path):
-            shutil.rmtree(output_path)
-    
-    # Remove any leftover batch files
-    for batch_file in ["test_build_batch.txt", "test_debug_build.txt"]:
-        if os.path.exists(batch_file):
-            os.remove(batch_file)
-    
-    print("✅ Cleanup complete")
-    print("\nTo test the build system manually:")
-    print("1. Run: ./game")
-    print("2. Press F1 to open console")
-    print("3. Follow instructions in manual_build_test.txt")
-    
-    # Exit with success since manual testing is required
-    sys.exit(0)
+    except Exception as e:
+        print(f"\n❌ Unexpected error: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

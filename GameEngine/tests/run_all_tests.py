@@ -32,11 +32,14 @@ class TestRunner:
         start_time = time.time()
         
         try:
+            # Use longer timeout for build tests
+            timeout = 180 if "build" in test_file else 30
+            
             result = subprocess.run(
                 [sys.executable, test_file],
                 capture_output=True,
                 text=True,
-                timeout=30
+                timeout=timeout
             )
             elapsed = time.time() - start_time
             

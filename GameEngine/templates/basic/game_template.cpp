@@ -69,24 +69,62 @@ struct Sprite {
 class ResourceManager {
 private:
     std::unordered_map<std::string, Texture2D> textures;
+    Texture2D defaultTexture;
+    
+    void createDefaultTexture() {
+        const int size = 64;
+        const int checkSize = 8;
+        
+        // Create image for pink-black checkerboard
+        Image img = GenImageChecked(size, size, checkSize, checkSize, MAGENTA, BLACK);
+        
+        // Create texture from image
+        defaultTexture = LoadTextureFromImage(img);
+        UnloadImage(img);
+        
+        spdlog::info("[ResourceManager] Created default texture (64x64 pink-black checkerboard)");
+    }
     
 public:
+    ResourceManager() {
+        createDefaultTexture();
+    }
+    
+    ~ResourceManager() {
+        UnloadTexture(defaultTexture);
+    }
+    
     Texture2D* loadTexture(const std::string& path, const std::string& name) {
         if (textures.find(name) != textures.end()) {
+            return &textures[name];
+        }
+        
+        if (!std::filesystem::exists(path)) {
+            spdlog::warn("[ResourceManager] Texture file not found: {}", path);
+            spdlog::warn("[ResourceManager] Using default texture for '{}'", name);
+            textures[name] = defaultTexture;
             return &textures[name];
         }
         
         Texture2D texture = LoadTexture(path.c_str());
         if (texture.id != 0) {
             textures[name] = texture;
+            spdlog::info("[ResourceManager] Loaded texture '{}' from: {}", name, path);
             return &textures[name];
         }
-        return nullptr;
+        
+        spdlog::warn("[ResourceManager] Failed to load texture: {}", path);
+        spdlog::warn("[ResourceManager] Using default texture for '{}'", name);
+        textures[name] = defaultTexture;
+        return &textures[name];
     }
     
     void unloadAll() {
         for (auto& [name, texture] : textures) {
-            UnloadTexture(texture);
+            // Don't unload if it's the default texture
+            if (texture.id != defaultTexture.id) {
+                UnloadTexture(texture);
+            }
         }
         textures.clear();
     }

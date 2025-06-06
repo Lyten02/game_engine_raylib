@@ -9,10 +9,13 @@ class ResourceManager {
 private:
     std::unordered_map<std::string, Texture2D> textures;
     std::unordered_map<std::string, Sound> sounds;
+    Texture2D defaultTexture;
     bool silentMode = false;
+    
+    void createDefaultTexture();
 
 public:
-    ResourceManager() = default;
+    ResourceManager();
     ~ResourceManager();
     
     void setSilentMode(bool silent) { silentMode = silent; }

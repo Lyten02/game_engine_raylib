@@ -2,29 +2,60 @@
 #include <iostream>
 #include <filesystem>
 
+ResourceManager::ResourceManager() {
+    createDefaultTexture();
+}
+
 ResourceManager::~ResourceManager() {
+    UnloadTexture(defaultTexture);
     unloadAll();
+}
+
+void ResourceManager::createDefaultTexture() {
+    const int size = 64;
+    const int checkSize = 8;
+    
+    // Create image for pink-black checkerboard
+    Image img = GenImageChecked(size, size, checkSize, checkSize, MAGENTA, BLACK);
+    
+    // Create texture from image
+    defaultTexture = LoadTextureFromImage(img);
+    UnloadImage(img);
+    
+    if (!silentMode) {
+        std::cout << "[ResourceManager] Created default texture (64x64 pink-black checkerboard)" << std::endl;
+    }
 }
 
 Texture2D* ResourceManager::loadTexture(const std::string& path, const std::string& name) {
     if (textures.find(name) != textures.end()) {
-        std::cout << "[ResourceManager] Texture '" << name << "' already loaded." << std::endl;
+        if (!silentMode) {
+            std::cout << "[ResourceManager] Texture '" << name << "' already loaded." << std::endl;
+        }
         return &textures[name];
     }
 
     if (!std::filesystem::exists(path)) {
-        std::cerr << "[ResourceManager] Error: Texture file not found: " << path << std::endl;
-        return nullptr;
+        std::cerr << "[ResourceManager] WARNING: Texture file not found: " << path << std::endl;
+        std::cerr << "[ResourceManager] Using default texture for '" << name << "'" << std::endl;
+        // Store default texture with this name so subsequent calls return the same pointer
+        textures[name] = defaultTexture;
+        return &textures[name];
     }
 
     Texture2D texture = LoadTexture(path.c_str());
     if (texture.id == 0) {
-        std::cerr << "[ResourceManager] Error: Failed to load texture: " << path << std::endl;
-        return nullptr;
+        std::cerr << "[ResourceManager] WARNING: Failed to load texture: " << path << std::endl;
+        std::cerr << "[ResourceManager] Using default texture for '" << name << "'" << std::endl;
+        // Store default texture with this name so subsequent calls return the same pointer
+        textures[name] = defaultTexture;
+        return &textures[name];
     }
 
     textures[name] = texture;
-    std::cout << "[ResourceManager] Loaded texture '" << name << "' from: " << path << std::endl;
+    if (!silentMode) {
+        std::cout << "[ResourceManager] Loaded texture '" << name << "' from: " << path << std::endl;
+    }
     return &textures[name];
 }
 
@@ -55,8 +86,11 @@ Texture2D* ResourceManager::getTexture(const std::string& name) {
     if (it != textures.end()) {
         return &it->second;
     }
-    std::cerr << "[ResourceManager] Warning: Texture '" << name << "' not found." << std::endl;
-    return nullptr;
+    std::cerr << "[ResourceManager] WARNING: Texture '" << name << "' not found." << std::endl;
+    std::cerr << "[ResourceManager] Using default texture for '" << name << "'" << std::endl;
+    // Store default texture with this name so subsequent calls return the same pointer
+    textures[name] = defaultTexture;
+    return &textures[name];
 }
 
 Sound* ResourceManager::getSound(const std::string& name) {
@@ -74,7 +108,10 @@ void ResourceManager::unloadAll() {
     }
     
     for (auto& [name, texture] : textures) {
-        UnloadTexture(texture);
+        // Don't unload if it's the default texture
+        if (texture.id != defaultTexture.id) {
+            UnloadTexture(texture);
+        }
         if (!silentMode) {
             std::cout << "[ResourceManager] Unloaded texture: " << name << std::endl;
         }
@@ -93,9 +130,14 @@ void ResourceManager::unloadAll() {
 void ResourceManager::unloadTexture(const std::string& name) {
     auto it = textures.find(name);
     if (it != textures.end()) {
-        UnloadTexture(it->second);
+        // Don't actually unload if it's the default texture (just remove from map)
+        if (it->second.id != defaultTexture.id) {
+            UnloadTexture(it->second);
+        }
         textures.erase(it);
-        std::cout << "[ResourceManager] Unloaded texture: " << name << std::endl;
+        if (!silentMode) {
+            std::cout << "[ResourceManager] Unloaded texture: " << name << std::endl;
+        }
     } else {
         std::cerr << "[ResourceManager] Warning: Cannot unload texture '" << name << "' - not found." << std::endl;
     }

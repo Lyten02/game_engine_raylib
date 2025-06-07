@@ -1,9 +1,10 @@
 #include "console.h"
 #include "command_processor.h"
-#include "utils/config.h"
+#include "../utils/config.h"
 #include <spdlog/spdlog.h>
 #include <algorithm>
 #include <sstream>
+#include <nlohmann/json.hpp>
 
 void Console::initialize() {
     consoleFont = GetFontDefault();
@@ -846,4 +847,16 @@ std::string Console::disableCapture() {
         result.pop_back();
     }
     return result;
+}
+
+void Console::setCommandData(const nlohmann::json& data) {
+    commandData = data;
+}
+
+nlohmann::json Console::getCommandData() const {
+    return commandData;
+}
+
+void Console::clearCommandData() {
+    commandData = nlohmann::json();
 }

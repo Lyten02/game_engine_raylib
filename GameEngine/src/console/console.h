@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <raylib.h>
+#include <nlohmann/json.hpp>
 
 class CommandProcessor;
 
@@ -80,6 +81,9 @@ private:
     // Capture mode
     bool captureMode = false;
     std::stringstream captureBuffer;
+    
+    // Command data for CLI mode
+    nlohmann::json commandData;
 
 public:
     Console() = default;
@@ -104,4 +108,9 @@ public:
     void enableCapture();
     std::string disableCapture();
     bool isCaptureMode() const { return captureMode; }
+    
+    // Command data for CLI mode
+    void setCommandData(const nlohmann::json& data);
+    nlohmann::json getCommandData() const;
+    void clearCommandData();
 };

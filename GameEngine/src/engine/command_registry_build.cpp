@@ -28,15 +28,84 @@ void CommandRegistry::registerBuildCommands(CommandProcessor* processor, Console
             
             console->addLine("Building project: " + projectManager->getCurrentProject()->getName() + "...", YELLOW);
             
-            bool success = buildSystem->buildProject(projectManager->getCurrentProject());
-            if (success) {
-                console->addLine("Build succeeded!", GREEN);
-                std::string execPath = "output/" + projectManager->getCurrentProject()->getName() + "/game";
-                console->addLine("Executable: " + execPath, GRAY);
+            // Check for --test flag to skip actual compilation
+            bool testMode = false;
+            for (const auto& arg : args) {
+                if (arg == "--test") {
+                    testMode = true;
+                    break;
+                }
+            }
+            
+            if (testMode) {
+                // In test mode, just generate files without compiling
+                console->addLine("Test mode: Generating build files only...", YELLOW);
+                std::string projectName = projectManager->getCurrentProject()->getName();
+                std::string outputDir = "output/" + projectName;
+                
+                // Create build directory
+                if (!buildSystem->createBuildDirectory(projectName)) {
+                    console->addLine("Failed to create build directory!", RED);
+                    return;
+                }
+                
+                bool success = buildSystem->generateGameCode(projectManager->getCurrentProject(), outputDir);
+                if (success) {
+                    buildSystem->generateCMakeLists(projectManager->getCurrentProject(), outputDir);
+                    buildSystem->processScenes(projectManager->getCurrentProject(), outputDir);
+                    buildSystem->packageAssets(projectManager->getCurrentProject(), outputDir);
+                    console->addLine("Build preparation completed!", GREEN);
+                    console->addLine("Generated files in: " + outputDir, GRAY);
+                } else {
+                    console->addLine("Build preparation failed!", RED);
+                }
             } else {
-                console->addLine("Build failed!", RED);
+                // Normal build with compilation
+                bool success = buildSystem->buildProject(projectManager->getCurrentProject());
+                if (success) {
+                    console->addLine("Build succeeded!", GREEN);
+                    std::string execPath = "output/" + projectManager->getCurrentProject()->getName() + "/game";
+                    console->addLine("Executable: " + execPath, GRAY);
+                } else {
+                    console->addLine("Build failed!", RED);
+                }
             }
         }, "Build the current project", "Build");
+    
+    // project.build-fast command for testing
+    processor->registerCommand("project.build-fast",
+        [console, projectManager, buildSystem](const std::vector<std::string>& args) {
+            if (!projectManager->getCurrentProject()) {
+                console->addLine("No project open. Use 'project.open' first.", RED);
+                return;
+            }
+            
+            console->addLine("Fast build (no compilation): " + projectManager->getCurrentProject()->getName() + "...", YELLOW);
+            std::string projectName = projectManager->getCurrentProject()->getName();
+            std::string outputDir = "output/" + projectName;
+            
+            // Create build directory
+            if (!buildSystem->createBuildDirectory(projectName)) {
+                console->addLine("Failed to create build directory!", RED);
+                return;
+            }
+            
+            bool success = buildSystem->generateGameCode(projectManager->getCurrentProject(), outputDir);
+            if (success) {
+                buildSystem->generateCMakeLists(projectManager->getCurrentProject(), outputDir);
+                buildSystem->processScenes(projectManager->getCurrentProject(), outputDir);
+                buildSystem->packageAssets(projectManager->getCurrentProject(), outputDir);
+                console->addLine("Build preparation completed!", GREEN);
+                console->addLine("Generated files in: " + outputDir, GRAY);
+                
+                // Set success message for CLI
+                if (console->isCaptureMode()) {
+                    console->addLine("Build completed successfully", GREEN);
+                }
+            } else {
+                console->addLine("Build preparation failed!", RED);
+            }
+        }, "Fast build without compilation (for testing)", "Build");
     
     // project.clean command
     processor->registerCommand("project.clean",

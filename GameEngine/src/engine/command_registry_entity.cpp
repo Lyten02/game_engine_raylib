@@ -9,6 +9,7 @@
 #include <raylib.h>
 #include <sstream>
 #include <iomanip>
+#include <nlohmann/json.hpp>
 
 namespace GameEngine {
 
@@ -78,7 +79,14 @@ void CommandRegistry::registerEntityCommands(CommandProcessor* processor, Consol
                 // Ignore parsing errors, use default position
             }
             
-            console->addLine("Created entity #" + std::to_string((uint32_t)entity) + " with Transform component", GREEN);
+            uint32_t entityId = (uint32_t)entity;
+            console->addLine("Created entity #" + std::to_string(entityId) + " with Transform component", GREEN);
+            
+            // Set command data for CLI mode
+            if (console->isCaptureMode()) {
+                nlohmann::json data = {{"id", entityId}};
+                console->setCommandData(data);
+            }
         }, "Create a new entity", "Entity", "", createParams);
     }
     

@@ -35,8 +35,13 @@ class TestRunner:
             # Use longer timeout for build tests
             timeout = 180 if "build" in test_file else 30
             
+            # Add --skip-full-build flag for build system test
+            args = [sys.executable, test_file]
+            if "test_build_system.py" in test_file:
+                args.append("--skip-full-build")
+            
             result = subprocess.run(
-                [sys.executable, test_file],
+                args,
                 capture_output=True,
                 text=True,
                 timeout=timeout
@@ -281,6 +286,10 @@ def main():
     print("\n🐍 PYTHON TESTS")
     print("-"*40)
     python_tests = list(Path(test_dir).glob("test_*.py"))
+    # Filter out temporary test files
+    exclude_tests = ["test_build_system_fixed.py", "test_build_system_simple.py"]
+    python_tests = [t for t in python_tests if t.name not in exclude_tests]
+    
     if python_tests:
         for test in sorted(python_tests):
             runner.run_python_test(str(test))

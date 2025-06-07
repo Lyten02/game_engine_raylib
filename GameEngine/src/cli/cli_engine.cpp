@@ -67,14 +67,18 @@ CLIResult CLIEngine::executeCommand(const std::string& command) {
             return CLIResult::Failure("Console not available");
         }
         
+        // Clear any previous command data
+        console->clearCommandData();
+        
         // Enable capture mode
         console->enableCapture();
         
         // Execute command
         commandProcessor->executeCommand(command);
         
-        // Get captured output
+        // Get captured output and data
         std::string output = console->disableCapture();
+        nlohmann::json data = console->getCommandData();
         
         // Check for errors in output
         bool hasError = output.find("Error:") != std::string::npos || 
@@ -84,7 +88,7 @@ CLIResult CLIEngine::executeCommand(const std::string& command) {
         if (hasError) {
             return CLIResult::Failure(output);
         } else {
-            return CLIResult::Success(output);
+            return CLIResult::Success(output, data);
         }
         
     } catch (const std::exception& e) {

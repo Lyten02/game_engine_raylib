@@ -4,58 +4,52 @@ project({{PROJECT_NAME}})
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# FetchContent for downloading dependencies
-include(FetchContent)
+# Use the parent project's dependency paths
+set(PARENT_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../")
+set(DEPS_DIR "${PARENT_BUILD_DIR}/_deps")
 
-# Download and configure raylib
-FetchContent_Declare(
-    raylib
-    GIT_REPOSITORY https://github.com/raysan5/raylib.git
-    GIT_TAG 5.0
+# Add include directories from parent build
+include_directories(
+    ${DEPS_DIR}/raylib-src/src
+    ${DEPS_DIR}/spdlog-src/include
+    ${DEPS_DIR}/entt-src/src
+    ${DEPS_DIR}/glm-src
+    ${DEPS_DIR}/json-src/include
 )
-
-# Download and configure spdlog
-FetchContent_Declare(
-    spdlog
-    GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.14.1
-)
-
-# Download and configure EnTT
-FetchContent_Declare(
-    EnTT
-    GIT_REPOSITORY https://github.com/skypjack/entt.git
-    GIT_TAG v3.13.2
-)
-
-# Download and configure GLM
-FetchContent_Declare(
-    glm
-    GIT_REPOSITORY https://github.com/g-truc/glm.git
-    GIT_TAG 1.0.1
-)
-
-# Download and configure nlohmann/json
-FetchContent_Declare(
-    json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.11.3
-)
-
-# Make dependencies available
-FetchContent_MakeAvailable(raylib spdlog EnTT glm json)
 
 # Add executable
 add_executable({{PROJECT_NAME}} main.cpp)
 
-# Link libraries
-target_link_libraries({{PROJECT_NAME}} 
-    raylib
-    EnTT::EnTT
-    glm::glm
-    nlohmann_json::nlohmann_json
-    spdlog::spdlog
+# Link directories
+link_directories(
+    ${DEPS_DIR}/raylib-build/raylib
+    ${DEPS_DIR}/spdlog-build
 )
+
+# Link libraries directly from parent build
+target_link_libraries({{PROJECT_NAME}} 
+    ${DEPS_DIR}/raylib-build/raylib/libraylib.a
+    ${DEPS_DIR}/spdlog-build/libspdlogd.a
+)
+
+# Platform specific libraries
+if(APPLE)
+    target_link_libraries({{PROJECT_NAME}} 
+        "-framework CoreVideo"
+        "-framework IOKit" 
+        "-framework Cocoa"
+        "-framework GLUT"
+        "-framework OpenGL"
+    )
+elseif(UNIX)
+    target_link_libraries({{PROJECT_NAME}} 
+        pthread
+        GL
+        m
+        dl
+        X11
+    )
+endif()
 
 # Copy assets and scenes to build directory
 file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})

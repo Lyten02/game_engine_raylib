@@ -11,6 +11,8 @@ private:
     std::unordered_map<std::string, Sound> sounds;
     Texture2D defaultTexture;
     bool silentMode = false;
+    bool headlessMode = false;
+    bool rayLibInitialized = false;
     
     void createDefaultTexture();
 
@@ -19,6 +21,8 @@ public:
     ~ResourceManager();
     
     void setSilentMode(bool silent) { silentMode = silent; }
+    void setHeadlessMode(bool headless) { headlessMode = headless; }
+    void setRayLibInitialized(bool initialized) { rayLibInitialized = initialized; }
 
     Texture2D* loadTexture(const std::string& path, const std::string& name);
     Sound* loadSound(const std::string& path, const std::string& name);

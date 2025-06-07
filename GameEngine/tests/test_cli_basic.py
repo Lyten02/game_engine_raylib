@@ -62,6 +62,12 @@ def test_basic_commands():
     assert result["success"], f"Project open failed: {result}"
     print("✅ Project open working")
     
+    # Test 5: Test resource manager in headless (entity creation uses ResourceManager)
+    print("\n5. Testing resource manager in headless...")
+    result = run_engine_command("entity.create TestEntity")
+    assert result["success"], f"Entity creation failed in headless: {result}"
+    print("✅ Resource manager working in headless")
+    
     print("\n✅ All basic tests passed!")
     return True
 

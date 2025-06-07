@@ -1,17 +1,32 @@
 #include "resource_manager.h"
 #include <iostream>
 #include <filesystem>
+#include <spdlog/spdlog.h>
 
 ResourceManager::ResourceManager() {
     createDefaultTexture();
 }
 
 ResourceManager::~ResourceManager() {
-    UnloadTexture(defaultTexture);
+    // Only unload texture if it was actually created by RayLib
+    if (!headlessMode && rayLibInitialized && defaultTexture.id > 0) {
+        UnloadTexture(defaultTexture);
+    }
     unloadAll();
 }
 
 void ResourceManager::createDefaultTexture() {
+    // Check if RayLib is ready to work
+    if (headlessMode || !rayLibInitialized || !IsWindowReady()) {
+        // Create dummy texture for headless mode
+        defaultTexture = {0, 1, 1, 1, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8};
+        if (!silentMode) {
+            spdlog::info("[ResourceManager] Created dummy texture for headless mode");
+        }
+        return;
+    }
+    
+    // Existing code for creating real texture
     const int size = 64;
     const int checkSize = 8;
     
@@ -23,21 +38,33 @@ void ResourceManager::createDefaultTexture() {
     UnloadImage(img);
     
     if (!silentMode) {
-        std::cout << "[ResourceManager] Created default texture (64x64 pink-black checkerboard)" << std::endl;
+        spdlog::info("[ResourceManager] Created default texture (64x64 pink-black checkerboard)");
     }
 }
 
 Texture2D* ResourceManager::loadTexture(const std::string& path, const std::string& name) {
+    // Check if already loaded
     if (textures.find(name) != textures.end()) {
         if (!silentMode) {
-            std::cout << "[ResourceManager] Texture '" << name << "' already loaded." << std::endl;
+            spdlog::info("[ResourceManager] Texture '{}' already loaded.", name);
+        }
+        return &textures[name];
+    }
+
+    // In headless mode, always return default texture
+    if (headlessMode) {
+        textures[name] = defaultTexture;
+        if (!silentMode) {
+            spdlog::info("[ResourceManager] Headless mode: using dummy texture for '{}'", name);
         }
         return &textures[name];
     }
 
     if (!std::filesystem::exists(path)) {
-        std::cerr << "[ResourceManager] WARNING: Texture file not found: " << path << std::endl;
-        std::cerr << "[ResourceManager] Using default texture for '" << name << "'" << std::endl;
+        if (!silentMode) {
+            spdlog::warn("[ResourceManager] Texture file not found: {}", path);
+            spdlog::warn("[ResourceManager] Using default texture for '{}'", name);
+        }
         // Store default texture with this name so subsequent calls return the same pointer
         textures[name] = defaultTexture;
         return &textures[name];
@@ -45,8 +72,10 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
 
     Texture2D texture = LoadTexture(path.c_str());
     if (texture.id == 0) {
-        std::cerr << "[ResourceManager] WARNING: Failed to load texture: " << path << std::endl;
-        std::cerr << "[ResourceManager] Using default texture for '" << name << "'" << std::endl;
+        if (!silentMode) {
+            spdlog::warn("[ResourceManager] Failed to load texture: {}", path);
+            spdlog::warn("[ResourceManager] Using default texture for '{}'", name);
+        }
         // Store default texture with this name so subsequent calls return the same pointer
         textures[name] = defaultTexture;
         return &textures[name];
@@ -54,30 +83,38 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
 
     textures[name] = texture;
     if (!silentMode) {
-        std::cout << "[ResourceManager] Loaded texture '" << name << "' from: " << path << std::endl;
+        spdlog::info("[ResourceManager] Loaded texture '{}' from: {}", name, path);
     }
     return &textures[name];
 }
 
 Sound* ResourceManager::loadSound(const std::string& path, const std::string& name) {
     if (sounds.find(name) != sounds.end()) {
-        std::cout << "[ResourceManager] Sound '" << name << "' already loaded." << std::endl;
+        if (!silentMode) {
+            spdlog::info("[ResourceManager] Sound '{}' already loaded.", name);
+        }
         return &sounds[name];
     }
 
     if (!std::filesystem::exists(path)) {
-        std::cerr << "[ResourceManager] Error: Sound file not found: " << path << std::endl;
+        if (!silentMode) {
+            spdlog::error("[ResourceManager] Sound file not found: {}", path);
+        }
         return nullptr;
     }
 
     Sound sound = LoadSound(path.c_str());
     if (sound.frameCount == 0) {
-        std::cerr << "[ResourceManager] Error: Failed to load sound: " << path << std::endl;
+        if (!silentMode) {
+            spdlog::error("[ResourceManager] Failed to load sound: {}", path);
+        }
         return nullptr;
     }
 
     sounds[name] = sound;
-    std::cout << "[ResourceManager] Loaded sound '" << name << "' from: " << path << std::endl;
+    if (!silentMode) {
+        spdlog::info("[ResourceManager] Loaded sound '{}' from: {}", name, path);
+    }
     return &sounds[name];
 }
 
@@ -86,8 +123,10 @@ Texture2D* ResourceManager::getTexture(const std::string& name) {
     if (it != textures.end()) {
         return &it->second;
     }
-    std::cerr << "[ResourceManager] WARNING: Texture '" << name << "' not found." << std::endl;
-    std::cerr << "[ResourceManager] Using default texture for '" << name << "'" << std::endl;
+    if (!silentMode) {
+        spdlog::warn("[ResourceManager] Texture '{}' not found.", name);
+        spdlog::warn("[ResourceManager] Using default texture for '{}'", name);
+    }
     // Store default texture with this name so subsequent calls return the same pointer
     textures[name] = defaultTexture;
     return &textures[name];
@@ -98,13 +137,15 @@ Sound* ResourceManager::getSound(const std::string& name) {
     if (it != sounds.end()) {
         return &it->second;
     }
-    std::cerr << "[ResourceManager] Warning: Sound '" << name << "' not found." << std::endl;
+    if (!silentMode) {
+        spdlog::warn("[ResourceManager] Sound '{}' not found.", name);
+    }
     return nullptr;
 }
 
 void ResourceManager::unloadAll() {
     if (!silentMode) {
-        std::cout << "[ResourceManager] Unloading all resources..." << std::endl;
+        spdlog::info("[ResourceManager] Unloading all resources...");
     }
     
     for (auto& [name, texture] : textures) {
@@ -113,7 +154,7 @@ void ResourceManager::unloadAll() {
             UnloadTexture(texture);
         }
         if (!silentMode) {
-            std::cout << "[ResourceManager] Unloaded texture: " << name << std::endl;
+            spdlog::info("[ResourceManager] Unloaded texture: {}", name);
         }
     }
     textures.clear();
@@ -121,7 +162,7 @@ void ResourceManager::unloadAll() {
     for (auto& [name, sound] : sounds) {
         UnloadSound(sound);
         if (!silentMode) {
-            std::cout << "[ResourceManager] Unloaded sound: " << name << std::endl;
+            spdlog::info("[ResourceManager] Unloaded sound: {}", name);
         }
     }
     sounds.clear();
@@ -136,10 +177,12 @@ void ResourceManager::unloadTexture(const std::string& name) {
         }
         textures.erase(it);
         if (!silentMode) {
-            std::cout << "[ResourceManager] Unloaded texture: " << name << std::endl;
+            spdlog::info("[ResourceManager] Unloaded texture: {}", name);
         }
     } else {
-        std::cerr << "[ResourceManager] Warning: Cannot unload texture '" << name << "' - not found." << std::endl;
+        if (!silentMode) {
+            spdlog::warn("[ResourceManager] Cannot unload texture '{}' - not found.", name);
+        }
     }
 }
 
@@ -148,8 +191,12 @@ void ResourceManager::unloadSound(const std::string& name) {
     if (it != sounds.end()) {
         UnloadSound(it->second);
         sounds.erase(it);
-        std::cout << "[ResourceManager] Unloaded sound: " << name << std::endl;
+        if (!silentMode) {
+            spdlog::info("[ResourceManager] Unloaded sound: {}", name);
+        }
     } else {
-        std::cerr << "[ResourceManager] Warning: Cannot unload sound '" << name << "' - not found." << std::endl;
+        if (!silentMode) {
+            spdlog::warn("[ResourceManager] Cannot unload sound '{}' - not found.", name);
+        }
     }
 }

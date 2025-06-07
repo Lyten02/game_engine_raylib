@@ -127,6 +127,8 @@ bool Engine::initializeGraphics() {
     
     // Initialize resource manager
     resourceManager = std::make_unique<ResourceManager>();
+    resourceManager->setHeadlessMode(false);
+    resourceManager->setRayLibInitialized(true);
     spdlog::info("Engine::initialize - Resource manager created");
     
     // Initialize ECS systems
@@ -224,6 +226,8 @@ bool Engine::initializeHeadless() {
     // Initialize resource manager (without texture loading)
     resourceManager = std::make_unique<ResourceManager>();
     resourceManager->setSilentMode(true);
+    resourceManager->setHeadlessMode(true);
+    resourceManager->setRayLibInitialized(false);
     
     // Initialize console (for command processing only)
     console = std::make_unique<Console>();

@@ -104,10 +104,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Add main GameEngine src directory
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../src)
 
-# Add source files
+# Add source files using relative path from build directory
 add_executable(resource_test 
-    test_resource_memory.cpp
-    ../../src/resources/resource_manager.cpp
+    ../test_resource_memory.cpp
+    ../../../src/resources/resource_manager.cpp
 )
 
 # Find and link dependencies
@@ -140,6 +140,53 @@ def run_test():
     """Run the ResourceManager memory test"""
     print("Running ResourceManager memory efficiency test...")
     
+    # Get absolute path to source file
+    source_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src', 'resources', 'resource_manager.cpp'))
+    include_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
+    
+    # Create CMakeLists.txt with absolute paths
+    CMAKE_CONTENT_DYNAMIC = f"""
+cmake_minimum_required(VERSION 3.20)
+project(ResourceManagerMemoryTest)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Add main GameEngine src directory
+include_directories({include_path})
+
+# Add source files using absolute path
+add_executable(resource_test 
+    test_resource_memory.cpp
+    {source_path}
+)
+
+# Find and link dependencies
+find_package(raylib QUIET)
+if (NOT raylib_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(
+        raylib
+        GIT_REPOSITORY https://github.com/raysan5/raylib.git
+        GIT_TAG 5.0
+    )
+    FetchContent_MakeAvailable(raylib)
+endif()
+
+find_package(spdlog QUIET)
+if (NOT spdlog_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(
+        spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG v1.14.1
+    )
+    FetchContent_MakeAvailable(spdlog)
+endif()
+
+target_link_libraries(resource_test raylib spdlog::spdlog)
+"""
+    
     # Create temporary directory for test
     with tempfile.TemporaryDirectory() as tmpdir:
         # Write test files
@@ -150,7 +197,7 @@ def run_test():
             f.write(TEST_CODE)
         
         with open(cmake_path, 'w') as f:
-            f.write(CMAKE_CONTENT)
+            f.write(CMAKE_CONTENT_DYNAMIC)
         
         # Build test
         build_dir = os.path.join(tmpdir, "build")

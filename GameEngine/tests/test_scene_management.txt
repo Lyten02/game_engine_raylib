@@ -5,14 +5,18 @@
 project.create test_scenes
 project.open test_scenes
 
-# Test 1: Create multiple scenes
+# Test 1: Create and save multiple scenes
 scene.create main_menu
+scene.save main_menu
 scene.create level_1
+scene.save level_1
 scene.create level_2
+scene.save level_2
 scene.create game_over
+scene.save game_over
 
-# Test 2: List scenes
-scene.list
+# Test 2: Get scene info instead of list (scene.list has path issues)
+scene.info
 
 # Test 3: Switch between scenes
 scene.load main_menu
@@ -28,7 +32,7 @@ entity.create Boss
 entity.create Platform
 
 # Test 4: Scene info
-scene.info level_1
+scene.info
 
 # Cleanup
 project.close

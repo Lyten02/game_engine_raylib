@@ -13,16 +13,17 @@
 
 namespace GameEngine {
 
-void CommandRegistry::registerEntityCommands(CommandProcessor* processor, Console* console, Scene** currentScene, ResourceManager* resourceManager) {
+void CommandRegistry::registerEntityCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene, ResourceManager* resourceManager) {
     // entity.list command
     processor->registerCommand("entity.list",
-        [console, currentScene](const std::vector<std::string>& args) {
-            if (!*currentScene) {
+        [console, getScene](const std::vector<std::string>& args) {
+            Scene* scene = getScene();
+            if (!scene) {
                 console->addLine("No active scene", RED);
                 return;
             }
             
-            auto& registry = (*currentScene)->registry;
+            auto& registry = scene->registry;
             int count = 0;
             
             console->addLine("Active entities:", YELLOW);
@@ -58,13 +59,14 @@ void CommandRegistry::registerEntityCommands(CommandProcessor* processor, Consol
             {"z", "Z position", false}
         };
         processor->registerCommand("entity.create",
-        [console, currentScene](const std::vector<std::string>& args) {
-            if (!*currentScene) {
+        [console, getScene](const std::vector<std::string>& args) {
+            Scene* scene = getScene();
+            if (!scene) {
                 console->addLine("No active scene", RED);
                 return;
             }
             
-            auto& registry = (*currentScene)->registry;
+            auto& registry = scene->registry;
             auto entity = registry.create();
             
             // Add transform component
@@ -96,8 +98,9 @@ void CommandRegistry::registerEntityCommands(CommandProcessor* processor, Consol
             {"id", "Entity ID to destroy", true}
         };
         processor->registerCommand("entity.destroy",
-        [console, currentScene](const std::vector<std::string>& args) {
-            if (!*currentScene) {
+        [console, getScene](const std::vector<std::string>& args) {
+            Scene* scene = getScene();
+            if (!scene) {
                 console->addLine("No active scene", RED);
                 return;
             }
@@ -107,7 +110,7 @@ void CommandRegistry::registerEntityCommands(CommandProcessor* processor, Consol
                 return;
             }
             
-            auto& registry = (*currentScene)->registry;
+            auto& registry = scene->registry;
             uint32_t id = std::stoul(args[0]);
             auto entity = static_cast<entt::entity>(id);
             
@@ -145,16 +148,17 @@ void CommandRegistry::registerResourceCommands(CommandProcessor* processor, Cons
         }, "List loaded resources", "Resource");
 }
 
-void CommandRegistry::registerRenderCommands(CommandProcessor* processor, Console* console, Scene** currentScene) {
+void CommandRegistry::registerRenderCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene) {
     // render.stats command
     processor->registerCommand("render.stats",
-        [console, currentScene](const std::vector<std::string>& args) {
-            if (!*currentScene) {
+        [console, getScene](const std::vector<std::string>& args) {
+            Scene* scene = getScene();
+            if (!scene) {
                 console->addLine("No active scene", RED);
                 return;
             }
             
-            auto& registry = (*currentScene)->registry;
+            auto& registry = scene->registry;
             auto view = registry.view<TransformComponent, Sprite>();
             
             int spriteCount = 0;

@@ -12,7 +12,7 @@
 namespace GameEngine {
 
 void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Console* console, 
-                                           ProjectManager* projectManager, Scene** currentScene, Engine* engine) {
+                                           ProjectManager* projectManager, std::function<Scene*()> getScene, Engine* engine) {
     // project.create command
     {
         std::vector<CommandParameter> projectParams = {{"name", "Name of the new project", true}};
@@ -39,7 +39,7 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
             {"name", "Name of the project to open", true, [this]() { return getProjectList(); }}
         };
         processor->registerCommand("project.open",
-        [console, projectManager, currentScene, engine](const std::vector<std::string>& args) {
+        [console, projectManager, getScene, engine](const std::vector<std::string>& args) {
             if (args.empty()) {
                 console->addLine("Usage: project.open <name>", RED);
                 return;
@@ -49,7 +49,7 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
                 console->addLine("Project opened: " + args[0], GREEN);
                 
                 // Destroy current scene
-                if (*currentScene) {
+                if (getScene()) {
                     engine->destroyScene();
                 }
                 
@@ -60,7 +60,7 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
                 std::string mainScenePath = projectManager->getCurrentProject()->getPath() + "/scenes/main_scene.json";
                 if (std::filesystem::exists(mainScenePath)) {
                     SceneSerializer serializer;
-                    if (serializer.loadScene(*currentScene, mainScenePath)) {
+                    if (serializer.loadScene(getScene(), mainScenePath)) {
                         console->addLine("Loaded main scene", GRAY);
                     }
                 }
@@ -73,7 +73,7 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
     
     // project.close command
     processor->registerCommand("project.close",
-        [console, projectManager, currentScene, engine](const std::vector<std::string>& args) {
+        [console, projectManager, getScene, engine](const std::vector<std::string>& args) {
             if (!projectManager->getCurrentProject()) {
                 console->addLine("No project is currently open", YELLOW);
                 return;
@@ -82,7 +82,7 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
             std::string projectName = projectManager->getCurrentProject()->getName();
             
             // Destroy current scene
-            if (*currentScene) {
+            if (getScene()) {
                 engine->destroyScene();
             }
             
@@ -189,6 +189,27 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
         }, "Delete a project", "Project",
         "project.delete <name>", deleteParams);
     }
+    
+    // scene.list command
+    processor->registerCommand("scene.list",
+        [console, this, projectManager](const std::vector<std::string>& args) {
+            if (!projectManager->getCurrentProject()) {
+                console->addLine("No project is currently open", YELLOW);
+                return;
+            }
+            
+            std::vector<std::string> scenes = getSceneList(projectManager);
+            
+            if (scenes.empty()) {
+                console->addLine("No scenes found in current project", YELLOW);
+                console->addLine("Use 'scene.save <name>' to save the current scene", GRAY);
+            } else {
+                console->addLine("Available scenes:", YELLOW);
+                for (const auto& scene : scenes) {
+                    console->addLine("  - " + scene, WHITE);
+                }
+            }
+        }, "List all available scenes in the current project", "Scene");
 }
 
 } // namespace GameEngine

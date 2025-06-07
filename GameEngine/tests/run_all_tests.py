@@ -32,8 +32,10 @@ class TestRunner:
         start_time = time.time()
         
         try:
-            # Use longer timeout for build tests
+            # Use longer timeout for build tests and resource manager tests
             timeout = 180 if "build" in test_file else 30
+            if "resource_manager_memory" in test_file:
+                timeout = 120  # 2 minutes for C++ compilation
             
             # Add --skip-full-build flag for build system test
             args = [sys.executable, test_file]

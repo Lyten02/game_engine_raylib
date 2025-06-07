@@ -110,3 +110,8 @@ tests/test_*
 build/test_*
 !build/test_*.cpp
 !build/test_*.py
+
+# Test generated directories
+projects/
+tests/scenes/
+tests/temp_test_*.txt

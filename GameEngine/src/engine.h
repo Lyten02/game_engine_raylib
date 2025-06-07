@@ -59,7 +59,6 @@ private:
     
     // Current active scene
     std::unique_ptr<Scene> currentScene;
-    Scene* currentScenePtr = nullptr;  // Stable pointer for command registry
     
     // Engine state
     bool headlessMode = false;

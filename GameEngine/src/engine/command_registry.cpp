@@ -21,7 +21,7 @@ CommandRegistry::~CommandRegistry() = default;
 void CommandRegistry::registerAllCommands(CommandProcessor* processor,
                                         EngineCore* engineCore,
                                         Console* console,
-                                        Scene** currentScene,
+                                        std::function<Scene*()> getScene,
                                         ResourceManager* resourceManager,
                                         ScriptManager* scriptManager,
                                         ProjectManager* projectManager,
@@ -35,10 +35,10 @@ void CommandRegistry::registerAllCommands(CommandProcessor* processor,
     
     // Register commands by category
     registerEngineCommands(processor, engineCore, console);
-    registerSceneCommands(processor, console, currentScene);
-    registerEntityCommands(processor, console, currentScene, resourceManager);
+    registerSceneCommands(processor, console, getScene);
+    registerEntityCommands(processor, console, getScene, resourceManager);
     registerResourceCommands(processor, console);
-    registerRenderCommands(processor, console, currentScene);
+    registerRenderCommands(processor, console, getScene);
     registerDebugCommands(processor, console, showDebugInfo);
     registerConsoleCommands(processor, console);
     registerConfigCommands(processor, console, engineCore);
@@ -47,9 +47,9 @@ void CommandRegistry::registerAllCommands(CommandProcessor* processor,
         registerScriptCommands(processor, console, scriptManager);
     }
     
-    registerProjectCommands(processor, console, projectManager, currentScene, engine);
+    registerProjectCommands(processor, console, projectManager, getScene, engine);
     registerBuildCommands(processor, console, projectManager, buildSystem, asyncBuildSystem);
-    registerPlayModeCommands(processor, console, currentScene, projectManager, playMode);
+    registerPlayModeCommands(processor, console, getScene, projectManager, playMode);
     registerLogCommands(processor, console);
 }
 

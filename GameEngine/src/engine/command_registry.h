@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <functional>
 
 // Forward declarations
 class Console;
@@ -30,7 +31,7 @@ public:
     void registerAllCommands(CommandProcessor* processor,
                            EngineCore* engineCore,
                            Console* console,
-                           Scene** currentScene,
+                           std::function<Scene*()> getScene,
                            ResourceManager* resourceManager,
                            ScriptManager* scriptManager,
                            ProjectManager* projectManager,
@@ -42,18 +43,18 @@ public:
 private:
     // Command registration methods grouped by category
     void registerEngineCommands(CommandProcessor* processor, EngineCore* engineCore, Console* console);
-    void registerSceneCommands(CommandProcessor* processor, Console* console, Scene** currentScene);
-    void registerEntityCommands(CommandProcessor* processor, Console* console, Scene** currentScene, ResourceManager* resourceManager);
+    void registerSceneCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene);
+    void registerEntityCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene, ResourceManager* resourceManager);
     void registerResourceCommands(CommandProcessor* processor, Console* console);
-    void registerRenderCommands(CommandProcessor* processor, Console* console, Scene** currentScene);
+    void registerRenderCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene);
     void registerDebugCommands(CommandProcessor* processor, Console* console, bool* showDebugInfo);
     void registerConsoleCommands(CommandProcessor* processor, Console* console);
     void registerConfigCommands(CommandProcessor* processor, Console* console, EngineCore* engineCore);
     void registerScriptCommands(CommandProcessor* processor, Console* console, ScriptManager* scriptManager);
-    void registerProjectCommands(CommandProcessor* processor, Console* console, ProjectManager* projectManager, Scene** currentScene, Engine* engine);
+    void registerProjectCommands(CommandProcessor* processor, Console* console, ProjectManager* projectManager, std::function<Scene*()> getScene, Engine* engine);
     void registerBuildCommands(CommandProcessor* processor, Console* console, ProjectManager* projectManager, 
                              BuildSystem* buildSystem, AsyncBuildSystem* asyncBuildSystem);
-    void registerPlayModeCommands(CommandProcessor* processor, Console* console, Scene** currentScene,
+    void registerPlayModeCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene,
                                 ProjectManager* projectManager, PlayMode* playMode);
     void registerLogCommands(CommandProcessor* processor, Console* console);
 

@@ -43,7 +43,7 @@ bool Engine::initialize() {
         systemsManager->getCommandProcessor(),
         engineCore.get(),
         systemsManager->getConsole(),
-        &currentScenePtr,
+        [this]() -> Scene* { return currentScene.get(); },
         systemsManager->getResourceManager(),
         systemsManager->getScriptManager(),
         systemsManager->getProjectManager(),
@@ -289,7 +289,6 @@ GameEngine::ProjectManager* Engine::getProjectManager() const {
 void Engine::createScene() {
     if (!currentScene) {
         currentScene = std::make_unique<Scene>();
-        currentScenePtr = currentScene.get();
         currentScene->onCreate();
     }
 }
@@ -298,6 +297,5 @@ void Engine::destroyScene() {
     if (currentScene) {
         currentScene->onDestroy();
         currentScene.reset();
-        currentScenePtr = nullptr;
     }
 }

@@ -14,17 +14,18 @@
 
 namespace GameEngine {
 
-void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console* console, Scene** currentScene) {
+void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene) {
     // scene.create command
     processor->registerCommand("scene.create",
-        [console, currentScene](const std::vector<std::string>& args) {
-            if (!*currentScene) {
+        [console, getScene](const std::vector<std::string>& args) {
+            Scene* scene = getScene();
+            if (!scene) {
                 console->addLine("No active scene to replace", RED);
                 return;
             }
             
             // Clear current scene
-            (*currentScene)->registry.clear();
+            scene->registry.clear();
             console->addLine("New scene created", GREEN);
         }, "Create a new empty scene", "Scene");
     
@@ -34,8 +35,9 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
             {"filename", "Scene filename (without extension)", true}
         };
         processor->registerCommand("scene.save",
-        [console, currentScene](const std::vector<std::string>& args) {
-            if (!*currentScene) {
+        [console, getScene](const std::vector<std::string>& args) {
+            Scene* scene = getScene();
+            if (!scene) {
                 console->addLine("No active scene to save", RED);
                 return;
             }
@@ -50,7 +52,7 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
             
             std::string filename = "scenes/" + args[0] + ".json";
             SceneSerializer serializer;
-            if (serializer.saveScene(*currentScene, filename)) {
+            if (serializer.saveScene(scene, filename)) {
                 console->addLine("Scene saved to: " + filename, GREEN);
             } else {
                 console->addLine("Failed to save scene", RED);
@@ -64,8 +66,9 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
             {"filename", "Scene filename (without extension)", true}
         };
         processor->registerCommand("scene.load",
-        [console, currentScene](const std::vector<std::string>& args) {
-            if (!*currentScene) {
+        [console, getScene](const std::vector<std::string>& args) {
+            Scene* scene = getScene();
+            if (!scene) {
                 console->addLine("No active scene", RED);
                 return;
             }
@@ -77,7 +80,7 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
             
             std::string filename = "scenes/" + args[0] + ".json";
             SceneSerializer serializer;
-            if (serializer.loadScene(*currentScene, filename)) {
+            if (serializer.loadScene(scene, filename)) {
                 console->addLine("Scene loaded from: " + filename, GREEN);
             } else {
                 console->addLine("Failed to load scene: " + filename, RED);
@@ -87,13 +90,14 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
     
     // scene.info command
     processor->registerCommand("scene.info",
-        [console, currentScene](const std::vector<std::string>& args) {
-            if (!*currentScene) {
+        [console, getScene](const std::vector<std::string>& args) {
+            Scene* scene = getScene();
+            if (!scene) {
                 console->addLine("No active scene", RED);
                 return;
             }
             
-            auto& registry = (*currentScene)->registry;
+            auto& registry = scene->registry;
             size_t entityCount = 0;
             // Count entities manually
             entityCount = 0;
@@ -146,26 +150,27 @@ void CommandRegistry::registerScriptCommands(CommandProcessor* processor, Consol
 }
 
 void CommandRegistry::registerPlayModeCommands(CommandProcessor* processor, Console* console, 
-                                             Scene** currentScene, ProjectManager* projectManager, 
+                                             std::function<Scene*()> getScene, ProjectManager* projectManager, 
                                              PlayMode* playMode) {
     // play command
     processor->registerCommand("play",
-        [console, currentScene, projectManager, playMode](const std::vector<std::string>& args) {
+        [console, getScene, projectManager, playMode](const std::vector<std::string>& args) {
             if (!projectManager || !projectManager->getCurrentProject()) {
                 console->addLine("No active project to play", RED);
                 return;
             }
             
             // Save current scene if modified
-            if (*currentScene) {
+            Scene* scene = getScene();
+            if (scene) {
                 SceneSerializer serializer;
                 std::string scenePath = projectManager->getCurrentProject()->getPath() + "/scenes/current.json";
-                if (serializer.saveScene(*currentScene, scenePath)) {
+                if (serializer.saveScene(scene, scenePath)) {
                     console->addLine("Scene saved before play mode", GRAY);
                 }
             }
             
-            if (playMode->start(*currentScene, projectManager->getCurrentProject())) {
+            if (playMode->start(scene, projectManager->getCurrentProject())) {
                 console->addLine("Play mode started", GREEN);
             } else {
                 console->addLine("Failed to start play mode", RED);

@@ -1,0 +1,5 @@
+*.out
+*.exe
+test_resource_manager_headless
+test_resource_manager_safety
+test_resource_manager_threading

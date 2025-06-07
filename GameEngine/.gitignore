@@ -100,3 +100,13 @@ $RECYCLE.BIN/
 # Linux specific
 .directory
 .Trash-*/
+
+# Test executables
+tests/test_*
+!tests/test_*.cpp
+!tests/test_*.py
+!tests/test_*.txt
+!tests/test_*.sh
+build/test_*
+!build/test_*.cpp
+!build/test_*.py

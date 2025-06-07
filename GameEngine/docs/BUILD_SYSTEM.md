@@ -125,3 +125,37 @@ The build system uses CMake's FetchContent to automatically download:
 
 ### Async Build System
 Builds run asynchronously to avoid blocking the engine. Progress updates appear in the console.
+
+## Make Targets
+
+The build system provides several useful make targets:
+
+### Running Tests
+```bash
+make test         # Run all tests (Python and scripts)
+make test-cpp     # Compile and run C++ tests
+```
+
+### Cleaning
+```bash
+make clean        # Standard CMake clean (removes build artifacts)
+make clean-tests  # Clean test projects and executables
+make clean-logs   # Remove log files
+make clean-all    # Full clean (includes all of the above)
+```
+
+### Examples
+```bash
+# Build the engine
+cd GameEngine/build
+cmake ..
+make
+
+# Run tests
+make test
+
+# Clean everything and rebuild
+make clean-all
+cmake ..
+make
+```

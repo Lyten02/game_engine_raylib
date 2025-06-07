@@ -118,3 +118,36 @@ add_custom_target(test
     DEPENDS game
     COMMENT "Running all tests"
 )
+
+# Add custom target for running C++ tests
+add_custom_target(test-cpp
+    COMMAND ${CMAKE_COMMAND} -E echo "Running C++ tests..."
+    COMMAND bash ${CMAKE_SOURCE_DIR}/tests/compile_and_run_tests.sh
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
+    COMMENT "Compiling and running C++ tests"
+)
+
+# Add custom target for cleaning test data
+add_custom_target(clean-tests
+    COMMAND ${CMAKE_COMMAND} -E echo "Cleaning test data..."
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/clean_test_data.py
+    COMMAND bash ${CMAKE_SOURCE_DIR}/tests/clean_test_executables.sh
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Cleaning test projects and executables"
+)
+
+# Add custom target for cleaning logs
+add_custom_target(clean-logs
+    COMMAND ${CMAKE_COMMAND} -E echo "Cleaning log files..."
+    COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/logs
+    COMMENT "Cleaning log directory"
+)
+
+# Add custom target for full clean (including test data and logs)
+add_custom_target(clean-all
+    COMMAND ${CMAKE_COMMAND} -E echo "Performing full clean..."
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target clean
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target clean-tests
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target clean-logs
+    COMMENT "Full clean including tests and logs"
+)

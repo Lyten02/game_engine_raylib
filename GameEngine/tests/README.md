@@ -34,6 +34,11 @@ python3 tests/run_all_tests.py
 ### 3. Командные тесты
 Встроены в `run_all_tests.py` - тестируют отдельные команды
 
+### 4. C++ тесты для ResourceManager
+- `test_resource_manager_safety.cpp` - тестирование безопасности указателей
+- `test_resource_manager_threading.cpp` - многопоточная безопасность
+- `test_resource_manager_headless.cpp` - работа в headless режиме
+
 ## 📝 Запуск отдельных тестов
 
 ### Python тест
@@ -54,13 +59,33 @@ cd build
 ./game --json --command "help"
 ```
 
+### C++ тесты ResourceManager
+```bash
+cd tests
+./compile_and_run_tests.sh  # Компилирует, запускает и очищает
+```
+
+Или вручную:
+```bash
+g++ -std=c++20 test_resource_manager_safety.cpp ../src/resources/resource_manager.cpp \
+    -I../src -I../build/_deps/raylib-src/src -I../build/_deps/spdlog-src/include \
+    -I../build/_deps/entt-src/src -I../build/_deps/glm-src \
+    -L../build -L../build/_deps/raylib-build/raylib -lraylib \
+    -framework OpenGL -framework Cocoa -framework IOKit \
+    -framework CoreVideo -framework CoreFoundation \
+    -o test_resource_manager_safety
+./test_resource_manager_safety
+```
+
 ## 🧹 Очистка тестовых данных
 
 ```bash
-python3 tests/clean_test_data.py
+python3 tests/clean_test_data.py          # Очистка тестовых проектов
+./tests/clean_test_executables.sh  # Очистка скомпилированных тестов
 ```
 
-Удаляет все тестовые проекты (начинающиеся с `test_`, `cli_test`, etc.)
+- `clean_test_data.py` - удаляет все тестовые проекты (начинающиеся с `test_`, `cli_test`, etc.)
+- `clean_test_executables.sh` - удаляет скомпилированные исполняемые файлы тестов
 
 ## 📊 Результаты тестов
 

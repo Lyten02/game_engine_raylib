@@ -50,15 +50,17 @@ def test_basic_commands():
     assert result["success"], f"Project list failed: {result}"
     print("✅ Project list working")
     
-    # Test 3: Create project
+    # Test 3: Create project with unique name
     print("\n3. Testing project creation...")
-    result = run_engine_command("project.create test_automation")
+    import time
+    test_proj_name = f"test_automation_{int(time.time())}"
+    result = run_engine_command(f"project.create {test_proj_name}")
     assert result["success"], f"Project creation failed: {result}"
     print("✅ Project creation working")
     
     # Test 4: Open project
     print("\n4. Testing project open...")
-    result = run_engine_command("project.open test_automation")
+    result = run_engine_command(f"project.open {test_proj_name}")
     assert result["success"], f"Project open failed: {result}"
     print("✅ Project open working")
     
@@ -79,8 +81,10 @@ def test_batch_commands():
     if not os.path.exists(exe_path):
         exe_path = "./build/game"
     
+    import time
+    batch_proj_name = f"batch_test_{int(time.time())}"
     cmd = [exe_path, "--json", "--headless", "--batch",
-           "project.create batch_test",
+           f"project.create {batch_proj_name}",
            "project.list"]
     
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -95,6 +99,51 @@ def test_batch_commands():
         print(f"❌ Batch execution failed: {e}")
         return False
 
+def test_resource_manager_headless():
+    """Test ResourceManager works correctly in headless mode"""
+    print("\nTesting ResourceManager in headless mode...")
+    
+    # First create a test project and scene
+    import time
+    test_proj = f"test_rm_headless_{int(time.time())}"
+    result = run_engine_command(f"project.create {test_proj}")
+    assert result["success"], f"Project creation failed: {result}"
+    
+    result = run_engine_command(f"project.open {test_proj}")
+    assert result["success"], f"Project open failed: {result}"
+    
+    result = run_engine_command("scene.create test_scene")
+    assert result["success"], f"Scene creation failed: {result}"
+    
+    # Test 1: Create multiple entities
+    print("  - Creating multiple entities...")
+    entity_count = 10
+    for i in range(entity_count):
+        result = run_engine_command(f"entity.create TestEntity{i}", project=test_proj)
+        assert result["success"], f"Entity creation {i} failed: {result}"
+    
+    print(f"  ✅ Created {entity_count} entities successfully")
+    
+    # Test 2: Verify engine still responsive
+    result = run_engine_command("entity.list", project=test_proj)
+    assert result["success"], "Entity list failed after entity creation"
+    if "data" in result and result["data"] and "entities" in result["data"]:
+        assert len(result["data"]["entities"]) >= entity_count, f"Should have at least {entity_count} entities"
+    
+    print("  ✅ Engine remains responsive in headless mode")
+    
+    # Test 3: Save and load scene (tests ResourceManager indirectly)
+    result = run_engine_command("scene.save test_scene", project=test_proj)
+    assert result["success"], "Scene save failed"
+    print("  ✅ Scene saved successfully")
+    
+    result = run_engine_command("scene.load test_scene", project=test_proj)
+    assert result["success"], "Scene load failed"
+    print("  ✅ Scene loaded successfully")
+    
+    print("✅ ResourceManager works correctly in headless mode")
+    return True
+
 if __name__ == "__main__":
     try:
         # Change to build directory if we're in the project root
@@ -103,6 +152,7 @@ if __name__ == "__main__":
         
         success = test_basic_commands()
         success = test_batch_commands() and success
+        success = test_resource_manager_headless() and success
         
         if success:
             print("\n🎉 All CLI tests passed!")

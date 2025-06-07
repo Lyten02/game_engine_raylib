@@ -1,18 +1,28 @@
 #include "resource_manager.h"
 #include <iostream>
 #include <filesystem>
+#include <unordered_set>
 #include <spdlog/spdlog.h>
 
 ResourceManager::ResourceManager() {
-    createDefaultTexture();
+    // Don't create default texture yet - will be created lazily
+    defaultTexture = {0, 1, 1, 1, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8};  // Dummy values
 }
 
 ResourceManager::~ResourceManager() {
+    unloadAll();
     // Only unload texture if it was actually created by RayLib
-    if (!headlessMode && rayLibInitialized && defaultTexture.id > 0) {
+    if (!headlessMode && rayLibInitialized && defaultTextureInitialized.load() && defaultTexture.id > 0) {
         UnloadTexture(defaultTexture);
     }
-    unloadAll();
+}
+
+void ResourceManager::ensureDefaultTexture() {
+    // Thread-safe lazy initialization using std::call_once
+    std::call_once(defaultTextureFlag, [this]() {
+        createDefaultTexture();
+        defaultTextureInitialized.store(true);
+    });
 }
 
 void ResourceManager::createDefaultTexture() {
@@ -44,20 +54,21 @@ void ResourceManager::createDefaultTexture() {
 
 Texture2D* ResourceManager::loadTexture(const std::string& path, const std::string& name) {
     // Check if already loaded
-    if (textures.find(name) != textures.end()) {
+    auto it = textures.find(name);
+    if (it != textures.end()) {
         if (!silentMode) {
             spdlog::info("[ResourceManager] Texture '{}' already loaded.", name);
         }
-        return &textures[name];
+        return &it->second;
     }
 
-    // In headless mode, always return default texture
+    // In headless mode, always return default texture without storing
     if (headlessMode) {
-        textures[name] = defaultTexture;
         if (!silentMode) {
             spdlog::info("[ResourceManager] Headless mode: using dummy texture for '{}'", name);
         }
-        return &textures[name];
+        ensureDefaultTexture();
+        return &defaultTexture;
     }
 
     if (!std::filesystem::exists(path)) {
@@ -65,9 +76,9 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
             spdlog::warn("[ResourceManager] Texture file not found: {}", path);
             spdlog::warn("[ResourceManager] Using default texture for '{}'", name);
         }
-        // Store default texture with this name so subsequent calls return the same pointer
-        textures[name] = defaultTexture;
-        return &textures[name];
+        // Return default texture without storing in map
+        ensureDefaultTexture();
+        return &defaultTexture;
     }
 
     Texture2D texture = LoadTexture(path.c_str());
@@ -76,12 +87,13 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
             spdlog::warn("[ResourceManager] Failed to load texture: {}", path);
             spdlog::warn("[ResourceManager] Using default texture for '{}'", name);
         }
-        // Store default texture with this name so subsequent calls return the same pointer
-        textures[name] = defaultTexture;
-        return &textures[name];
+        // Return default texture without storing in map
+        ensureDefaultTexture();
+        return &defaultTexture;
     }
 
-    textures[name] = texture;
+    // Store texture directly in map using move semantics
+    textures[name] = std::move(texture);
     if (!silentMode) {
         spdlog::info("[ResourceManager] Loaded texture '{}' from: {}", name, path);
     }
@@ -127,9 +139,9 @@ Texture2D* ResourceManager::getTexture(const std::string& name) {
         spdlog::warn("[ResourceManager] Texture '{}' not found.", name);
         spdlog::warn("[ResourceManager] Using default texture for '{}'", name);
     }
-    // Store default texture with this name so subsequent calls return the same pointer
-    textures[name] = defaultTexture;
-    return &textures[name];
+    // Return default texture without storing in map
+    ensureDefaultTexture();
+    return &defaultTexture;
 }
 
 Sound* ResourceManager::getSound(const std::string& name) {
@@ -149,8 +161,7 @@ void ResourceManager::unloadAll() {
     }
     
     for (auto& [name, texture] : textures) {
-        // Don't unload if it's the default texture
-        if (texture.id != defaultTexture.id) {
+        if (!headlessMode && rayLibInitialized && texture.id > 0) {
             UnloadTexture(texture);
         }
         if (!silentMode) {
@@ -171,8 +182,7 @@ void ResourceManager::unloadAll() {
 void ResourceManager::unloadTexture(const std::string& name) {
     auto it = textures.find(name);
     if (it != textures.end()) {
-        // Don't actually unload if it's the default texture (just remove from map)
-        if (it->second.id != defaultTexture.id) {
+        if (!headlessMode && rayLibInitialized && it->second.id > 0) {
             UnloadTexture(it->second);
         }
         textures.erase(it);
@@ -199,4 +209,10 @@ void ResourceManager::unloadSound(const std::string& name) {
             spdlog::warn("[ResourceManager] Cannot unload sound '{}' - not found.", name);
         }
     }
+}
+
+size_t ResourceManager::getUniqueTexturesCount() const {
+    // With the new design, each texture in the map is unique
+    // We just need to count actual loaded textures (not counting references to default)
+    return textures.size();
 }

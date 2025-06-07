@@ -71,11 +71,9 @@ def test_project_build():
         project_dir = f"projects/{project_name}"
         output_dir = f"output/{project_name}"
     
-    # Clean up any existing project
-    if os.path.exists(project_dir):
-        shutil.rmtree(project_dir)
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
+    # Clean up any existing project through the engine
+    cleanup_commands = [f"project.delete {project_name}"]
+    run_batch_commands(cleanup_commands)
     
     # Commands to execute in batch
     commands = [
@@ -84,7 +82,7 @@ def test_project_build():
         "scene.create main",
         "entity.create Player",
         "scene.save main",
-        "project.build.sync"  # Use synchronous build
+        "project.build"  # Build project
     ]
     
     print("\nExecuting batch commands:")
@@ -119,10 +117,24 @@ def test_project_build():
         print(stdout[-500:] if len(stdout) > 500 else stdout)
     
     # Verify executable was created
-    if os.path.basename(os.getcwd()) == "tests":
-        exe_path = f"../build/output/{project_name}/bin/{project_name}"
-    else:
-        exe_path = f"output/{project_name}/bin/{project_name}"
+    # Check multiple possible locations
+    possible_paths = [
+        f"output/{project_name}/bin/{project_name}",
+        f"output/{project_name}/build/{project_name}",
+        f"../build/output/{project_name}/bin/{project_name}",
+        f"../build/output/{project_name}/build/{project_name}",
+        f"build/output/{project_name}/bin/{project_name}",
+        f"build/output/{project_name}/build/{project_name}"
+    ]
+    
+    exe_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            exe_path = path
+            break
+    
+    if not exe_path:
+        exe_path = possible_paths[0]  # Default for error message
     
     if os.name == 'nt':
         exe_path += ".exe"

@@ -2,8 +2,8 @@
 
 #include <memory>
 #include <string>
+#include "../scene/scene.h"
 
-class Scene;
 class Console;
 
 namespace GameEngine {

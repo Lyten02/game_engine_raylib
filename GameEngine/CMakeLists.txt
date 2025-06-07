@@ -56,6 +56,14 @@ find_package(Lua REQUIRED)
 add_executable(game 
     src/main.cpp
     src/engine.cpp
+    src/engine/engine_core.cpp
+    src/engine/systems_manager.cpp
+    src/engine/command_registry.cpp
+    src/engine/command_registry_build.cpp
+    src/engine/command_registry_project.cpp
+    src/engine/command_registry_engine.cpp
+    src/engine/command_registry_entity.cpp
+    src/engine/command_registry_scene.cpp
     src/systems/render_system.cpp
     src/scene/scene.cpp
     src/resources/resource_manager.cpp

@@ -65,24 +65,25 @@ void ResourceManager::createDefaultTexture() {
 
 Texture2D& ResourceManager::getDefaultTexture() {
     // Thread-safe lazy initialization using std::once_flag
+    // Let exceptions propagate - call_once will retry if this throws
     std::call_once(defaultTextureFlag, [this]() {
+        createDefaultTexture();
+    });
+    
+    // Emergency fallback if call_once completely failed
+    if (!defaultTexture) {
         try {
-            createDefaultTexture();
-        } catch (const std::exception& e) {
-            spdlog::error("[ResourceManager] Failed to create default texture: {}", e.what());
-            // Create fallback dummy texture
+            spdlog::warn("[ResourceManager] Creating emergency fallback texture");
             defaultTexture = std::make_unique<Texture2D>();
             defaultTexture->id = 0;
             defaultTexture->width = 64;
             defaultTexture->height = 64;
             defaultTexture->mipmaps = 1;
             defaultTexture->format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+        } catch (const std::exception& e) {
+            spdlog::error("[ResourceManager] Emergency fallback failed: {}", e.what());
+            throw std::runtime_error("[ResourceManager] Cannot create any default texture - system failure");
         }
-    });
-    
-    // Safety check - should never happen but prevents segfaults
-    if (!defaultTexture) {
-        throw std::runtime_error("[ResourceManager] Critical error: default texture is null");
     }
     
     return *defaultTexture;

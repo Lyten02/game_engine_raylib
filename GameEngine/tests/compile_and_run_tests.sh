@@ -24,6 +24,7 @@ declare -a tests=(
     "test_resource_manager_init_order"
     "test_resource_manager_exception_safety"
     "test_resource_manager_integration"
+    "test_call_once_retry_behavior"
 )
 
 # Function to compile and run a test

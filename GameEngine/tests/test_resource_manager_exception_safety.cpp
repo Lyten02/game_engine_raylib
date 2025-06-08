@@ -149,10 +149,77 @@ bool testExceptionSafety() {
     }
 }
 
+// Test class that fails a specific number of times before succeeding
+class FailingResourceManager : public ResourceManager {
+private:
+    mutable std::atomic<int> attemptCount{0};
+    int failuresBeforeSuccess;
+
+public:
+    FailingResourceManager(int failures) : failuresBeforeSuccess(failures) {
+        setHeadlessMode(true);
+        setSilentMode(true);
+    }
+
+    void createDefaultTexture() override {
+        int attempt = attemptCount.fetch_add(1);
+        
+        if (attempt < failuresBeforeSuccess) {
+            throw std::runtime_error("Simulated failure attempt " + std::to_string(attempt + 1));
+        }
+        
+        // Success on final attempt
+        ResourceManager::createDefaultTexture();
+    }
+
+    int getAttemptCount() const { return attemptCount.load(); }
+};
+
+bool testCallOnceRetryBehavior() {
+    std::cout << "\nTesting call_once retry behavior..." << std::endl;
+    
+    try {
+        // Test that call_once properly retries after exceptions
+        FailingResourceManager rm(1);  // Fail once, then succeed
+        
+        auto& texture = rm.getDefaultTexture();
+        
+        // Verify it tried twice
+        if (rm.getAttemptCount() == 2) {
+            std::cout << "✓ call_once properly retried after exception" << std::endl;
+        } else {
+            std::cerr << "✗ call_once did not retry properly (attempts: " << rm.getAttemptCount() << ")" << std::endl;
+            return false;
+        }
+        
+        // Call again - should not retry
+        auto& texture2 = rm.getDefaultTexture();
+        if (rm.getAttemptCount() == 2) {
+            std::cout << "✓ call_once did not retry on subsequent calls" << std::endl;
+        } else {
+            std::cerr << "✗ call_once incorrectly retried (attempts: " << rm.getAttemptCount() << ")" << std::endl;
+            return false;
+        }
+        
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "✗ Unexpected exception in retry test: " << e.what() << std::endl;
+        return false;
+    }
+}
+
 int main() {
     std::cout << "=== ResourceManager Exception Safety Test ===" << std::endl;
     
     bool success = testExceptionSafety();
+    
+    if (success) {
+        success = testCallOnceRetryBehavior();
+    }
+    
+    if (success) {
+        std::cout << "\n✅ All exception safety and retry tests passed!" << std::endl;
+    }
     
     return success ? 0 : 1;
 }

@@ -14,40 +14,17 @@ ResourceManager::~ResourceManager() {
     // Default texture is managed by unique_ptr, will be automatically cleaned up
 }
 
-void ResourceManager::createDefaultTexture() {
-    // Create default texture based on mode
+void ResourceManager::createDummyTexture() {
     defaultTexture = std::make_unique<Texture2D>();
-    
-    if (headlessMode.load()) {
-        // Create dummy texture for headless mode
-        defaultTexture->id = 0;
-        defaultTexture->width = 64;
-        defaultTexture->height = 64;
-        defaultTexture->mipmaps = 1;
-        defaultTexture->format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
-        
-        if (!silentMode.load()) {
-            spdlog::info("[ResourceManager] Created dummy texture for headless mode");
-        }
-        return;
-    }
-    
-    // For graphics mode, check if RayLib is ready
-    if (!rayLibInitialized.load()) {
-        // Create dummy texture if RayLib not ready
-        defaultTexture->id = 0;
-        defaultTexture->width = 64;
-        defaultTexture->height = 64;
-        defaultTexture->mipmaps = 1;
-        defaultTexture->format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
-        
-        if (!silentMode.load()) {
-            spdlog::info("[ResourceManager] Created dummy texture (RayLib not initialized)");
-        }
-        return;
-    }
-    
-    // Create real texture
+    defaultTexture->id = 0;
+    defaultTexture->width = 64;
+    defaultTexture->height = 64;
+    defaultTexture->mipmaps = 1;
+    defaultTexture->format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+}
+
+void ResourceManager::createRealTexture() {
+    // Create real texture - only called when RayLib is initialized
     const int size = 64;
     const int checkSize = 8;
     
@@ -55,6 +32,7 @@ void ResourceManager::createDefaultTexture() {
     Image img = GenImageChecked(size, size, checkSize, checkSize, MAGENTA, BLACK);
     
     // Create texture from image
+    defaultTexture = std::make_unique<Texture2D>();
     *defaultTexture = LoadTextureFromImage(img);
     UnloadImage(img);
     
@@ -63,27 +41,50 @@ void ResourceManager::createDefaultTexture() {
     }
 }
 
-Texture2D& ResourceManager::getDefaultTexture() {
-    // Thread-safe lazy initialization using std::once_flag
-    // Let exceptions propagate - call_once will retry if this throws
-    std::call_once(defaultTextureFlag, [this]() {
-        createDefaultTexture();
-    });
-    
-    // Emergency fallback if call_once completely failed
-    if (!defaultTexture) {
-        try {
-            spdlog::warn("[ResourceManager] Creating emergency fallback texture");
-            defaultTexture = std::make_unique<Texture2D>();
-            defaultTexture->id = 0;
-            defaultTexture->width = 64;
-            defaultTexture->height = 64;
-            defaultTexture->mipmaps = 1;
-            defaultTexture->format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
-        } catch (const std::exception& e) {
-            spdlog::error("[ResourceManager] Emergency fallback failed: {}", e.what());
-            throw std::runtime_error("[ResourceManager] Cannot create any default texture - system failure");
+void ResourceManager::createDefaultTextureThreadSafe() {
+    try {
+        if (headlessMode.load()) {
+            createDummyTexture();
+            if (!silentMode.load()) {
+                spdlog::info("[ResourceManager] Created dummy texture for headless mode");
+            }
+        } else if (!rayLibInitialized.load()) {
+            createDummyTexture();
+            if (!silentMode.load()) {
+                spdlog::info("[ResourceManager] Created dummy texture (RayLib not initialized)");
+            }
+        } else {
+            createRealTexture();
         }
+    } catch (const std::exception& e) {
+        spdlog::error("[ResourceManager] Failed to create default texture: {}", e.what());
+        // Emergency fallback - create dummy texture
+        try {
+            createDummyTexture();
+            spdlog::warn("[ResourceManager] Using dummy texture as fallback");
+        } catch (...) {
+            spdlog::error("[ResourceManager] Failed to create even dummy texture - critical error");
+            throw;
+        }
+    }
+}
+
+Texture2D& ResourceManager::getDefaultTexture() {
+    // Double-checked locking pattern for thread-safe lazy initialization
+    if (!defaultTextureInitialized.load(std::memory_order_acquire)) {
+        std::lock_guard<std::mutex> lock(defaultTextureMutex);
+        
+        // Check again inside the lock
+        if (!defaultTextureInitialized.load(std::memory_order_relaxed)) {
+            createDefaultTextureThreadSafe();
+            defaultTextureInitialized.store(true, std::memory_order_release);
+        }
+    }
+    
+    // Emergency safety check - should never happen with proper initialization
+    if (!defaultTexture) {
+        spdlog::error("[ResourceManager] Default texture is null after initialization - critical error");
+        throw std::runtime_error("[ResourceManager] Default texture initialization failed");
     }
     
     return *defaultTexture;

@@ -18,14 +18,17 @@ private:
     
     // Default texture management
     std::unique_ptr<Texture2D> defaultTexture;
-    std::once_flag defaultTextureFlag;
+    mutable std::mutex defaultTextureMutex;
+    std::atomic<bool> defaultTextureInitialized{false};
     
     // Flags
     std::atomic<bool> silentMode{false};
     std::atomic<bool> headlessMode{false};
     std::atomic<bool> rayLibInitialized{false};
     
-    virtual void createDefaultTexture();
+    void createDefaultTextureThreadSafe();
+    void createDummyTexture();
+    void createRealTexture();
 
 public:
     ResourceManager();

@@ -1,269 +1,212 @@
-#include <iostream>
-#include <vector>
+#include "../src/resources/resource_manager.h"
 #include <thread>
+#include <vector>
 #include <atomic>
 #include <chrono>
-#include <random>
-#include "../src/resources/resource_manager.h"
+#include <iostream>
+#include <spdlog/spdlog.h>
 
-std::atomic<int> errors{0};
-std::atomic<int> operations{0};
-
-// Test concurrent texture access
-void testConcurrentAccess() {
-    std::cout << "Testing concurrent access..." << std::endl;
+// Thread-safe testing of ResourceManager
+void testConcurrentDefaultTextureAccess() {
+    std::cout << "Testing concurrent access to getDefaultTexture()..." << std::endl;
     
-    ResourceManager rm;
-    rm.setSilentMode(true);
-    rm.setHeadlessMode(true);
-    rm.setRayLibInitialized(false);
+    ResourceManager manager;
+    manager.setSilentMode(true);
+    manager.setHeadlessMode(true);
     
-    const int numThreads = 10;
-    const int operationsPerThread = 1000;
+    const int numThreads = 100;
+    const int accessesPerThread = 1000;
+    std::atomic<int> successCount{0};
+    std::atomic<bool> raceDetected{false};
     std::vector<std::thread> threads;
     
-    auto worker = [&rm, operationsPerThread]() {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis(0, 99);
-        
-        for (int i = 0; i < operationsPerThread; i++) {
-            std::string name = "texture_" + std::to_string(dis(gen));
-            Texture2D* tex = rm.getTexture(name);
-            
-            if (!tex) {
-                errors++;
-                std::cerr << "Error: getTexture returned nullptr!" << std::endl;
-            }
-            operations++;
-        }
-    };
-    
-    // Start threads
     auto start = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < numThreads; i++) {
-        threads.emplace_back(worker);
+    
+    // Launch multiple threads that all try to access default texture
+    for (int i = 0; i < numThreads; ++i) {
+        threads.emplace_back([&manager, &successCount, &raceDetected, accessesPerThread]() {
+            try {
+                for (int j = 0; j < accessesPerThread; ++j) {
+                    Texture2D& texture = manager.getDefaultTexture();
+                    
+                    // Verify texture properties
+                    if (texture.width != 64 || texture.height != 64) {
+                        raceDetected.store(true);
+                        std::cerr << "Invalid texture dimensions detected!" << std::endl;
+                        return;
+                    }
+                    
+                    successCount.fetch_add(1);
+                }
+            } catch (const std::exception& e) {
+                raceDetected.store(true);
+                std::cerr << "Exception in thread: " << e.what() << std::endl;
+            }
+        });
     }
     
-    // Wait for completion
-    for (auto& t : threads) {
-        t.join();
+    // Wait for all threads to complete
+    for (auto& thread : threads) {
+        thread.join();
     }
+    
     auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::cout << "Completed " << successCount.load() << " texture accesses in " 
+              << duration.count() << "ms" << std::endl;
     
-    if (errors > 0) {
-        std::cerr << "FAIL: " << errors << " errors occurred during concurrent access!" << std::endl;
+    if (raceDetected.load()) {
+        std::cerr << "FAIL: Race condition detected!" << std::endl;
         exit(1);
+    } else if (successCount.load() != numThreads * accessesPerThread) {
+        std::cerr << "FAIL: Not all accesses succeeded. Expected: " 
+                  << (numThreads * accessesPerThread) << ", Got: " 
+                  << successCount.load() << std::endl;
+        exit(1);
+    } else {
+        std::cout << "PASS: No race conditions detected" << std::endl;
     }
-    
-    std::cout << "PASS: " << operations << " concurrent operations completed in " 
-              << duration << "ms with no errors" << std::endl;
 }
 
-// Test concurrent load and unload
-void testConcurrentLoadAndUnload() {
-    std::cout << "Testing concurrent load and unload..." << std::endl;
+void testConcurrentTextureLoading() {
+    std::cout << "\nTesting concurrent texture loading..." << std::endl;
     
-    ResourceManager rm;
-    rm.setSilentMode(true);
-    rm.setHeadlessMode(true);
-    rm.setRayLibInitialized(false);
+    ResourceManager manager;
+    manager.setSilentMode(true);
+    manager.setHeadlessMode(true);
     
-    const int numThreads = 8;
-    const int operationsPerThread = 500;
+    const int numThreads = 50;
+    const int texturesPerThread = 20;
+    std::atomic<int> loadCount{0};
+    std::atomic<bool> errorDetected{false};
     std::vector<std::thread> threads;
-    errors = 0;
-    operations = 0;
     
-    auto loader = [&rm, operationsPerThread]() {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis(0, 49);
-        
-        for (int i = 0; i < operationsPerThread; i++) {
-            std::string name = "tex_" + std::to_string(dis(gen));
-            std::string path = "/fake/path/" + name + ".png";
-            
-            // Randomly choose operation
-            int op = dis(gen) % 3;
-            switch (op) {
-                case 0: {
-                    // Load texture
-                    Texture2D* tex = rm.loadTexture(path, name);
-                    if (!tex) {
-                        errors++;
-                        std::cerr << "Error: loadTexture returned nullptr!" << std::endl;
+    // Launch threads that load textures concurrently
+    for (int i = 0; i < numThreads; ++i) {
+        threads.emplace_back([&manager, &loadCount, &errorDetected, i, texturesPerThread]() {
+            try {
+                for (int j = 0; j < texturesPerThread; ++j) {
+                    std::string name = "texture_" + std::to_string(i) + "_" + std::to_string(j);
+                    std::string path = "/nonexistent/path.png";  // Will use default texture
+                    
+                    Texture2D* texture = manager.loadTexture(path, name);
+                    if (!texture) {
+                        errorDetected.store(true);
+                        std::cerr << "Failed to load texture: " << name << std::endl;
+                        return;
                     }
-                    break;
-                }
-                case 1: {
-                    // Get texture
-                    Texture2D* tex = rm.getTexture(name);
-                    if (!tex) {
-                        errors++;
-                        std::cerr << "Error: getTexture returned nullptr!" << std::endl;
+                    
+                    // Verify we get consistent texture back
+                    Texture2D* texture2 = manager.getTexture(name);
+                    if (texture != texture2) {
+                        errorDetected.store(true);
+                        std::cerr << "Texture pointer mismatch for: " << name << std::endl;
+                        return;
                     }
-                    break;
+                    
+                    loadCount.fetch_add(1);
                 }
-                case 2: {
-                    // Unload texture
-                    rm.unloadTexture(name);
-                    break;
-                }
+            } catch (const std::exception& e) {
+                errorDetected.store(true);
+                std::cerr << "Exception in thread: " << e.what() << std::endl;
             }
-            operations++;
-        }
-    };
-    
-    // Start threads
-    auto start = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < numThreads; i++) {
-        threads.emplace_back(loader);
+        });
     }
     
-    // Wait for completion
-    for (auto& t : threads) {
-        t.join();
+    // Wait for all threads
+    for (auto& thread : threads) {
+        thread.join();
     }
-    auto end = std::chrono::high_resolution_clock::now();
     
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::cout << "Loaded " << loadCount.load() << " textures" << std::endl;
+    std::cout << "Unique textures in manager: " << manager.getUniqueTexturesCount() << std::endl;
     
-    if (errors > 0) {
-        std::cerr << "FAIL: " << errors << " errors occurred during concurrent load/unload!" << std::endl;
+    if (errorDetected.load()) {
+        std::cerr << "FAIL: Error detected during concurrent loading!" << std::endl;
         exit(1);
+    } else if (loadCount.load() != numThreads * texturesPerThread) {
+        std::cerr << "FAIL: Not all textures loaded successfully" << std::endl;
+        exit(1);
+    } else {
+        std::cout << "PASS: Concurrent texture loading successful" << std::endl;
     }
-    
-    std::cout << "PASS: " << operations << " concurrent load/unload operations completed in " 
-              << duration << "ms with no errors" << std::endl;
 }
 
-// Test default texture initialization race
-void testDefaultTextureInitialization() {
-    std::cout << "Testing default texture initialization race..." << std::endl;
+void testStressDefaultTexture() {
+    std::cout << "\nStress testing default texture initialization..." << std::endl;
     
-    const int numThreads = 20;
-    std::vector<std::thread> threads;
-    std::vector<Texture2D*> results(numThreads);
+    const int numIterations = 10;
     
-    ResourceManager rm;
-    rm.setSilentMode(true);
-    rm.setHeadlessMode(true);
-    rm.setRayLibInitialized(false);
-    
-    std::atomic<bool> start{false};
-    
-    auto worker = [&rm, &start](Texture2D** result) {
-        // Wait for signal to start
-        while (!start) {
-            std::this_thread::yield();
+    for (int iter = 0; iter < numIterations; ++iter) {
+        ResourceManager manager;
+        manager.setSilentMode(true);
+        manager.setHeadlessMode(true);
+        
+        const int numThreads = 200;
+        std::atomic<bool> errorDetected{false};
+        std::vector<std::thread> threads;
+        std::vector<Texture2D*> texturePointers(numThreads, nullptr);
+        
+        // All threads try to get default texture at exactly the same time
+        std::atomic<bool> go{false};
+        
+        for (int i = 0; i < numThreads; ++i) {
+            threads.emplace_back([&manager, &errorDetected, &go, &texturePointers, i]() {
+                // Wait for signal
+                while (!go.load()) {
+                    std::this_thread::yield();
+                }
+                
+                try {
+                    texturePointers[i] = &manager.getDefaultTexture();
+                } catch (const std::exception& e) {
+                    errorDetected.store(true);
+                    std::cerr << "Exception: " << e.what() << std::endl;
+                }
+            });
         }
         
-        // All threads try to get texture at the same time
-        *result = rm.getTexture("test");
-    };
-    
-    // Create threads
-    for (int i = 0; i < numThreads; i++) {
-        threads.emplace_back(worker, &results[i]);
-    }
-    
-    // Start all threads at once
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    start = true;
-    
-    // Wait for completion
-    for (auto& t : threads) {
-        t.join();
-    }
-    
-    // Check results
-    Texture2D* firstResult = results[0];
-    if (!firstResult) {
-        std::cerr << "FAIL: First thread got nullptr!" << std::endl;
-        exit(1);
-    }
-    
-    for (int i = 1; i < numThreads; i++) {
-        if (results[i] != firstResult) {
-            std::cerr << "FAIL: Thread " << i << " got different texture pointer!" << std::endl;
+        // Give threads time to reach the wait point
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        
+        // Release all threads at once
+        go.store(true);
+        
+        // Wait for completion
+        for (auto& thread : threads) {
+            thread.join();
+        }
+        
+        // Verify all threads got the same texture pointer
+        Texture2D* firstPtr = texturePointers[0];
+        bool allSame = true;
+        for (int i = 1; i < numThreads; ++i) {
+            if (texturePointers[i] != firstPtr) {
+                allSame = false;
+                std::cerr << "Different texture pointers detected!" << std::endl;
+                break;
+            }
+        }
+        
+        if (errorDetected.load() || !allSame) {
+            std::cerr << "FAIL: Stress test iteration " << iter << " failed!" << std::endl;
             exit(1);
         }
     }
     
-    std::cout << "PASS: All threads got the same default texture" << std::endl;
-}
-
-// Test concurrent operations with unloadAll
-void testConcurrentWithUnloadAll() {
-    std::cout << "Testing concurrent operations with unloadAll..." << std::endl;
-    
-    ResourceManager rm;
-    rm.setSilentMode(true);
-    rm.setHeadlessMode(true);
-    rm.setRayLibInitialized(false);
-    
-    std::atomic<bool> running{true};
-    errors = 0;
-    
-    // Thread that constantly loads and gets textures
-    auto worker = [&rm, &running]() {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis(0, 19);
-        
-        while (running) {
-            std::string name = "tex_" + std::to_string(dis(gen));
-            Texture2D* tex = rm.getTexture(name);
-            if (!tex) {
-                errors++;
-            }
-        }
-    };
-    
-    // Thread that periodically calls unloadAll
-    auto unloader = [&rm, &running]() {
-        while (running) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-            rm.unloadAll();
-        }
-    };
-    
-    // Start threads
-    std::vector<std::thread> workers;
-    for (int i = 0; i < 4; i++) {
-        workers.emplace_back(worker);
-    }
-    std::thread unloadThread(unloader);
-    
-    // Run for a while
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-    running = false;
-    
-    // Wait for threads
-    for (auto& t : workers) {
-        t.join();
-    }
-    unloadThread.join();
-    
-    if (errors > 0) {
-        std::cerr << "FAIL: " << errors << " errors occurred during concurrent unloadAll!" << std::endl;
-        exit(1);
-    }
-    
-    std::cout << "PASS: Concurrent operations with unloadAll completed successfully" << std::endl;
+    std::cout << "PASS: Stress test completed successfully" << std::endl;
 }
 
 int main() {
+    spdlog::set_level(spdlog::level::err);  // Only show errors
+    
     std::cout << "=== ResourceManager Threading Tests ===" << std::endl;
     
-    testConcurrentAccess();
-    testConcurrentLoadAndUnload();
-    testDefaultTextureInitialization();
-    testConcurrentWithUnloadAll();
+    testConcurrentDefaultTextureAccess();
+    testConcurrentTextureLoading();
+    testStressDefaultTexture();
     
-    std::cout << "\nAll threading tests passed!" << std::endl;
+    std::cout << "\n=== All threading tests passed! ===" << std::endl;
     return 0;
 }

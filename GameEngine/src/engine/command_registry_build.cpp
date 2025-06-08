@@ -92,7 +92,7 @@ void CommandRegistry::registerBuildCommands(CommandProcessor* processor, Console
             
             bool success = buildSystem->generateGameCode(projectManager->getCurrentProject(), outputDir);
             if (success) {
-                buildSystem->generateCMakeLists(projectManager->getCurrentProject(), outputDir);
+                buildSystem->generateCMakeListsFast(projectManager->getCurrentProject(), outputDir);
                 buildSystem->processScenes(projectManager->getCurrentProject(), outputDir);
                 buildSystem->packageAssets(projectManager->getCurrentProject(), outputDir);
                 console->addLine("Build preparation completed!", GREEN);

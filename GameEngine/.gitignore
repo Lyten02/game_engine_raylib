@@ -115,3 +115,7 @@ build/test_*
 projects/
 tests/scenes/
 tests/temp_test_*.txt
+
+# Test output directories
+output/
+scenes/

@@ -127,7 +127,7 @@ def test_config_loading():
     
     # Test 4: Test config get command in CLI
     print("\n4. Testing config get command...")
-    result = run_cli_command(['config', 'get', 'window.width'])
+    result = run_cli_command(['config.get', 'window.width'])
     if result['success']:
         # Check if output contains the expected width value
         if '1280' in result['output']:

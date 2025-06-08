@@ -5,44 +5,54 @@
 #include <chrono>
 #include <spdlog/spdlog.h>
 
-// Static member definitions
-Texture2D ResourceManager::defaultTexture{0};
-bool ResourceManager::defaultTextureInitialized = false;
-std::mutex ResourceManager::defaultTextureMutex;
+// Static member definitions for default texture
+static Texture2D g_defaultTexture{0};
+static bool g_defaultTextureInitialized = false;
+static std::mutex g_defaultTextureMutex;
+
+// Simple cleanup function to be called before RayLib shutdown
+void cleanupDefaultTexture() {
+    std::lock_guard<std::mutex> lock(g_defaultTextureMutex);
+    if (g_defaultTextureInitialized && g_defaultTexture.id > 0) {
+        UnloadTexture(g_defaultTexture);
+        g_defaultTexture.id = 0;
+        g_defaultTextureInitialized = false;
+    }
+}
 
 ResourceManager::ResourceManager() {
-    // Default texture will be created lazily when first needed
-    ensureDefaultTexture();
+    // Don't initialize default texture in constructor
+    // It will be created on first use
 }
 
 ResourceManager::~ResourceManager() {
     unloadAll();
-    // Clean up default texture if it was created
-    std::lock_guard<std::mutex> lock(defaultTextureMutex);
-    if (defaultTextureInitialized && defaultTexture.id > 0) {
-        UnloadTexture(defaultTexture);
-        defaultTextureInitialized = false;
-    }
+    // Don't touch default texture here - it's global and may be used by other instances
 }
 
 void ResourceManager::ensureDefaultTexture() {
-    std::lock_guard<std::mutex> lock(defaultTextureMutex);
-    if (!defaultTextureInitialized) {
+    // Simple check without complex locking
+    if (g_defaultTextureInitialized) {
+        return;
+    }
+    
+    std::lock_guard<std::mutex> lock(g_defaultTextureMutex);
+    // Double-check after acquiring lock
+    if (!g_defaultTextureInitialized) {
         createDefaultTexture();
-        defaultTextureInitialized = true;
+        g_defaultTextureInitialized = true;
     }
 }
 
 void ResourceManager::createDefaultTexture() {
-    // Check if RayLib is ready to work
-    if (headlessMode.load() || !rayLibInitialized.load() || !IsWindowReady()) {
-        // Create safe dummy texture for headless mode
-        // Using id=0 to indicate it's not a real OpenGL texture
-        defaultTexture.id = 0;
-        defaultTexture.width = 64;
-        defaultTexture.height = 64;
-        defaultTexture.mipmaps = 1;
-        defaultTexture.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+    // Simple headless check
+    if (headlessMode.load()) {
+        // Create dummy texture for headless mode
+        g_defaultTexture.id = 0;
+        g_defaultTexture.width = 64;
+        g_defaultTexture.height = 64;
+        g_defaultTexture.mipmaps = 1;
+        g_defaultTexture.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
         
         if (!silentMode.load()) {
             spdlog::info("[ResourceManager] Created dummy texture for headless mode");
@@ -50,7 +60,22 @@ void ResourceManager::createDefaultTexture() {
         return;
     }
     
-    // Existing code for creating real texture
+    // For graphics mode, check if RayLib is ready
+    if (!rayLibInitialized.load()) {
+        // Create dummy texture if RayLib not ready
+        g_defaultTexture.id = 0;
+        g_defaultTexture.width = 64;
+        g_defaultTexture.height = 64;
+        g_defaultTexture.mipmaps = 1;
+        g_defaultTexture.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+        
+        if (!silentMode.load()) {
+            spdlog::info("[ResourceManager] Created dummy texture (RayLib not initialized)");
+        }
+        return;
+    }
+    
+    // Create real texture
     const int size = 64;
     const int checkSize = 8;
     
@@ -58,7 +83,7 @@ void ResourceManager::createDefaultTexture() {
     Image img = GenImageChecked(size, size, checkSize, checkSize, MAGENTA, BLACK);
     
     // Create texture from image
-    defaultTexture = LoadTextureFromImage(img);
+    g_defaultTexture = LoadTextureFromImage(img);
     UnloadImage(img);
     
     if (!silentMode.load()) {
@@ -277,17 +302,16 @@ size_t ResourceManager::getUniqueTexturesCount() const {
 }
 
 Texture2D& ResourceManager::getDefaultTexture() {
-    // Static method cannot call instance method directly
-    // Just return the texture - it should be initialized by constructor
-    std::lock_guard<std::mutex> lock(defaultTextureMutex);
-    if (!defaultTextureInitialized) {
+    // Use the global texture with simple locking
+    std::lock_guard<std::mutex> lock(g_defaultTextureMutex);
+    if (!g_defaultTextureInitialized) {
         // Create a minimal dummy texture for safety
-        defaultTexture.id = 0;
-        defaultTexture.width = 64;
-        defaultTexture.height = 64;
-        defaultTexture.mipmaps = 1;
-        defaultTexture.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
-        defaultTextureInitialized = true;
+        g_defaultTexture.id = 0;
+        g_defaultTexture.width = 64;
+        g_defaultTexture.height = 64;
+        g_defaultTexture.mipmaps = 1;
+        g_defaultTexture.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+        g_defaultTextureInitialized = true;
     }
-    return defaultTexture;
+    return g_defaultTexture;
 }

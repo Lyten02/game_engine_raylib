@@ -52,8 +52,10 @@ def run_cli_command(args, timeout=5):
         return {'success': False, 'output': '', 'error': 'Executable not found'}
     
     try:
+        # Convert args list to a single command string
+        command_str = ' '.join(args)
         result = subprocess.run(
-            [exe, '--cli'] + args,
+            [exe, '--headless', '--command', command_str],
             capture_output=True,
             text=True,
             timeout=timeout

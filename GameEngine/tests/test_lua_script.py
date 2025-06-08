@@ -53,7 +53,7 @@ return "Script completed"
         temp_script = f.name
     
     try:
-        result = run_cli_command(['script', 'run', temp_script])
+        result = run_cli_command(['script.run', temp_script])
         if result['success']:
             if "Test script executed successfully" in result['output']:
                 print("PASS: Lua script executed and logging works")
@@ -90,7 +90,7 @@ end
         temp_script = f.name
     
     try:
-        result = run_cli_command(['script', 'run', temp_script])
+        result = run_cli_command(['script.run', temp_script])
         if result['success']:
             if "Vector3 addition: PASS" in result['output']:
                 print("PASS: Vector3 bindings work correctly")
@@ -131,7 +131,7 @@ end
         temp_script = f.name
     
     try:
-        result = run_cli_command(['script', 'run', temp_script])
+        result = run_cli_command(['script.run', temp_script])
         if result['success']:
             if "Transform test: PASS" in result['output']:
                 print("PASS: Transform bindings work correctly")
@@ -158,7 +158,7 @@ log_info("All logging functions tested")
         temp_script = f.name
     
     try:
-        result = run_cli_command(['script', 'run', temp_script])
+        result = run_cli_command(['script.run', temp_script])
         if result['success']:
             output = result['output'] + result['error']  # Check both streams
             
@@ -188,7 +188,7 @@ log_info("All logging functions tested")
     # Test 6: Run the actual test.lua script
     print("\n6. Running scripts/test.lua...")
     
-    result = run_cli_command(['script', 'run', 'scripts/test.lua'])
+    result = run_cli_command(['script.run', 'scripts/test.lua'])
     if result['success']:
         output = result['output']
         
@@ -231,7 +231,7 @@ local result = nil + 5
         temp_script = f.name
     
     try:
-        result = run_cli_command(['script', 'run', temp_script])
+        result = run_cli_command(['script.run', temp_script])
         if not result['success']:
             if "error" in result['error'].lower() or "error" in result['output'].lower():
                 print("PASS: Lua errors are properly reported")

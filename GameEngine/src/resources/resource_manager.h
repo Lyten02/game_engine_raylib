@@ -8,6 +8,9 @@
 #include <atomic>
 #include "raylib.h"
 
+// Global cleanup function for default texture
+void cleanupDefaultTexture();
+
 class ResourceManager {
 private:
     std::unordered_map<std::string, Texture2D> textures;  // Store textures directly, not pointers
@@ -17,10 +20,7 @@ private:
     mutable std::mutex texturesMutex;
     mutable std::mutex soundsMutex;
     
-    // Simple static default texture management
-    static Texture2D defaultTexture;
-    static bool defaultTextureInitialized;
-    static std::mutex defaultTextureMutex;
+    // Note: Default texture is now managed globally in the .cpp file
     
     // Flags
     std::atomic<bool> silentMode{false};

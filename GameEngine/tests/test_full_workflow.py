@@ -40,7 +40,7 @@ def test_full_workflow():
     try:
         # Step 1: Create a new project
         print("\n1. Creating new project...")
-        result = run_cli_command(['project', 'create', project_name])
+        result = run_cli_command(['project.create', project_name])
         if not result['success']:
             print(f"FAIL: Project creation failed: {result['error']}")
             return False
@@ -52,7 +52,7 @@ def test_full_workflow():
         
         # Step 2: Set the current project
         print("\n2. Setting current project...")
-        result = run_cli_command(['project', 'set', project_name])
+        result = run_cli_command(['project.set', project_name])
         if not result['success']:
             print(f"FAIL: Failed to set current project: {result['error']}")
             return False
@@ -61,7 +61,7 @@ def test_full_workflow():
         
         # Step 3: Create a scene
         print("\n3. Creating a scene...")
-        result = run_cli_command(['scene', 'create', scene_name])
+        result = run_cli_command(['scene.create', scene_name])
         if not result['success']:
             print(f"FAIL: Scene creation failed: {result['error']}")
             return False
@@ -70,7 +70,7 @@ def test_full_workflow():
         
         # Step 4: Set the scene as main scene
         print("\n4. Setting main scene...")
-        result = run_cli_command(['scene', 'set-main', scene_name])
+        result = run_cli_command(['scene.set-main', scene_name])
         if not result['success']:
             print(f"WARNING: Failed to set main scene: {result['error']}")
             # This might not be critical, continue
@@ -81,7 +81,7 @@ def test_full_workflow():
         print("\n5. Creating entities...")
         
         # Create first entity
-        result = run_cli_command(['entity', 'create', 'Player'])
+        result = run_cli_command(['entity.create', 'Player'])
         if not result['success']:
             print(f"FAIL: Failed to create Player entity: {result['error']}")
             return False
@@ -97,14 +97,14 @@ def test_full_workflow():
         
         # Add Transform component
         if entity_id is not None:
-            result = run_cli_command(['entity', 'add-component', str(entity_id), 'Transform'])
+            result = run_cli_command(['entity.add-component', str(entity_id), 'Transform'])
             if result['success']:
                 print("PASS: Added Transform component to Player")
             else:
                 print(f"WARNING: Failed to add Transform component: {result['error']}")
         
         # Create second entity
-        result = run_cli_command(['entity', 'create', 'Enemy'])
+        result = run_cli_command(['entity.create', 'Enemy'])
         if result['success']:
             print("PASS: Enemy entity created")
         else:
@@ -112,7 +112,7 @@ def test_full_workflow():
         
         # Step 6: List entities to verify
         print("\n6. Listing entities...")
-        result = run_cli_command(['entity', 'list'])
+        result = run_cli_command(['entity.list'])
         if result['success']:
             if "Player" in result['output'] or "Enemy" in result['output']:
                 print("PASS: Entities listed successfully")
@@ -123,7 +123,7 @@ def test_full_workflow():
         
         # Step 7: Save the scene
         print("\n7. Saving scene...")
-        result = run_cli_command(['scene', 'save'])
+        result = run_cli_command(['scene.save'])
         if result['success']:
             print("PASS: Scene saved successfully")
         else:
@@ -131,7 +131,7 @@ def test_full_workflow():
         
         # Step 8: Build the project
         print("\n8. Building project...")
-        result = run_cli_command(['build', 'project', project_name], timeout=120)
+        result = run_cli_command(['build.project', project_name], timeout=120)
         
         build_success = False
         if result['success']:
@@ -196,7 +196,7 @@ def test_full_workflow():
         
         # Step 11: Test config get on the project
         print("\n11. Testing project configuration...")
-        result = run_cli_command(['config', 'get', 'window.title'])
+        result = run_cli_command(['config.get', 'window.title'])
         if result['success']:
             print("PASS: Config system working with project")
         else:
@@ -204,7 +204,7 @@ def test_full_workflow():
         
         # Step 12: Run a Lua script in project context
         print("\n12. Testing Lua scripting...")
-        result = run_cli_command(['script', 'run', 'scripts/test.lua'])
+        result = run_cli_command(['script.run', 'scripts/test.lua'])
         if result['success']:
             if "Hello from Lua script!" in result['output']:
                 print("PASS: Lua scripting works in project context")

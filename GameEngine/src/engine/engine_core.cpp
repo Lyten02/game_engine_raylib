@@ -4,6 +4,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include "../utils/config.h"
+#include "../resources/resource_manager.h"
 #include <filesystem>
 #include <sstream>
 #include <iomanip>
@@ -150,6 +151,9 @@ void EngineCore::clearBackground() {
 
 void EngineCore::shutdown() {
     spdlog::info("EngineCore::shutdown - Shutting down engine core");
+    
+    // Clean up default texture before closing window
+    cleanupDefaultTexture();
     
     if (!headlessMode && IsWindowReady()) {
         CloseWindow();

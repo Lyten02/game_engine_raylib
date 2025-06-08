@@ -1,11 +1,23 @@
 #include "command_processor.h"
 #include "console.h"
+#include "../utils/config.h"
 #include <spdlog/spdlog.h>
 #include <sstream>
 #include <algorithm>
+#include <future>
+#include <thread>
 
 void CommandProcessor::initialize(Console* con) {
     console = con;
+    
+    // Load timeout settings from config
+    if (Config::isConfigLoaded()) {
+        commandTimeoutSeconds = Config::getInt("console.command_timeout_seconds", 10);
+        timeoutEnabled = Config::getBool("console.enable_command_timeout", true);
+        spdlog::info("CommandProcessor::initialize - Timeout settings loaded: {} seconds, enabled: {}", 
+                     commandTimeoutSeconds, timeoutEnabled);
+    }
+    
     registerDefaultCommands();
     spdlog::info("CommandProcessor::initialize - Command processor initialized");
 }
@@ -60,7 +72,43 @@ void CommandProcessor::executeCommand(const std::string& input) {
     if (it != commands.end()) {
         try {
             std::vector<std::string> args(tokens.begin() + 1, tokens.end());
-            it->second.function(args);
+            
+            // If timeout is disabled, execute directly
+            if (!timeoutEnabled) {
+                it->second.function(args);
+                return;
+            }
+            
+            // Execute command with timeout
+            std::exception_ptr commandException = nullptr;
+            bool commandCompleted = false;
+            
+            auto future = std::async(std::launch::async, [&]() {
+                try {
+                    it->second.function(args);
+                    commandCompleted = true;
+                } catch (...) {
+                    commandException = std::current_exception();
+                }
+            });
+            
+            // Wait with timeout
+            const auto timeout = std::chrono::seconds(commandTimeoutSeconds);
+            if (future.wait_for(timeout) == std::future_status::timeout) {
+                spdlog::error("Command '{}' timed out after {} seconds", commandName, commandTimeoutSeconds);
+                console->addLine("Error: Command timed out after " + std::to_string(commandTimeoutSeconds) + " seconds", RED);
+                console->addLine("The command is still running in the background and may complete later.", YELLOW);
+                return;
+            }
+            
+            // Get result (will wait for command to complete)
+            future.get();
+            
+            // Rethrow any exception that occurred in the command
+            if (commandException) {
+                std::rethrow_exception(commandException);
+            }
+            
         } catch (const std::exception& e) {
             console->addLine("Error: " + std::string(e.what()), RED);
         }

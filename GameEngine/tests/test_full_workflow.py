@@ -52,7 +52,7 @@ def test_full_workflow():
         
         # Step 2: Set the current project
         print("\n2. Setting current project...")
-        result = run_cli_command(['project.set', project_name])
+        result = run_cli_command(['project.open', project_name])
         if not result['success']:
             print(f"FAIL: Failed to set current project: {result['error']}")
             return False

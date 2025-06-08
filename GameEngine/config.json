@@ -12,7 +12,9 @@
         "font_size": 14,
         "background_alpha": 0.8,
         "max_lines": 20,
-        "toggle_key": "GRAVE"
+        "toggle_key": "GRAVE",
+        "command_timeout_seconds": 10,
+        "enable_command_timeout": true
     },
     "rendering": {
         "clear_color": [64, 64, 64, 255]

@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <chrono>
 
 class Console;
 
@@ -29,6 +30,8 @@ class CommandProcessor {
 private:
     std::unordered_map<std::string, CommandInfo> commands;
     Console* console;
+    int commandTimeoutSeconds = 10;
+    bool timeoutEnabled = true;
 
 public:
     CommandProcessor() = default;
@@ -54,4 +57,10 @@ public:
     
     // Get parameter suggestions for a command
     std::vector<std::string> getParameterSuggestions(const std::string& command, int paramIndex) const;
+    
+    // Timeout configuration
+    void setCommandTimeout(int seconds) { commandTimeoutSeconds = seconds; }
+    void setTimeoutEnabled(bool enabled) { timeoutEnabled = enabled; }
+    int getCommandTimeout() const { return commandTimeoutSeconds; }
+    bool isTimeoutEnabled() const { return timeoutEnabled; }
 };

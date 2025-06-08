@@ -36,7 +36,8 @@
       "Bash(chmod:*)",
       "Bash(python3:*)",
       "Bash(python tests/test_build_full.py)",
-      "Bash(python tests/test_resource_manager_memory.py)"
+      "Bash(python tests/test_resource_manager_memory.py)",
+      "Bash(./test_resource_manager_threading_fix)"
     ],
     "deny": [
       "Bash(git:add:*)",

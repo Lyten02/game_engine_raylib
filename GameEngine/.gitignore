@@ -22,6 +22,8 @@ out/
 # Log files
 logs/
 *.log
+test_log_*.log
+engine_*.log
 
 # Package manager directories
 vcpkg_installed/

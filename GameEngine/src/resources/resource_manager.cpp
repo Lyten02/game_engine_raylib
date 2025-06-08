@@ -5,54 +5,26 @@
 #include <chrono>
 #include <spdlog/spdlog.h>
 
-// Static member definitions for default texture
-static Texture2D g_defaultTexture{0};
-static bool g_defaultTextureInitialized = false;
-static std::mutex g_defaultTextureMutex;
-
-// Simple cleanup function to be called before RayLib shutdown
-void cleanupDefaultTexture() {
-    std::lock_guard<std::mutex> lock(g_defaultTextureMutex);
-    if (g_defaultTextureInitialized && g_defaultTexture.id > 0) {
-        UnloadTexture(g_defaultTexture);
-        g_defaultTexture.id = 0;
-        g_defaultTextureInitialized = false;
-    }
-}
-
 ResourceManager::ResourceManager() {
-    // Don't initialize default texture in constructor
-    // It will be created on first use
+    // Default texture will be created on first use via std::once_flag
 }
 
 ResourceManager::~ResourceManager() {
     unloadAll();
-    // Don't touch default texture here - it's global and may be used by other instances
-}
-
-void ResourceManager::ensureDefaultTexture() {
-    // Simple check without complex locking
-    if (g_defaultTextureInitialized) {
-        return;
-    }
-    
-    std::lock_guard<std::mutex> lock(g_defaultTextureMutex);
-    // Double-check after acquiring lock
-    if (!g_defaultTextureInitialized) {
-        createDefaultTexture();
-        g_defaultTextureInitialized = true;
-    }
+    // Default texture is managed by unique_ptr, will be automatically cleaned up
 }
 
 void ResourceManager::createDefaultTexture() {
-    // Simple headless check
+    // Create default texture based on mode
+    defaultTexture = std::make_unique<Texture2D>();
+    
     if (headlessMode.load()) {
         // Create dummy texture for headless mode
-        g_defaultTexture.id = 0;
-        g_defaultTexture.width = 64;
-        g_defaultTexture.height = 64;
-        g_defaultTexture.mipmaps = 1;
-        g_defaultTexture.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+        defaultTexture->id = 0;
+        defaultTexture->width = 64;
+        defaultTexture->height = 64;
+        defaultTexture->mipmaps = 1;
+        defaultTexture->format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
         
         if (!silentMode.load()) {
             spdlog::info("[ResourceManager] Created dummy texture for headless mode");
@@ -63,11 +35,11 @@ void ResourceManager::createDefaultTexture() {
     // For graphics mode, check if RayLib is ready
     if (!rayLibInitialized.load()) {
         // Create dummy texture if RayLib not ready
-        g_defaultTexture.id = 0;
-        g_defaultTexture.width = 64;
-        g_defaultTexture.height = 64;
-        g_defaultTexture.mipmaps = 1;
-        g_defaultTexture.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+        defaultTexture->id = 0;
+        defaultTexture->width = 64;
+        defaultTexture->height = 64;
+        defaultTexture->mipmaps = 1;
+        defaultTexture->format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
         
         if (!silentMode.load()) {
             spdlog::info("[ResourceManager] Created dummy texture (RayLib not initialized)");
@@ -83,7 +55,7 @@ void ResourceManager::createDefaultTexture() {
     Image img = GenImageChecked(size, size, checkSize, checkSize, MAGENTA, BLACK);
     
     // Create texture from image
-    g_defaultTexture = LoadTextureFromImage(img);
+    *defaultTexture = LoadTextureFromImage(img);
     UnloadImage(img);
     
     if (!silentMode.load()) {
@@ -91,10 +63,32 @@ void ResourceManager::createDefaultTexture() {
     }
 }
 
-Texture2D* ResourceManager::loadTexture(const std::string& path, const std::string& name) {
-    auto start = std::chrono::steady_clock::now();
-    const auto timeout = std::chrono::seconds(2);
+Texture2D& ResourceManager::getDefaultTexture() {
+    // Thread-safe lazy initialization using std::once_flag
+    std::call_once(defaultTextureFlag, [this]() {
+        try {
+            createDefaultTexture();
+        } catch (const std::exception& e) {
+            spdlog::error("[ResourceManager] Failed to create default texture: {}", e.what());
+            // Create fallback dummy texture
+            defaultTexture = std::make_unique<Texture2D>();
+            defaultTexture->id = 0;
+            defaultTexture->width = 64;
+            defaultTexture->height = 64;
+            defaultTexture->mipmaps = 1;
+            defaultTexture->format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+        }
+    });
     
+    // Safety check - should never happen but prevents segfaults
+    if (!defaultTexture) {
+        throw std::runtime_error("[ResourceManager] Critical error: default texture is null");
+    }
+    
+    return *defaultTexture;
+}
+
+Texture2D* ResourceManager::loadTexture(const std::string& path, const std::string& name) {
     // Simple headless check
     if (headlessMode.load()) {
         if (!silentMode.load()) {
@@ -103,16 +97,9 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
         return &getDefaultTexture();
     }
     
-    // Thread-safe check if already loaded
+    // Thread-safe check if already loaded (read lock)
     {
-        std::lock_guard<std::mutex> lock(texturesMutex);
-        
-        // Check timeout
-        if (std::chrono::steady_clock::now() - start > timeout) {
-            spdlog::warn("[ResourceManager] loadTexture operation timed out for '{}'", name);
-            return &getDefaultTexture();
-        }
-        
+        std::shared_lock<std::shared_mutex> lock(resourceMutex);
         auto it = textures.find(name);
         if (it != textures.end()) {
             if (!silentMode.load()) {
@@ -122,6 +109,7 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
         }
     }
 
+    // Load texture WITHOUT holding any locks
     if (!std::filesystem::exists(path)) {
         if (!silentMode.load()) {
             spdlog::warn("[ResourceManager] Texture file not found: {}", path);
@@ -139,17 +127,22 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
         return &getDefaultTexture();
     }
 
-    // Thread-safe texture storage
+    // Store texture with double-check pattern (write lock)
     {
-        std::lock_guard<std::mutex> lock(texturesMutex);
+        std::unique_lock<std::shared_mutex> lock(resourceMutex);
         
-        // Check timeout again before storing
-        if (std::chrono::steady_clock::now() - start > timeout) {
-            spdlog::warn("[ResourceManager] loadTexture storage timed out for '{}'", name);
+        // Double-check: another thread might have loaded it while we were loading
+        auto it = textures.find(name);
+        if (it != textures.end()) {
+            // Another thread loaded it first, unload our copy and return existing
             UnloadTexture(texture);
-            return &getDefaultTexture();
+            if (!silentMode.load()) {
+                spdlog::info("[ResourceManager] Texture '{}' was loaded by another thread.", name);
+            }
+            return &it->second;
         }
         
+        // We're first to load it
         textures[name] = std::move(texture);
         if (!silentMode.load()) {
             spdlog::info("[ResourceManager] Loaded texture '{}' from: {}", name, path);
@@ -159,9 +152,9 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
 }
 
 Sound* ResourceManager::loadSound(const std::string& path, const std::string& name) {
-    // Thread-safe check if already loaded
+    // Thread-safe check if already loaded (read lock)
     {
-        std::lock_guard<std::mutex> lock(soundsMutex);
+        std::shared_lock<std::shared_mutex> lock(resourceMutex);
         auto it = sounds.find(name);
         if (it != sounds.end()) {
             if (!silentMode.load()) {
@@ -186,9 +179,9 @@ Sound* ResourceManager::loadSound(const std::string& path, const std::string& na
         return nullptr;
     }
 
-    // Thread-safe sound storage
+    // Thread-safe sound storage (write lock)
     {
-        std::lock_guard<std::mutex> lock(soundsMutex);
+        std::unique_lock<std::shared_mutex> lock(resourceMutex);
         sounds[name] = sound;
         if (!silentMode.load()) {
             spdlog::info("[ResourceManager] Loaded sound '{}' from: {}", name, path);
@@ -198,9 +191,9 @@ Sound* ResourceManager::loadSound(const std::string& path, const std::string& na
 }
 
 Texture2D* ResourceManager::getTexture(const std::string& name) {
-    // Thread-safe texture lookup
+    // Thread-safe texture lookup (read lock)
     {
-        std::lock_guard<std::mutex> lock(texturesMutex);
+        std::shared_lock<std::shared_mutex> lock(resourceMutex);
         auto it = textures.find(name);
         if (it != textures.end()) {
             return &it->second;
@@ -212,13 +205,12 @@ Texture2D* ResourceManager::getTexture(const std::string& name) {
         spdlog::warn("[ResourceManager] Using default texture for '{}'", name);
     }
     // Return default texture without storing in map
-    ensureDefaultTexture();
     return &getDefaultTexture();
 }
 
 Sound* ResourceManager::getSound(const std::string& name) {
-    // Thread-safe sound lookup
-    std::lock_guard<std::mutex> lock(soundsMutex);
+    // Thread-safe sound lookup (read lock)
+    std::shared_lock<std::shared_mutex> lock(resourceMutex);
     auto it = sounds.find(name);
     if (it != sounds.end()) {
         return &it->second;
@@ -234,35 +226,32 @@ void ResourceManager::unloadAll() {
         spdlog::info("[ResourceManager] Unloading all resources...");
     }
     
-    // Thread-safe texture unloading
-    {
-        std::lock_guard<std::mutex> lock(texturesMutex);
-        for (auto& [name, texture] : textures) {
-            if (!headlessMode.load() && rayLibInitialized.load() && texture.id > 0) {
-                UnloadTexture(texture);
-            }
-            if (!silentMode.load()) {
-                spdlog::info("[ResourceManager] Unloaded texture: {}", name);
-            }
+    // Thread-safe resource unloading (write lock)
+    std::unique_lock<std::shared_mutex> lock(resourceMutex);
+    
+    // Unload textures
+    for (auto& [name, texture] : textures) {
+        if (!headlessMode.load() && rayLibInitialized.load() && texture.id > 0) {
+            UnloadTexture(texture);
         }
-        textures.clear();
-    }
-
-    // Thread-safe sound unloading
-    {
-        std::lock_guard<std::mutex> lock(soundsMutex);
-        for (auto& [name, sound] : sounds) {
-            UnloadSound(sound);
-            if (!silentMode.load()) {
-                spdlog::info("[ResourceManager] Unloaded sound: {}", name);
-            }
+        if (!silentMode.load()) {
+            spdlog::info("[ResourceManager] Unloaded texture: {}", name);
         }
-        sounds.clear();
     }
+    textures.clear();
+    
+    // Unload sounds
+    for (auto& [name, sound] : sounds) {
+        UnloadSound(sound);
+        if (!silentMode.load()) {
+            spdlog::info("[ResourceManager] Unloaded sound: {}", name);
+        }
+    }
+    sounds.clear();
 }
 
 void ResourceManager::unloadTexture(const std::string& name) {
-    std::lock_guard<std::mutex> lock(texturesMutex);
+    std::unique_lock<std::shared_mutex> lock(resourceMutex);
     auto it = textures.find(name);
     if (it != textures.end()) {
         if (!headlessMode.load() && rayLibInitialized.load() && it->second.id > 0) {
@@ -280,7 +269,7 @@ void ResourceManager::unloadTexture(const std::string& name) {
 }
 
 void ResourceManager::unloadSound(const std::string& name) {
-    std::lock_guard<std::mutex> lock(soundsMutex);
+    std::unique_lock<std::shared_mutex> lock(resourceMutex);
     auto it = sounds.find(name);
     if (it != sounds.end()) {
         UnloadSound(it->second);
@@ -296,22 +285,7 @@ void ResourceManager::unloadSound(const std::string& name) {
 }
 
 size_t ResourceManager::getUniqueTexturesCount() const {
-    // Thread-safe texture count
-    std::lock_guard<std::mutex> lock(texturesMutex);
+    // Thread-safe texture count (read lock)
+    std::shared_lock<std::shared_mutex> lock(resourceMutex);
     return textures.size();
-}
-
-Texture2D& ResourceManager::getDefaultTexture() {
-    // Use the global texture with simple locking
-    std::lock_guard<std::mutex> lock(g_defaultTextureMutex);
-    if (!g_defaultTextureInitialized) {
-        // Create a minimal dummy texture for safety
-        g_defaultTexture.id = 0;
-        g_defaultTexture.width = 64;
-        g_defaultTexture.height = 64;
-        g_defaultTexture.mipmaps = 1;
-        g_defaultTexture.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
-        g_defaultTextureInitialized = true;
-    }
-    return g_defaultTexture;
 }

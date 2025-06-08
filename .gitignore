@@ -1,0 +1,40 @@
+# Claude settings (local configuration)
+.claude/settings.local.json
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Log files anywhere in the project
+*.log
+logs/
+
+# Test executables
+test_threading_fix
+test_resource_manager_*
+!test_resource_manager_*.cpp
+!test_resource_manager_*.py
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+
+# macOS specific
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

@@ -19,6 +19,11 @@ declare -a tests=(
     "test_resource_manager_safety"
     "test_resource_manager_threading"
     "test_resource_manager_headless"
+    "test_resource_manager_threading_fix"
+    "test_resource_manager_memory_fix"
+    "test_resource_manager_init_order"
+    "test_resource_manager_exception_safety"
+    "test_resource_manager_integration"
 )
 
 # Function to compile and run a test

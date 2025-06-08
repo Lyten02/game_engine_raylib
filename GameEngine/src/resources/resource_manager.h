@@ -3,32 +3,29 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
-// Removed shared_mutex - using simple mutex for thread safety
+#include <shared_mutex>
 #include <mutex>
 #include <atomic>
 #include "raylib.h"
-
-// Global cleanup function for default texture
-void cleanupDefaultTexture();
 
 class ResourceManager {
 private:
     std::unordered_map<std::string, Texture2D> textures;  // Store textures directly, not pointers
     std::unordered_map<std::string, Sound> sounds;
     
-    // Thread safety - using simple mutex to avoid deadlocks
-    mutable std::mutex texturesMutex;
-    mutable std::mutex soundsMutex;
+    // Thread safety - using shared_mutex for better performance
+    mutable std::shared_mutex resourceMutex;
     
-    // Note: Default texture is now managed globally in the .cpp file
+    // Default texture management
+    std::unique_ptr<Texture2D> defaultTexture;
+    std::once_flag defaultTextureFlag;
     
     // Flags
     std::atomic<bool> silentMode{false};
     std::atomic<bool> headlessMode{false};
     std::atomic<bool> rayLibInitialized{false};
     
-    void createDefaultTexture();
-    void ensureDefaultTexture();  // Simple initialization
+    virtual void createDefaultTexture();
 
 public:
     ResourceManager();
@@ -45,7 +42,7 @@ public:
     Sound* getSound(const std::string& name);
     
     // Public access to default texture
-    static Texture2D& getDefaultTexture();
+    Texture2D& getDefaultTexture();
     
     void unloadAll();
     void unloadTexture(const std::string& name);
@@ -53,7 +50,7 @@ public:
     
     // Diagnostic methods
     size_t getLoadedTexturesCount() const { 
-        std::lock_guard<std::mutex> lock(texturesMutex);
+        std::shared_lock<std::shared_mutex> lock(resourceMutex);
         return textures.size(); 
     }
     size_t getUniqueTexturesCount() const;

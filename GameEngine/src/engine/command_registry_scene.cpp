@@ -14,9 +14,13 @@
 
 namespace GameEngine {
 
-void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene) {
+void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene, ProjectManager* projectManager) {
     // scene.create command
-    processor->registerCommand("scene.create",
+    {
+        std::vector<CommandParameter> createParams = {
+            {"name", "Name of the scene (optional)", false}
+        };
+        processor->registerCommand("scene.create",
         [console, getScene](const std::vector<std::string>& args) {
             Scene* scene = getScene();
             if (!scene) {
@@ -26,8 +30,15 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
             
             // Clear current scene
             scene->registry.clear();
-            console->addLine("New scene created", GREEN);
-        }, "Create a new empty scene", "Scene");
+            
+            if (!args.empty()) {
+                console->addLine("New scene created: " + args[0], GREEN);
+                console->addLine("Use 'scene.save " + args[0] + "' to save it", GRAY);
+            } else {
+                console->addLine("New scene created", GREEN);
+            }
+        }, "Create a new empty scene", "Scene", "scene.create [name]", createParams);
+    }
     
     // scene.save command
     {
@@ -35,7 +46,7 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
             {"filename", "Scene filename (without extension)", true}
         };
         processor->registerCommand("scene.save",
-        [console, getScene](const std::vector<std::string>& args) {
+        [console, getScene, projectManager](const std::vector<std::string>& args) {
             Scene* scene = getScene();
             if (!scene) {
                 console->addLine("No active scene to save", RED);
@@ -47,10 +58,16 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
                 return;
             }
             
-            // Create scenes directory if it doesn't exist
-            std::filesystem::create_directories("scenes");
+            if (!projectManager || !projectManager->getCurrentProject()) {
+                console->addLine("No project open. Use 'project.open' first.", RED);
+                return;
+            }
             
-            std::string filename = "scenes/" + args[0] + ".json";
+            // Create scenes directory in project if it doesn't exist
+            std::string scenesDir = projectManager->getCurrentProject()->getPath() + "/scenes";
+            std::filesystem::create_directories(scenesDir);
+            
+            std::string filename = scenesDir + "/" + args[0] + ".json";
             SceneSerializer serializer;
             if (serializer.saveScene(scene, filename)) {
                 console->addLine("Scene saved to: " + filename, GREEN);
@@ -66,7 +83,7 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
             {"filename", "Scene filename (without extension)", true}
         };
         processor->registerCommand("scene.load",
-        [console, getScene](const std::vector<std::string>& args) {
+        [console, getScene, projectManager](const std::vector<std::string>& args) {
             Scene* scene = getScene();
             if (!scene) {
                 console->addLine("No active scene", RED);
@@ -78,7 +95,12 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
                 return;
             }
             
-            std::string filename = "scenes/" + args[0] + ".json";
+            if (!projectManager || !projectManager->getCurrentProject()) {
+                console->addLine("No project open. Use 'project.open' first.", RED);
+                return;
+            }
+            
+            std::string filename = projectManager->getCurrentProject()->getPath() + "/scenes/" + args[0] + ".json";
             SceneSerializer serializer;
             if (serializer.loadScene(scene, filename)) {
                 console->addLine("Scene loaded from: " + filename, GREEN);

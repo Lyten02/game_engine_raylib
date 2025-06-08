@@ -4,7 +4,7 @@ import time
 
 def find_executable():
     """Find the game executable in the build directory"""
-    build_dir = os.path.join(os.path.dirname(__file__), '..', 'build')
+    build_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'build'))
     
     # Try different possible locations
     possible_paths = [
@@ -16,7 +16,7 @@ def find_executable():
     
     for path in possible_paths:
         if os.path.exists(path):
-            return path
+            return os.path.abspath(path)
     
     return None
 
@@ -51,14 +51,18 @@ def run_cli_command(args, timeout=5):
     if not exe:
         return {'success': False, 'output': '', 'error': 'Executable not found'}
     
+    # Get the build directory to run commands from
+    build_dir = os.path.dirname(exe)
+    
     try:
         # Convert args list to a single command string
-        command_str = ' '.join(args)
+        command_str = ' '.join(args) if isinstance(args, list) else args
         result = subprocess.run(
             [exe, '--headless', '--command', command_str],
             capture_output=True,
             text=True,
-            timeout=timeout
+            timeout=timeout,
+            cwd=build_dir  # Run from build directory
         )
         
         return {
@@ -68,6 +72,39 @@ def run_cli_command(args, timeout=5):
         }
     except subprocess.TimeoutExpired:
         return {'success': False, 'output': '', 'error': 'Command timed out'}
+    except Exception as e:
+        return {'success': False, 'output': '', 'error': str(e)}
+
+def run_cli_batch(commands, timeout=30):
+    """Run multiple CLI commands in batch mode"""
+    exe = find_executable()
+    if not exe:
+        return {'success': False, 'output': '', 'error': 'Executable not found'}
+    
+    # Get the build directory to run commands from
+    build_dir = os.path.dirname(exe)
+    
+    try:
+        # Build the batch command arguments
+        batch_args = [exe, '--headless', '--batch']
+        for cmd in commands:
+            batch_args.append(cmd if isinstance(cmd, str) else ' '.join(cmd))
+        
+        result = subprocess.run(
+            batch_args,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=build_dir  # Run from build directory
+        )
+        
+        return {
+            'success': result.returncode == 0,
+            'output': result.stdout,
+            'error': result.stderr
+        }
+    except subprocess.TimeoutExpired:
+        return {'success': False, 'output': '', 'error': 'Commands timed out'}
     except Exception as e:
         return {'success': False, 'output': '', 'error': str(e)}
 

@@ -24,6 +24,7 @@ class TestRunner:
         self.log_file = f"test_log_{timestamp}.log"
         self.verbose_mode = "--verbose" in sys.argv or "-v" in sys.argv
         self.disable_progress = "--no-progress" in sys.argv
+        self.skip_full_build = "--skip-full-build" in sys.argv
         self.current_test = 0
         self.total_tests = 0
         self.start_time = time.time()
@@ -118,9 +119,9 @@ class TestRunner:
             if "resource_manager_memory" in test_file:
                 timeout = 120  # 2 minutes for C++ compilation
             
-            # Add --skip-full-build flag for build system test
+            # Add --skip-full-build flag if requested
             args = [sys.executable, test_file]
-            if "test_build_system.py" in test_file:
+            if self.skip_full_build and ("test_build_system.py" in test_file or "test_build_system_both.py" in test_file):
                 args.append("--skip-full-build")
             
             result = subprocess.run(
@@ -551,6 +552,7 @@ def main():
         print("Options:")
         print("  --verbose, -v     Show real-time error details")
         print("  --no-progress     Disable progress bar")
+        print("  --skip-full-build Skip full build tests (faster)")
         print("  --help, -h        Show this help message")
         sys.exit(0)
     
@@ -558,6 +560,11 @@ def main():
         print("💡 Verbose mode enabled - real-time error details will be shown")
     else:
         print("💡 Use --verbose or -v for real-time error details")
+    
+    if "--skip-full-build" in sys.argv:
+        print("⚡ Fast mode: Skipping full build tests")
+    else:
+        print("🔨 Full mode: Including all build tests (may take several minutes)")
     
     # Clean test data first
     try:

@@ -43,7 +43,7 @@ public:
 private:
     // Command registration methods grouped by category
     void registerEngineCommands(CommandProcessor* processor, EngineCore* engineCore, Console* console);
-    void registerSceneCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene);
+    void registerSceneCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene, ProjectManager* projectManager);
     void registerEntityCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene, ResourceManager* resourceManager);
     void registerResourceCommands(CommandProcessor* processor, Console* console);
     void registerRenderCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene);

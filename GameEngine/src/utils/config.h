@@ -9,6 +9,9 @@ private:
     static inline std::string configPath;
     static inline bool isLoaded = false;
     static inline bool silentMode = false;
+    
+    // Maximum depth for key navigation to prevent infinite loops
+    static constexpr int MAX_KEY_DEPTH = 10;
 
 public:
     // Set silent mode
@@ -51,5 +54,11 @@ public:
     
 private:
     // Helper to parse dot notation keys
-    static nlohmann::json* navigateToKey(const std::string& key, bool createPath = false);
+    static nlohmann::json* navigateToKey(const std::string& key, bool createPath = false, int maxDepth = MAX_KEY_DEPTH);
+    
+    // Input validation for config keys
+    static bool isValidConfigKey(const std::string& key);
+    
+    // Parse key into parts, skipping empty parts
+    static std::vector<std::string> parseKeyParts(const std::string& key);
 };

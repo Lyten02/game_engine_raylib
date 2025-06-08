@@ -205,13 +205,13 @@ target_link_libraries(resource_test raylib spdlog::spdlog)
         
         print("Building test...")
         cmake_cmd = ["cmake", ".."]
-        result = subprocess.run(cmake_cmd, cwd=build_dir, capture_output=True, text=True)
+        result = subprocess.run(cmake_cmd, cwd=build_dir, capture_output=True, text=True, timeout=60)
         if result.returncode != 0:
             print(f"CMake failed:\n{result.stderr}")
             return False
         
-        make_cmd = ["make"]
-        result = subprocess.run(make_cmd, cwd=build_dir, capture_output=True, text=True)
+        make_cmd = ["make", "-j4"]
+        result = subprocess.run(make_cmd, cwd=build_dir, capture_output=True, text=True, timeout=60)
         if result.returncode != 0:
             print(f"Make failed:\n{result.stderr}")
             return False
@@ -219,7 +219,7 @@ target_link_libraries(resource_test raylib spdlog::spdlog)
         # Run test
         print("Running test...")
         test_exe = os.path.join(build_dir, "resource_test")
-        result = subprocess.run([test_exe], capture_output=True, text=True)
+        result = subprocess.run([test_exe], capture_output=True, text=True, timeout=10)
         
         print("Test output:")
         print(result.stdout)

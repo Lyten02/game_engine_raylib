@@ -118,13 +118,22 @@ file(COPY ${CMAKE_SOURCE_DIR}/templates DESTINATION ${CMAKE_BINARY_DIR})
 # Create projects directory in build directory
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/projects)
 
-# Add custom target for running tests
+# Add custom target for running tests (full version by default)
 add_custom_target(test
-    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests..."
+    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests - including full builds..."
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     DEPENDS game
-    COMMENT "Running all tests"
+    COMMENT "Running all tests including full builds"
+)
+
+# Add custom target for running tests without full builds
+add_custom_target(test-fast
+    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests - skipping full builds..."
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py --skip-full-build
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    DEPENDS game
+    COMMENT "Running tests without full builds"
 )
 
 # Add custom target for running C++ tests

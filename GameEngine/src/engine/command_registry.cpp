@@ -35,7 +35,7 @@ void CommandRegistry::registerAllCommands(CommandProcessor* processor,
     
     // Register commands by category
     registerEngineCommands(processor, engineCore, console);
-    registerSceneCommands(processor, console, getScene);
+    registerSceneCommands(processor, console, getScene, projectManager);
     registerEntityCommands(processor, console, getScene, resourceManager);
     registerResourceCommands(processor, console);
     registerRenderCommands(processor, console, getScene);

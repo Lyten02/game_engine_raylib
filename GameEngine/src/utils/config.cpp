@@ -2,6 +2,7 @@
 #include <fstream>
 #include <spdlog/spdlog.h>
 #include <filesystem>
+#include <sstream>
 
 bool Config::load(const std::string& path) {
     try {
@@ -34,18 +35,22 @@ bool Config::load(const std::string& path) {
 }
 
 nlohmann::json Config::get(const std::string& key, const nlohmann::json& defaultValue) {
-    if (!isLoaded) {
-        spdlog::warn("Config::get - Configuration not loaded, returning default value");
+    if (!isLoaded || !isValidConfigKey(key)) {
+        if (!isLoaded && !silentMode) {
+            spdlog::warn("Config::get - Configuration not loaded, returning default value");
+        }
         return defaultValue;
     }
     
     try {
-        nlohmann::json* result = navigateToKey(key);
+        nlohmann::json* result = navigateToKey(key, false, MAX_KEY_DEPTH);
         if (result) {
             return *result;
         }
     } catch (const std::exception& e) {
-        spdlog::debug("Config::get - Key '{}' not found: {}", key, e.what());
+        if (!silentMode) {
+            spdlog::debug("Config::get - Key '{}' not found: {}", key, e.what());
+        }
     }
     
     return defaultValue;
@@ -84,16 +89,20 @@ bool Config::getBool(const std::string& key, bool defaultValue) {
 }
 
 void Config::set(const std::string& key, const nlohmann::json& value) {
-    if (!isLoaded) {
-        spdlog::warn("Config::set - Configuration not loaded");
+    if (!isLoaded || !isValidConfigKey(key)) {
+        if (!isLoaded && !silentMode) {
+            spdlog::warn("Config::set - Configuration not loaded");
+        }
         return;
     }
     
     try {
-        nlohmann::json* target = navigateToKey(key, true);
+        nlohmann::json* target = navigateToKey(key, true, MAX_KEY_DEPTH);
         if (target) {
             *target = value;
-            spdlog::debug("Config::set - Set '{}' to: {}", key, value.dump());
+            if (!silentMode) {
+                spdlog::debug("Config::set - Set '{}' to: {}", key, value.dump());
+            }
         }
     } catch (const std::exception& e) {
         spdlog::error("Config::set - Error setting key '{}': {}", key, e.what());
@@ -109,22 +118,43 @@ void Config::reload() {
     load(configPath);
 }
 
-nlohmann::json* Config::navigateToKey(const std::string& key, bool createPath) {
-    if (key.empty()) {
-        return &configData;
-    }
-    
+bool Config::isValidConfigKey(const std::string& key) {
+    if (key.empty() || key.length() > 100) return false;
+    if (key.front() == '.' || key.back() == '.') return false;
+    if (key.find("..") != std::string::npos) return false;
+    return true;
+}
+
+std::vector<std::string> Config::parseKeyParts(const std::string& key) {
     std::vector<std::string> parts;
     std::stringstream ss(key);
     std::string part;
     
     while (std::getline(ss, part, '.')) {
-        parts.push_back(part);
+        // Skip empty parts to prevent infinite loops
+        if (!part.empty()) {
+            parts.push_back(part);
+        }
+    }
+    
+    return parts;
+}
+
+nlohmann::json* Config::navigateToKey(const std::string& key, bool createPath, int maxDepth) {
+    if (key.empty() || maxDepth <= 0) {
+        return &configData;
+    }
+    
+    auto parts = parseKeyParts(key);
+    if (parts.empty() || parts.size() > static_cast<size_t>(MAX_KEY_DEPTH)) {
+        return nullptr;
     }
     
     nlohmann::json* current = &configData;
     
-    for (const auto& part : parts) {
+    for (size_t i = 0; i < parts.size() && i < static_cast<size_t>(maxDepth); i++) {
+        const auto& part = parts[i];
+        
         if (current->is_object()) {
             if (current->contains(part)) {
                 current = &(*current)[part];

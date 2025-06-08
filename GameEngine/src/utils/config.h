@@ -52,12 +52,12 @@ public:
     // Get the entire config object
     static const nlohmann::json& getConfig() { return configData; }
     
+    // Input validation for config keys
+    static bool isValidConfigKey(const std::string& key);
+    
 private:
     // Helper to parse dot notation keys
     static nlohmann::json* navigateToKey(const std::string& key, bool createPath = false, int maxDepth = MAX_KEY_DEPTH);
-    
-    // Input validation for config keys
-    static bool isValidConfigKey(const std::string& key);
     
     // Parse key into parts, skipping empty parts
     static std::vector<std::string> parseKeyParts(const std::string& key);

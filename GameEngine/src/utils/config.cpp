@@ -3,6 +3,8 @@
 #include <spdlog/spdlog.h>
 #include <filesystem>
 #include <sstream>
+#include <algorithm>
+#include <cctype>
 
 bool Config::load(const std::string& path) {
     try {
@@ -35,9 +37,16 @@ bool Config::load(const std::string& path) {
 }
 
 nlohmann::json Config::get(const std::string& key, const nlohmann::json& defaultValue) {
-    if (!isLoaded || !isValidConfigKey(key)) {
-        if (!isLoaded && !silentMode) {
+    if (!isLoaded) {
+        if (!silentMode) {
             spdlog::warn("Config::get - Configuration not loaded, returning default value");
+        }
+        return defaultValue;
+    }
+    
+    if (!isValidConfigKey(key)) {
+        if (!silentMode) {
+            spdlog::warn("Config::get - Invalid key format: {}", key);
         }
         return defaultValue;
     }
@@ -89,9 +98,16 @@ bool Config::getBool(const std::string& key, bool defaultValue) {
 }
 
 void Config::set(const std::string& key, const nlohmann::json& value) {
-    if (!isLoaded || !isValidConfigKey(key)) {
-        if (!isLoaded && !silentMode) {
+    if (!isLoaded) {
+        if (!silentMode) {
             spdlog::warn("Config::set - Configuration not loaded");
+        }
+        return;
+    }
+    
+    if (!isValidConfigKey(key)) {
+        if (!silentMode) {
+            spdlog::warn("Config::set - Invalid key format: {}", key);
         }
         return;
     }
@@ -122,18 +138,38 @@ bool Config::isValidConfigKey(const std::string& key) {
     if (key.empty() || key.length() > 100) return false;
     if (key.front() == '.' || key.back() == '.') return false;
     if (key.find("..") != std::string::npos) return false;
+    
+    // Check for invalid characters
+    for (char c : key) {
+        if (!std::isalnum(c) && c != '.' && c != '_') return false;
+    }
+    
+    // Check maximum nesting depth
+    size_t dotCount = std::count(key.begin(), key.end(), '.');
+    if (dotCount >= MAX_KEY_DEPTH) return false;
+    
     return true;
 }
 
 std::vector<std::string> Config::parseKeyParts(const std::string& key) {
     std::vector<std::string> parts;
+    
+    // Early validation
+    if (!isValidConfigKey(key)) {
+        return parts; // Return empty vector for invalid keys
+    }
+    
     std::stringstream ss(key);
     std::string part;
     
     while (std::getline(ss, part, '.')) {
-        // Skip empty parts to prevent infinite loops
         if (!part.empty()) {
             parts.push_back(part);
+            
+            // Safety check: prevent too many parts
+            if (parts.size() >= MAX_KEY_DEPTH) {
+                break;
+            }
         }
     }
     
@@ -146,7 +182,19 @@ nlohmann::json* Config::navigateToKey(const std::string& key, bool createPath, i
     }
     
     auto parts = parseKeyParts(key);
-    if (parts.empty() || parts.size() > static_cast<size_t>(MAX_KEY_DEPTH)) {
+    if (parts.empty()) {
+        if (!silentMode) {
+            spdlog::warn("Config::navigateToKey - Invalid key parts: {}", key);
+        }
+        return nullptr;
+    }
+    
+    // Explicit depth check
+    if (parts.size() > static_cast<size_t>(maxDepth)) {
+        if (!silentMode) {
+            spdlog::warn("Config::navigateToKey - Key too deep: {} (depth: {}, max: {})", 
+                        key, parts.size(), maxDepth);
+        }
         return nullptr;
     }
     

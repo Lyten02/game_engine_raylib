@@ -164,6 +164,17 @@ void CommandRegistry::registerConfigCommands(CommandProcessor* processor, Consol
             
             std::string key = args[0];
             
+            // Add key validation
+            if (!Config::isValidConfigKey(key)) {
+                console->addLine("Error: Invalid config key format: " + key, RED);
+                console->addLine("Key format rules:", GRAY);
+                console->addLine("  - No dots at start or end", GRAY);
+                console->addLine("  - No double dots (..)", GRAY);
+                console->addLine("  - Only alphanumeric, dots, and underscores", GRAY);
+                console->addLine("  - Maximum 100 characters", GRAY);
+                return;
+            }
+            
             // Try to get as different types
             // Config doesn't have hasKey, try to get value
             {
@@ -212,6 +223,17 @@ void CommandRegistry::registerConfigCommands(CommandProcessor* processor, Consol
             
             std::string key = args[0];
             std::string value = args[1];
+            
+            // Add key validation
+            if (!Config::isValidConfigKey(key)) {
+                console->addLine("Error: Invalid config key format: " + key, RED);
+                console->addLine("Key format rules:", GRAY);
+                console->addLine("  - No dots at start or end", GRAY);
+                console->addLine("  - No double dots (..)", GRAY);
+                console->addLine("  - Only alphanumeric, dots, and underscores", GRAY);
+                console->addLine("  - Maximum 100 characters", GRAY);
+                return;
+            }
             
             // Try to parse as different types
             bool isInt = true, isFloat = true, isBool = false;

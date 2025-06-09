@@ -1,6 +1,7 @@
 #include "project_manager.h"
 #include "../utils/file_utils.h"
 #include "../utils/string_utils.h"
+#include "../utils/path_utils.h"
 #include <filesystem>
 #include <fstream>
 #include <regex>
@@ -31,10 +32,10 @@ bool ProjectManager::createProject(const std::string& name, const std::string& t
         std::filesystem::create_directories(projectPath + "/scripts");
         
         // Copy template files
-        std::string templatePath = "../templates/" + template_name;
+        std::string templatePath = PathUtils::resolveTemplatePath(template_name + "/");
         
         // Load and process project template
-        std::string templateFile = templatePath + "/project_template.json";
+        std::string templateFile = templatePath + "project_template.json";
         if (std::filesystem::exists(templateFile)) {
             std::string content = FileUtils::readFile(templateFile);
             
@@ -51,7 +52,7 @@ bool ProjectManager::createProject(const std::string& name, const std::string& t
             file.close();
             
             // Copy scene templates
-            std::string scenesTemplatePath = templatePath + "/scenes";
+            std::string scenesTemplatePath = templatePath + "scenes";
             if (std::filesystem::exists(scenesTemplatePath)) {
                 for (const auto& entry : std::filesystem::directory_iterator(scenesTemplatePath)) {
                     if (entry.path().extension() == ".json") {

@@ -84,6 +84,10 @@ private:
     
     // Command data for CLI mode
     nlohmann::json commandData;
+    
+    // Parameter suggestion state (moved from static in updateParameterSuggestions)
+    std::string lastLoggedInput;
+    int lastSuggestionCount = -1;
 
 public:
     Console() = default;

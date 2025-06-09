@@ -39,7 +39,10 @@
       "Bash(python tests/test_resource_manager_memory.py)",
       "Bash(./test_resource_manager_threading_fix)",
       "Bash(./test_config_depth)",
-      "Bash(./test_script_manager_null_safety)"
+      "Bash(./test_script_manager_null_safety)",
+      "Bash(./test_console_autocompletion)",
+      "Bash(./game --json -c \"help\")",
+      "Bash(./game:*)"
     ],
     "deny": [
       "Bash(git:add:*)",

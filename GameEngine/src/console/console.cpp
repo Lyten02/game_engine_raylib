@@ -27,6 +27,8 @@ void Console::shutdown() {
     outputLines.clear();
     commandHistory.clear();
     coloredOutput.clear();
+    lastLoggedInput.clear();
+    lastSuggestionCount = -1;
     spdlog::info("Console::shutdown - Developer console shut down");
 }
 
@@ -546,6 +548,8 @@ void Console::clear() {
     outputLines.clear();
     coloredOutput.clear();
     scrollOffset = 0;
+    lastLoggedInput.clear();
+    lastSuggestionCount = -1;
     addLine("Console cleared", GRAY);
 }
 
@@ -724,9 +728,6 @@ std::string Console::getCurrentCommandHint() const {
 }
 
 void Console::updateParameterSuggestions() {
-    static std::string lastLoggedInput;
-    static int lastSuggestionCount = -1;
-    
     autocompleteSuggestions.clear();
     
     if (!commandProcessor || currentInput.empty()) {

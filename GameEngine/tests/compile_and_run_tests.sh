@@ -29,12 +29,22 @@ declare -a tests=(
     "test_resource_manager_memory_fix"
     "test_resource_manager_init_order"
     "test_resource_manager_integration"
-    "test_async_build_threading"  # Add this line
+    "test_resource_manager_exception_safety"
+    "test_resource_manager_simple"
+    "test_async_build_threading"
     "test_default_texture_manager"
     "test_call_once_retry_behavior"
     "test_memory_ordering"
     "test_exception_safety"
     "test_engine_init"
+    "test_console_autocompletion"
+    "test_config_depth"
+    "test_log_limiter_generic_keys"
+    "test_script_manager_null_safety"
+    "test_resource_functionality"
+    "test_resource_memory"
+    "test_resource_pointer_consistency"
+    "test_resource_simple"
 )
 
 # Track test results
@@ -104,6 +114,69 @@ run_test() {
             ../src/project/project.cpp \
             ../src/utils/file_utils.cpp \
             ../src/utils/string_utils.cpp \
+            $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>/dev/null; then
+            echo "  ✅ Compiled successfully"
+        else
+            echo "  ❌ Compilation failed!"
+            ((failed_tests++))
+            failed_test_names+=("$test_name (compilation)")
+            return
+        fi
+    elif [[ "$test_name" == "test_console_autocompletion" ]]; then
+        # Console autocompletion test
+        if g++ $FLAGS ${test_name}.cpp \
+            ../src/console/console.cpp \
+            ../src/console/command_processor.cpp \
+            ../src/utils/config.cpp \
+            $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>/dev/null; then
+            echo "  ✅ Compiled successfully"
+        else
+            echo "  ❌ Compilation failed!"
+            ((failed_tests++))
+            failed_test_names+=("$test_name (compilation)")
+            return
+        fi
+    elif [[ "$test_name" == "test_config_depth" ]]; then
+        # Config depth test
+        if g++ $FLAGS ${test_name}.cpp \
+            ../src/utils/config.cpp \
+            $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>/dev/null; then
+            echo "  ✅ Compiled successfully"
+        else
+            echo "  ❌ Compilation failed!"
+            ((failed_tests++))
+            failed_test_names+=("$test_name (compilation)")
+            return
+        fi
+    elif [[ "$test_name" == "test_log_limiter_generic_keys" ]]; then
+        # Log limiter test (header-only, minimal dependencies)
+        if g++ $FLAGS ${test_name}.cpp \
+            $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>/dev/null; then
+            echo "  ✅ Compiled successfully"
+        else
+            echo "  ❌ Compilation failed!"
+            ((failed_tests++))
+            failed_test_names+=("$test_name (compilation)")
+            return
+        fi
+    elif [[ "$test_name" == "test_script_manager_null_safety" ]]; then
+        # Script manager test
+        if g++ $FLAGS ${test_name}.cpp \
+            ../src/scripting/script_manager.cpp \
+            ../src/scripting/lua_bindings.cpp \
+            ../src/utils/file_utils.cpp \
+            $INCLUDES $LIBS $FRAMEWORKS -pthread $LUA_LIBS -o $test_name 2>/dev/null; then
+            echo "  ✅ Compiled successfully"
+        else
+            echo "  ❌ Compilation failed!"
+            ((failed_tests++))
+            failed_test_names+=("$test_name (compilation)")
+            return
+        fi
+    elif [[ "$test_name" == "test_resource_functionality" ]] || [[ "$test_name" == "test_resource_memory" ]] || [[ "$test_name" == "test_resource_pointer_consistency" ]] || [[ "$test_name" == "test_resource_simple" ]] || [[ "$test_name" == "test_resource_manager_exception_safety" ]] || [[ "$test_name" == "test_resource_manager_simple" ]]; then
+        # Resource tests (various)
+        if g++ $FLAGS ${test_name}.cpp \
+            ../src/resources/resource_manager.cpp \
             $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>/dev/null; then
             echo "  ✅ Compiled successfully"
         else

@@ -54,6 +54,68 @@ run_command() {
     fi
 }
 
+# Функция для получения git информации
+get_git_info() {
+    log "📋 Collecting Git repository information..."
+    
+    # Проверить что мы в git репозитории
+    if ! git rev-parse --git-dir >/dev/null 2>&1; then
+        log "⚠️  Not a Git repository"
+        return 1
+    fi
+    
+    log "========================================"
+    log "🔍 GIT REPOSITORY STATUS"
+    log "========================================"
+    
+    # Текущая ветка
+    local current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'unknown')
+    log "Branch: $current_branch"
+    
+    # Последний коммит
+    local last_commit=$(git log -1 --pretty=format:"%h - %s (%an, %ar)" 2>/dev/null || echo 'unknown')
+    log "Last commit: $last_commit"
+    
+    # Состояние рабочей директории
+    log "Working directory status:"
+    if git status --porcelain 2>/dev/null | head -20 >> "$LOG_FILE"; then
+        # Также показать в консоли сокращенную версию
+        local changes_count=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$changes_count" -gt 0 ]; then
+            log "📝 Found $changes_count changed files"
+            echo "📝 Changed files preview:" 
+            git status --porcelain 2>/dev/null | head -5
+            if [ "$changes_count" -gt 5 ]; then
+                echo "   ... and $(($changes_count - 5)) more (see full log)"
+            fi
+        else
+            log "✅ Working directory is clean"
+        fi
+    else
+        log "❌ Failed to get git status"
+    fi
+    
+    # Детальный git status для лога
+    log "Detailed git status:"
+    git status 2>&1 >> "$LOG_FILE" || log "❌ Failed to get detailed git status"
+    
+    # Количество коммитов впереди/позади origin
+    if git rev-parse --verify origin/$current_branch >/dev/null 2>&1; then
+        local ahead=$(git rev-list --count origin/$current_branch..$current_branch 2>/dev/null || echo "0")
+        local behind=$(git rev-list --count $current_branch..origin/$current_branch 2>/dev/null || echo "0")
+        log "Sync status: $ahead commits ahead, $behind commits behind origin/$current_branch"
+    else
+        log "⚠️  No remote tracking branch found"
+    fi
+    
+    # Показать последние 3 коммита для контекста
+    log "Recent commits:"
+    git log --oneline -3 2>&1 >> "$LOG_FILE" || log "❌ Failed to get recent commits"
+    
+    log "========================================"
+    return 0
+}
+
 # Функция проверки состояния сборки
 check_build_status() {
     log "🔍 Checking build status..."
@@ -109,8 +171,10 @@ check_build_status() {
 main() {
     log "🚀 Starting smart test cycle"
     log "Project root: $PROJECT_ROOT"
-    log "Git branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'unknown')"
     log "Command line args: $*"
+    
+    # Получить git информацию в начале
+    get_git_info
     
     # Проверить аргументы командной строки
     local force_rebuild=false
@@ -247,6 +311,13 @@ main() {
         log "   Permissions: $(ls -l game | awk '{print $1}')"
     fi
     
+    # Финальная git информация (если что-то изменилось)
+    cd "$PROJECT_ROOT"
+    log "========================================"
+    log "📋 FINAL GIT STATUS CHECK"
+    log "========================================"
+    git status --porcelain 2>&1 >> "$LOG_FILE" || log "❌ Failed to get final git status"
+    
     echo ""
     echo "📊 SUMMARY:"
     echo "=================="
@@ -255,16 +326,27 @@ main() {
     if [ "$skip_build" = true ]; then
         echo "⚡ Build skipped (up-to-date)"
     fi
+    
+    # Показать git статус в консоли
+    local current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'unknown')
+    echo "🌿 Git: $current_branch"
+    local changes_count=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$changes_count" -gt 0 ]; then
+        echo "📝 Uncommitted changes: $changes_count files"
+    else
+        echo "✅ Working directory clean"
+    fi
+    
     echo "📄 Full log: $LOG_FILE"
     echo "🕒 Finished: $(date '+%Y-%m-%d %H:%M:%S')"
     
-    if [ -f "game" ]; then
-        echo "🎮 Game ready: $(pwd)/game"
+    if [ -f "$PROJECT_ROOT/build/game" ]; then
+        echo "🎮 Game ready: $PROJECT_ROOT/build/game"
         echo ""
         echo "💡 Quick commands:"
-        echo "   ./game                    # Run the engine"
-        echo "   ./game --help            # Show help"
-        echo "   ./game --json -c help    # JSON output"
+        echo "   cd build && ./game                    # Run the engine"
+        echo "   cd build && ./game --help            # Show help"
+        echo "   cd build && ./game --json -c help    # JSON output"
     fi
     
     return $failed_tests
@@ -277,10 +359,12 @@ if [[ "$1" == "--help" || "$1" == "-h" ]]; then
     echo "Smart test runner that skips rebuild if 'game' executable is up-to-date."
     echo ""
     echo "This script:"
-    echo "1. Checks if build/game exists and is newer than sources"
-    echo "2. Skips rebuild if game is up-to-date (saves time!)"
-    echo "3. Runs Python tests (make test or direct)"
-    echo "4. Runs C++ tests (make test-cpp or direct)"
+    echo "1. Collects Git repository information and status"
+    echo "2. Checks if build/game exists and is newer than sources"
+    echo "3. Skips rebuild if game is up-to-date (saves time!)"
+    echo "4. Runs Python tests (make test or direct)"
+    echo "5. Runs C++ tests (make test-cpp or direct)"
+    echo "6. Logs all Git information for debugging"
     echo ""
     echo "Options:"
     echo "  --help, -h           Show this help message"
@@ -291,6 +375,13 @@ if [[ "$1" == "--help" || "$1" == "-h" ]]; then
     echo "  🔍 Checks file timestamps to determine if rebuild needed"
     echo "  📋 Falls back to direct test execution if make targets missing"
     echo "  📄 Detailed logging with absolute paths"
+    echo "  🌿 Git status tracking for debugging and history"
+    echo ""
+    echo "Git information logged:"
+    echo "  - Current branch and last commit"
+    echo "  - Working directory status (changed files)"
+    echo "  - Sync status with remote (ahead/behind)"
+    echo "  - Recent commit history"
     echo ""
     echo "Examples:"
     echo "  $0                    # Smart test (skip rebuild if not needed)"
@@ -316,6 +407,7 @@ if [ -f "$LOG_FILE" ]; then
         echo ""
         echo "❌ Issues found. Quick debug:"
         echo "   🔍 Check errors: grep -A3 -B1 'FAILED\\|ERROR' \"$LOG_FILE\""
+        echo "   🌿 Check git: grep -A10 -B2 'GIT REPOSITORY STATUS' \"$LOG_FILE\""
         echo "   📄 Full log: $LOG_FILE"
     fi
 else

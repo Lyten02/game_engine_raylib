@@ -29,14 +29,15 @@ private:
     void createDefaultTextureThreadSafe();
     void createDummyTexture();
     void createRealTexture();
+    void createEmergencyFallbackTexture() noexcept;
 
 public:
     ResourceManager();
     ~ResourceManager();
     
-    void setSilentMode(bool silent) { silentMode.store(silent); }
-    void setHeadlessMode(bool headless) { headlessMode.store(headless); }
-    void setRayLibInitialized(bool initialized) { rayLibInitialized.store(initialized); }
+    void setSilentMode(bool silent) noexcept { silentMode.store(silent); }
+    void setHeadlessMode(bool headless) noexcept { headlessMode.store(headless); }
+    void setRayLibInitialized(bool initialized) noexcept { rayLibInitialized.store(initialized); }
 
     Texture2D* loadTexture(const std::string& path, const std::string& name);
     Sound* loadSound(const std::string& path, const std::string& name);
@@ -52,9 +53,9 @@ public:
     void unloadSound(const std::string& name);
     
     // Diagnostic methods
-    size_t getLoadedTexturesCount() const { 
+    size_t getLoadedTexturesCount() const noexcept { 
         std::shared_lock<std::shared_mutex> lock(resourceMutex);
         return textures.size(); 
     }
-    size_t getUniqueTexturesCount() const;
+    size_t getUniqueTexturesCount() const noexcept;
 };

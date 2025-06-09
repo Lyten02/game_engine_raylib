@@ -24,6 +24,8 @@ declare -a tests=(
     "test_resource_manager_memory_fix"
     "test_resource_manager_init_order"
     "test_resource_manager_integration"
+    "test_memory_ordering"
+    "test_exception_safety"
 )
 
 # Function to compile and run a test

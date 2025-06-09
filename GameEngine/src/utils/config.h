@@ -10,8 +10,12 @@ private:
     static inline bool isLoaded = false;
     static inline bool silentMode = false;
     
-    // Maximum depth for key navigation to prevent infinite loops
-    static constexpr int MAX_KEY_DEPTH = 10;
+    // Maximum depth constants for consistency
+    static constexpr int MAX_CONFIG_DEPTH = 10;
+    static constexpr int DEFAULT_MAX_DEPTH = MAX_CONFIG_DEPTH;
+    
+    // Deprecated - kept for backward compatibility
+    static constexpr int MAX_KEY_DEPTH = MAX_CONFIG_DEPTH;
 
 public:
     // Set silent mode
@@ -57,7 +61,7 @@ public:
     
 private:
     // Helper to parse dot notation keys
-    static nlohmann::json* navigateToKey(const std::string& key, bool createPath = false, int maxDepth = MAX_KEY_DEPTH);
+    static nlohmann::json* navigateToKey(const std::string& key, bool createPath = false, int maxDepth = DEFAULT_MAX_DEPTH);
     
     // Parse key into parts, skipping empty parts
     static std::vector<std::string> parseKeyParts(const std::string& key);

@@ -5,6 +5,7 @@
 #include <sstream>
 #include <algorithm>
 #include <cctype>
+#include <set>
 
 bool Config::load(const std::string& path) {
     try {
@@ -52,7 +53,7 @@ nlohmann::json Config::get(const std::string& key, const nlohmann::json& default
     }
     
     try {
-        nlohmann::json* result = navigateToKey(key, false, MAX_KEY_DEPTH);
+        nlohmann::json* result = navigateToKey(key, false);
         if (result) {
             return *result;
         }
@@ -113,11 +114,15 @@ void Config::set(const std::string& key, const nlohmann::json& value) {
     }
     
     try {
-        nlohmann::json* target = navigateToKey(key, true, MAX_KEY_DEPTH);
+        nlohmann::json* target = navigateToKey(key, true);
         if (target) {
             *target = value;
             if (!silentMode) {
                 spdlog::debug("Config::set - Set '{}' to: {}", key, value.dump());
+            }
+        } else {
+            if (!silentMode) {
+                spdlog::warn("Config::set - navigateToKey returned null for key: {}", key);
             }
         }
     } catch (const std::exception& e) {
@@ -145,8 +150,10 @@ bool Config::isValidConfigKey(const std::string& key) {
     }
     
     // Check maximum nesting depth
+    // A key with N dots has N+1 parts/levels
+    // We allow up to MAX_CONFIG_DEPTH levels, so we allow up to MAX_CONFIG_DEPTH-1 dots
     size_t dotCount = std::count(key.begin(), key.end(), '.');
-    if (dotCount >= MAX_KEY_DEPTH) return false;
+    if (dotCount >= MAX_CONFIG_DEPTH) return false;
     
     return true;
 }
@@ -154,22 +161,12 @@ bool Config::isValidConfigKey(const std::string& key) {
 std::vector<std::string> Config::parseKeyParts(const std::string& key) {
     std::vector<std::string> parts;
     
-    // Early validation
-    if (!isValidConfigKey(key)) {
-        return parts; // Return empty vector for invalid keys
-    }
-    
     std::stringstream ss(key);
     std::string part;
     
     while (std::getline(ss, part, '.')) {
         if (!part.empty()) {
             parts.push_back(part);
-            
-            // Safety check: prevent too many parts
-            if (parts.size() >= MAX_KEY_DEPTH) {
-                break;
-            }
         }
     }
     
@@ -177,42 +174,97 @@ std::vector<std::string> Config::parseKeyParts(const std::string& key) {
 }
 
 nlohmann::json* Config::navigateToKey(const std::string& key, bool createPath, int maxDepth) {
-    if (key.empty() || maxDepth <= 0) {
+    if (key.empty()) {
         return &configData;
+    }
+    
+    // Validate key format first
+    if (!isValidConfigKey(key)) {
+        if (!silentMode) {
+            spdlog::warn("Config::navigateToKey - Invalid key format: {}", key);
+        }
+        return nullptr;
     }
     
     auto parts = parseKeyParts(key);
     if (parts.empty()) {
         if (!silentMode) {
-            spdlog::warn("Config::navigateToKey - Invalid key parts: {}", key);
+            spdlog::warn("Config::navigateToKey - Empty key parts: {}", key);
         }
         return nullptr;
     }
     
-    // Explicit depth check
+    // Single depth check here - removed from parseKeyParts
     if (parts.size() > static_cast<size_t>(maxDepth)) {
         if (!silentMode) {
-            spdlog::warn("Config::navigateToKey - Key too deep: {} (depth: {}, max: {})", 
+            spdlog::warn("Config::navigateToKey - Key depth exceeds limit: {} (depth: {}, max: {})", 
                         key, parts.size(), maxDepth);
         }
         return nullptr;
     }
     
-    nlohmann::json* current = &configData;
+    // Debug logging
+    if (!silentMode && parts.size() == 10) {
+        spdlog::debug("Config::navigateToKey - Processing 10-level key: {}, parts: {}, maxDepth: {}", 
+                     key, parts.size(), maxDepth);
+    }
     
-    for (size_t i = 0; i < parts.size() && i < static_cast<size_t>(maxDepth); i++) {
+    nlohmann::json* current = &configData;
+    std::set<const nlohmann::json*> visited; // Track visited nodes for circular reference detection
+    visited.insert(current);
+    
+    // Ensure root is an object if creating paths
+    if (createPath && !configData.is_object() && configData.is_null()) {
+        configData = nlohmann::json::object();
+    }
+    
+    for (size_t i = 0; i < parts.size(); i++) {
         const auto& part = parts[i];
         
-        if (current->is_object()) {
-            if (current->contains(part)) {
-                current = &(*current)[part];
-            } else if (createPath) {
-                (*current)[part] = nlohmann::json::object();
-                current = &(*current)[part];
-            } else {
+        if (!current->is_object()) {
+            if (!silentMode) {
+                spdlog::debug("Config::navigateToKey - Current node is not an object at part {} of key {}", i, key);
+            }
+            return nullptr;
+        }
+        
+        if (current->contains(part)) {
+            nlohmann::json* next = &(*current)[part];
+            
+            // Check for circular reference
+            if (visited.find(next) != visited.end()) {
+                if (!silentMode) {
+                    spdlog::error("Config::navigateToKey - Circular reference detected at key: {}", key);
+                }
                 return nullptr;
             }
+            
+            // If this is not the last part and the value exists but is not an object,
+            // we can't continue navigating
+            if (i < parts.size() - 1 && !next->is_object()) {
+                if (!silentMode) {
+                    spdlog::debug("Config::navigateToKey - Cannot navigate through non-object at part {} of key {}", part, key);
+                }
+                return nullptr;
+            }
+            
+            current = next;
+            visited.insert(current);
+        } else if (createPath) {
+            // Create the path
+            if (i == parts.size() - 1) {
+                // Last part - can be any type
+                (*current)[part] = nlohmann::json{};
+            } else {
+                // Intermediate parts must be objects
+                (*current)[part] = nlohmann::json::object();
+            }
+            current = &(*current)[part];
+            visited.insert(current);
         } else {
+            if (!silentMode && parts.size() >= 10) {
+                spdlog::debug("Config::navigateToKey - Part '{}' not found at level {} in key {}", part, i, key);
+            }
             return nullptr;
         }
     }

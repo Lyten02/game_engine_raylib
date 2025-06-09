@@ -19,6 +19,7 @@ bool ScriptManager::initialize() {
     L = luaL_newstate();
     if (!L) {
         spdlog::error("ScriptManager::initialize - Failed to create Lua state");
+        initialized = false;  // Ensure consistency
         return false;
     }
     
@@ -49,6 +50,11 @@ void ScriptManager::shutdown() {
 bool ScriptManager::executeScript(const std::string& scriptPath) {
     if (!initialized) {
         spdlog::error("ScriptManager::executeScript - Not initialized");
+        return false;
+    }
+    
+    if (!L) {
+        spdlog::error("ScriptManager::executeScript - Lua state is null");
         return false;
     }
     
@@ -85,6 +91,11 @@ bool ScriptManager::executeScript(const std::string& scriptPath) {
 bool ScriptManager::executeString(const std::string& luaCode) {
     if (!initialized) {
         spdlog::error("ScriptManager::executeString - Not initialized");
+        return false;
+    }
+    
+    if (!L) {
+        spdlog::error("ScriptManager::executeString - Lua state is null");
         return false;
     }
     
@@ -138,6 +149,11 @@ bool ScriptManager::callFunction(const std::string& functionName, int numArgs, i
         return false;
     }
     
+    if (!L) {
+        spdlog::error("ScriptManager::callFunction - Lua state is null");
+        return false;
+    }
+    
     // Get function from global table
     lua_getglobal(L, functionName.c_str());
     
@@ -157,7 +173,10 @@ bool ScriptManager::callFunction(const std::string& functionName, int numArgs, i
 }
 
 void ScriptManager::reportError(const std::string& context) {
-    if (!L) return;
+    if (!L) {
+        spdlog::error("ScriptManager::reportError - Lua state is null, cannot report error for: {}", context);
+        return;
+    }
     
     const char* error = lua_tostring(L, -1);
     spdlog::error("ScriptManager - Lua error in {}: {}", context, error ? error : "Unknown error");

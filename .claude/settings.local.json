@@ -38,7 +38,8 @@
       "Bash(python tests/test_build_full.py)",
       "Bash(python tests/test_resource_manager_memory.py)",
       "Bash(./test_resource_manager_threading_fix)",
-      "Bash(./test_config_depth)"
+      "Bash(./test_config_depth)",
+      "Bash(./test_script_manager_null_safety)"
     ],
     "deny": [
       "Bash(git:add:*)",

@@ -151,7 +151,7 @@ run_test() {
     elif [[ "$test_name" == "test_log_limiter_generic_keys" ]]; then
         # Log limiter test (header-only, no ResourceManager dependency)
         if g++ $FLAGS ${test_name}.cpp \
-            $INCLUDES -I../build/_deps/spdlog-src/include -L../build/_deps/spdlog-build -lspdlog -pthread -o $test_name 2>/dev/null; then
+            -I../src -I../build/_deps/spdlog-src/include -L../build/_deps/spdlog-build -lspdlog -pthread -o $test_name 2>&1; then
             echo "  ✅ Compiled successfully"
         else
             echo "  ❌ Compilation failed!"
@@ -177,7 +177,7 @@ run_test() {
         # Resource tests (various)
         if g++ $FLAGS ${test_name}.cpp \
             ../src/resources/resource_manager.cpp \
-            $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>/dev/null; then
+            $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>&1; then
             echo "  ✅ Compiled successfully"
         else
             echo "  ❌ Compilation failed!"
@@ -193,7 +193,7 @@ run_test() {
         return
     else
         # Resource manager tests
-        if g++ $FLAGS ${test_name}.cpp ../src/resources/resource_manager.cpp $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>/dev/null; then
+        if g++ $FLAGS ${test_name}.cpp ../src/resources/resource_manager.cpp $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>&1; then
             echo "  ✅ Compiled successfully"
         else
             echo "  ❌ Compilation failed!"

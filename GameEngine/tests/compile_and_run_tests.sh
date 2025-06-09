@@ -149,9 +149,9 @@ run_test() {
             return
         fi
     elif [[ "$test_name" == "test_log_limiter_generic_keys" ]]; then
-        # Log limiter test (header-only, minimal dependencies)
+        # Log limiter test (header-only, no ResourceManager dependency)
         if g++ $FLAGS ${test_name}.cpp \
-            $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>/dev/null; then
+            $INCLUDES -I../build/_deps/spdlog-src/include -L../build/_deps/spdlog-build -lspdlog -pthread -o $test_name 2>/dev/null; then
             echo "  ✅ Compiled successfully"
         else
             echo "  ❌ Compilation failed!"

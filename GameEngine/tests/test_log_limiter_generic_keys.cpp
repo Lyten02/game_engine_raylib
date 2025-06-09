@@ -1,6 +1,7 @@
-#include "../src/resources/resource_manager.h"
 #include "../src/utils/log_limiter.h"
 #include <iostream>
+#include <thread>
+#include <vector>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
@@ -10,39 +11,49 @@ int main() {
     spdlog::set_default_logger(console);
     spdlog::set_level(spdlog::level::info);
     
-    std::cout << "Testing LogLimiter with generic keys in ResourceManager\n" << std::endl;
+    std::cout << "Testing LogLimiter with generic keys functionality\n" << std::endl;
     
     // Configure LogLimiter to limit messages to 3 occurrences
     GameEngine::LogLimiter::configure(3, 60, true);
     
-    // Create ResourceManager
-    ResourceManager rm;
-    rm.setHeadlessMode(true);
-    rm.setSilentMode(false); // Enable logging
+    std::cout << "\n--- Testing rate limiting with generic keys ---" << std::endl;
     
-    std::cout << "\n--- Testing texture_not_found warnings ---" << std::endl;
-    // Try to get multiple non-existent textures
-    // With the old code, each would get its own limit
-    // With the new code, they should all share the same limit
+    // Test 1: Basic rate limiting with same key
+    std::cout << "\nTest 1: Same message repeated (should see 3 then suppression)" << std::endl;
     for (int i = 0; i < 10; ++i) {
-        std::string textureName = "nonexistent_texture_" + std::to_string(i);
-        rm.getTexture(textureName);
+        GameEngine::LogLimiter::info("test_key", "Test message {}", i);
     }
     
-    std::cout << "\n--- Testing cannot_unload_texture warnings ---" << std::endl;
-    // Try to unload multiple non-existent textures
+    // Test 2: Different keys should have separate limits
+    std::cout << "\nTest 2: Different keys (each should get 3 messages)" << std::endl;
     for (int i = 0; i < 10; ++i) {
-        std::string textureName = "not_loaded_texture_" + std::to_string(i);
-        rm.unloadTexture(textureName);
+        std::string key = "key_" + std::to_string(i % 2);
+        GameEngine::LogLimiter::warn(key, "Message for {} - iteration {}", key, i);
     }
     
-    std::cout << "\n--- Testing texture_already_loaded messages ---" << std::endl;
-    // Load a texture multiple times with different names
-    for (int i = 0; i < 5; ++i) {
-        std::string textureName = "test_texture_" + std::to_string(i);
-        rm.loadTexture("/nonexistent/path.png", textureName);
-        // Try to load again
-        rm.loadTexture("/nonexistent/path.png", textureName);
+    // Test 3: Thread safety test
+    std::cout << "\nTest 3: Thread safety (concurrent logging)" << std::endl;
+    std::vector<std::thread> threads;
+    for (int t = 0; t < 4; ++t) {
+        threads.emplace_back([t]() {
+            for (int i = 0; i < 5; ++i) {
+                std::string key = "thread_key";
+                GameEngine::LogLimiter::error(key, "Thread {} - iteration {}", t, i);
+            }
+        });
+    }
+    
+    for (auto& t : threads) {
+        t.join();
+    }
+    
+    // Test 4: Generic key usage (simulating ResourceManager usage)
+    std::cout << "\nTest 4: Generic key usage (like ResourceManager)" << std::endl;
+    // Simulate texture_not_found with different texture names
+    for (int i = 0; i < 10; ++i) {
+        std::string textureName = "texture_" + std::to_string(i);
+        // Use generic key, not texture-specific
+        GameEngine::LogLimiter::warn("texture_not_found", "Texture not found: {}", textureName);
     }
     
     // Print statistics

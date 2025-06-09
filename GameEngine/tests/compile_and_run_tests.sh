@@ -45,6 +45,7 @@ declare -a tests=(
     "test_resource_memory"
     "test_resource_pointer_consistency"
     "test_resource_simple"
+    "test_build_system_basic"
 )
 
 # Track test results
@@ -178,6 +179,24 @@ run_test() {
         if g++ $FLAGS ${test_name}.cpp \
             ../src/resources/resource_manager.cpp \
             $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>&1; then
+            echo "  ✅ Compiled successfully"
+        else
+            echo "  ❌ Compilation failed!"
+            ((failed_tests++))
+            failed_test_names+=("$test_name (compilation)")
+            return
+        fi
+    elif [[ "$test_name" == "test_build_system_basic" ]]; then
+        # Build system test
+        if g++ $FLAGS ${test_name}.cpp \
+            ../src/build/build_system.cpp \
+            ../src/build/async_build_system.cpp \
+            ../src/build/build_config.cpp \
+            ../src/project/project.cpp \
+            ../src/utils/file_utils.cpp \
+            ../src/utils/string_utils.cpp \
+            ../src/utils/path_utils.cpp \
+            $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>/dev/null; then
             echo "  ✅ Compiled successfully"
         else
             echo "  ❌ Compilation failed!"

@@ -15,8 +15,8 @@ void test_texture_functionality() {
     Texture2D* tex1 = rm.getTexture("missing1");
     assert(tex1 != nullptr);
     assert(tex1->id == 0);  // In headless mode, should be dummy texture
-    assert(tex1->width == 1);
-    assert(tex1->height == 1);
+    assert(tex1->width == 64);
+    assert(tex1->height == 64);
     std::cout << "✅ Default texture is valid\n";
     
     // Test 2: Multiple requests return same pointer

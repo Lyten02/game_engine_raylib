@@ -10,11 +10,17 @@ cd GameEngine
 ./rebuild.sh
 
 # Test all project in build folder
+# Mac OS from claude
+sh full_test.sh
+
 # 1. Use
 sh rebuild.sh
 
 # 2. Use
-cd .. && cd build/ && clear && clear && git rev-parse --abbrev-ref HEAD && git branch && git status && make test && make test-cpp
+cd .. && cd build/ && clear && clear && git rev-parse --abbrev-ref HEAD && git branch && git status && make test
+
+# 3. Use
+cd .. && cd build/ && clear && clear && make test-cpp
 
 # Manual build
 mkdir -p build

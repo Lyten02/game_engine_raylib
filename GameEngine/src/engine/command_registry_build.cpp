@@ -206,7 +206,9 @@ void CommandRegistry::registerBuildCommands(CommandProcessor* processor, Console
             }
             
             console->addLine("Starting async build for: " + projectManager->getCurrentProject()->getName(), YELLOW);
-            asyncBuildSystem->startBuild(projectManager->getCurrentProject());
+            if (!asyncBuildSystem->startBuild(projectManager->getCurrentProject())) {
+                console->addLine("Failed to start build - another build may be in progress", RED);
+            }
         }, "Build project asynchronously", "Build");
 }
 

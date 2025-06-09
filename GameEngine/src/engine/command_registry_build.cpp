@@ -6,6 +6,7 @@
 #include "../build/build_system.h"
 #include "../build/async_build_system.h"
 #include "../engine/play_mode.h"
+#include "../utils/log_limiter.h"
 #include <raylib.h>
 #include <spdlog/spdlog.h>
 #include <filesystem>
@@ -26,8 +27,6 @@ void CommandRegistry::registerBuildCommands(CommandProcessor* processor, Console
                 return;
             }
             
-            console->addLine("Building project: " + projectManager->getCurrentProject()->getName() + "...", YELLOW);
-            
             // Check for --test flag to skip actual compilation
             bool testMode = false;
             for (const auto& arg : args) {
@@ -36,6 +35,13 @@ void CommandRegistry::registerBuildCommands(CommandProcessor* processor, Console
                     break;
                 }
             }
+            
+            // Use log limiter for build messages in test mode
+            std::string buildMsg = "Building project: " + projectManager->getCurrentProject()->getName() + "...";
+            if (testMode) {
+                LogLimiter::info("building_project", "Building project: {}", projectManager->getCurrentProject()->getName());
+            }
+            console->addLine(buildMsg, YELLOW);
             
             if (testMode) {
                 // In test mode, just generate files without compiling
@@ -201,7 +207,10 @@ void CommandRegistry::registerBuildCommands(CommandProcessor* processor, Console
             }
             
             if (asyncBuildSystem->getStatus() == AsyncBuildSystem::BuildStatus::InProgress) {
-                console->addLine("Build already in progress", YELLOW);
+                // Use log limiter to prevent spam
+                if (LogLimiter::shouldLog("build_in_progress")) {
+                    console->addLine("Build already in progress", YELLOW);
+                }
                 return;
             }
             

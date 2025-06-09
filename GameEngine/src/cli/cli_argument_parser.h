@@ -21,6 +21,8 @@ public:
         bool jsonOutput = false;
         bool help = false;
         bool version = false;
+        bool quiet = false;  // Suppress non-critical logs
+        std::string logLevel = "";  // Override log level
     };
     
     static ParsedArgs parse(int argc, char* argv[]);

@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <chrono>
 #include <spdlog/spdlog.h>
+#include "../utils/log_limiter.h"
 
 ResourceManager::ResourceManager() {
     // Default texture will be created on first use via std::once_flag
@@ -22,8 +23,14 @@ void ResourceManager::createDummyTexture() {
     defaultTexture->mipmaps = 1;
     defaultTexture->format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
     
-    if (!silentMode.load()) {
-        spdlog::info("[ResourceManager] Created dummy texture");
+    // Log only once to avoid spam
+    static std::atomic<bool> loggedOnce{false};
+    if (!silentMode.load() && !loggedOnce.exchange(true)) {
+        if (headlessMode.load()) {
+            spdlog::info("[ResourceManager] Created dummy texture for headless mode");
+        } else {
+            spdlog::info("[ResourceManager] Created dummy texture (RayLib not initialized)");
+        }
     }
 }
 
@@ -72,15 +79,11 @@ void ResourceManager::createDefaultTextureThreadSafe() {
         if (headlessMode.load()) {
             // Create dummy texture for headless mode
             createDummyTexture();
-            if (!silentMode.load()) {
-                spdlog::info("[ResourceManager] Using dummy texture for headless mode");
-            }
+            // Log is already in createDummyTexture()
         } else if (!rayLibInitialized.load()) {
             // Create dummy texture when RayLib not initialized
             createDummyTexture();
-            if (!silentMode.load()) {
-                spdlog::info("[ResourceManager] Using dummy texture (RayLib not initialized)");
-            }
+            // Log is already in createDummyTexture()
         } else {
             // Create real texture with RayLib
             createRealTexture();
@@ -140,8 +143,13 @@ Texture2D& ResourceManager::getDefaultTexture() {
 Texture2D* ResourceManager::loadTexture(const std::string& path, const std::string& name) {
     // Simple headless check
     if (headlessMode.load()) {
+        // Use LogLimiter for headless mode info
         if (!silentMode.load()) {
-            spdlog::info("[ResourceManager] Headless mode: using dummy texture for '{}'", name);
+            GameEngine::LogLimiter::info(
+                "headless_mode_texture",
+                "[ResourceManager] Headless mode: using dummy texture for '{}'", 
+                name
+            );
         }
         return &getDefaultTexture();
     }
@@ -152,7 +160,11 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
         auto it = textures.find(name);
         if (it != textures.end()) {
             if (!silentMode.load()) {
-                spdlog::info("[ResourceManager] Texture '{}' already loaded.", name);
+                GameEngine::LogLimiter::info(
+                    "texture_already_loaded",
+                    "[ResourceManager] Texture '{}' already loaded.", 
+                    name
+                );
             }
             return &it->second;
         }
@@ -160,26 +172,39 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
 
     // Check if we can actually load textures
     if (!rayLibInitialized.load()) {
+        // Use LogLimiter for uninitialized RayLib info
         if (!silentMode.load()) {
-            spdlog::info("[ResourceManager] RayLib not initialized: using default texture for '{}'", name);
+            GameEngine::LogLimiter::info(
+                "raylib_not_initialized_texture",
+                "[ResourceManager] RayLib not initialized: using default texture for '{}'", 
+                name
+            );
         }
         return &getDefaultTexture();
     }
 
     // Load texture WITHOUT holding any locks
     if (!std::filesystem::exists(path)) {
+        // Use LogLimiter for missing file warnings
         if (!silentMode.load()) {
-            spdlog::warn("[ResourceManager] Texture file not found: {}", path);
-            spdlog::warn("[ResourceManager] Using default texture for '{}'", name);
+            GameEngine::LogLimiter::warn(
+                "texture_file_not_found",
+                "[ResourceManager] Texture file not found: {} - using default texture for '{}'", 
+                path, name
+            );
         }
         return &getDefaultTexture();
     }
 
     Texture2D texture = LoadTexture(path.c_str());
     if (texture.id == 0) {
+        // Use LogLimiter for failed load warnings
         if (!silentMode.load()) {
-            spdlog::warn("[ResourceManager] Failed to load texture: {}", path);
-            spdlog::warn("[ResourceManager] Using default texture for '{}'", name);
+            GameEngine::LogLimiter::warn(
+                "texture_load_failed",
+                "[ResourceManager] Failed to load texture: {} - using default texture for '{}'", 
+                path, name
+            );
         }
         return &getDefaultTexture();
     }
@@ -215,7 +240,11 @@ Sound* ResourceManager::loadSound(const std::string& path, const std::string& na
         auto it = sounds.find(name);
         if (it != sounds.end()) {
             if (!silentMode.load()) {
-                spdlog::info("[ResourceManager] Sound '{}' already loaded.", name);
+                GameEngine::LogLimiter::info(
+                    "sound_already_loaded",
+                    "[ResourceManager] Sound '{}' already loaded.", 
+                    name
+                );
             }
             return &it->second;
         }
@@ -265,9 +294,13 @@ Texture2D* ResourceManager::getTexture(const std::string& name) {
         }
     }
     
+    // Use LogLimiter for missing texture warnings
     if (!silentMode.load()) {
-        spdlog::warn("[ResourceManager] Texture '{}' not found.", name);
-        spdlog::warn("[ResourceManager] Using default texture for '{}'", name);
+        GameEngine::LogLimiter::warn(
+            "texture_not_found",
+            "[ResourceManager] Texture '{}' not found - using default texture", 
+            name
+        );
     }
     // Return default texture without storing in map
     return &getDefaultTexture();
@@ -281,7 +314,11 @@ Sound* ResourceManager::getSound(const std::string& name) {
         return &it->second;
     }
     if (!silentMode.load()) {
-        spdlog::warn("[ResourceManager] Sound '{}' not found.", name);
+        GameEngine::LogLimiter::warn(
+            "sound_not_found",
+            "[ResourceManager] Sound '{}' not found.", 
+            name
+        );
     }
     return nullptr;
 }
@@ -330,7 +367,11 @@ void ResourceManager::unloadTexture(const std::string& name) {
         }
     } else {
         if (!silentMode.load()) {
-            spdlog::warn("[ResourceManager] Cannot unload texture '{}' - not found.", name);
+            GameEngine::LogLimiter::warn(
+                "cannot_unload_texture",
+                "[ResourceManager] Cannot unload texture '{}' - not found.", 
+                name
+            );
         }
     }
 }
@@ -348,7 +389,11 @@ void ResourceManager::unloadSound(const std::string& name) {
         }
     } else {
         if (!silentMode.load()) {
-            spdlog::warn("[ResourceManager] Cannot unload sound '{}' - not found.", name);
+            GameEngine::LogLimiter::warn(
+                "cannot_unload_sound",
+                "[ResourceManager] Cannot unload sound '{}' - not found.", 
+                name
+            );
         }
     }
 }

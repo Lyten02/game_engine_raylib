@@ -1,6 +1,7 @@
 #include "engine.h"
 #include "cli/cli_engine.h"
 #include "cli/cli_argument_parser.h"
+#include "utils/log_limiter.h"
 #include <spdlog/spdlog.h>
 #include <iostream>
 
@@ -17,9 +18,30 @@ int main(int argc, char* argv[]) {
     // Parse command line arguments
     auto args = CLIArgumentParser::parse(argc, argv);
     
-    // Suppress logging for CLI mode when JSON output is enabled
-    if (args.jsonOutput) {
+    // Configure logging based on command line arguments
+    if (!args.logLevel.empty()) {
+        // Set specific log level if provided
+        if (args.logLevel == "trace") spdlog::set_level(spdlog::level::trace);
+        else if (args.logLevel == "debug") spdlog::set_level(spdlog::level::debug);
+        else if (args.logLevel == "info") spdlog::set_level(spdlog::level::info);
+        else if (args.logLevel == "warn") spdlog::set_level(spdlog::level::warn);
+        else if (args.logLevel == "error") spdlog::set_level(spdlog::level::err);
+        else if (args.logLevel == "off") spdlog::set_level(spdlog::level::off);
+    } else if (args.quiet) {
+        // Quiet mode - only errors and warnings
+        spdlog::set_level(spdlog::level::warn);
+    } else if (args.jsonOutput) {
+        // Suppress all logging for JSON output
         spdlog::set_level(spdlog::level::off);
+    } else if (args.verbose) {
+        // Verbose mode - show debug logs
+        spdlog::set_level(spdlog::level::debug);
+    }
+    
+    // Configure log limiting for test mode
+    if (args.mode == CLIMode::BATCH || args.mode == CLIMode::SINGLE_COMMAND) {
+        // In batch/test mode, limit repetitive messages
+        GameEngine::LogLimiter::configure(3, 60, true);  // Max 3 messages per key per minute
     }
     
     if (args.help) {

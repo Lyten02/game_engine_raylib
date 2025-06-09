@@ -52,6 +52,8 @@ public:
     void destroyScene();
     
 private:
+    // Cleanup helper for partial initialization
+    void cleanup();
     // Core modules
     std::unique_ptr<GameEngine::EngineCore> engineCore;
     std::unique_ptr<GameEngine::SystemsManager> systemsManager;

@@ -46,6 +46,14 @@ CLIArgumentParser::ParsedArgs CLIArgumentParser::parse(int argc, char* argv[]) {
         else if (arg == "--verbose") {
             args.verbose = true;
         }
+        else if (arg == "--quiet" || arg == "-q") {
+            args.quiet = true;
+        }
+        else if (arg == "--log-level") {
+            if (i + 1 < argc) {
+                args.logLevel = argv[++i];
+            }
+        }
     }
     
     return args;
@@ -75,6 +83,8 @@ Options:
   --batch CMD1 CMD2...    Execute multiple commands
   --script FILE           Execute commands from script file
   --verbose               Enable verbose output
+  -q, --quiet             Suppress non-critical logs
+  --log-level LEVEL       Set log level (trace/debug/info/warn/error/off)
 
 Examples:
   GameEngine                                  Launch in interactive mode

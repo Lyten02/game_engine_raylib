@@ -1,4 +1,5 @@
 #include "../src/resources/resource_manager.h"
+#include "../src/utils/log_limiter.h"
 #include <thread>
 #include <vector>
 #include <atomic>

@@ -18,49 +18,80 @@
 
 
 Engine::Engine() = default;
-Engine::~Engine() = default;
+Engine::~Engine() {
+    cleanup();
+}
 
 bool Engine::initialize() {
-    // Create core modules
-    engineCore = std::make_unique<GameEngine::EngineCore>();
-    systemsManager = std::make_unique<GameEngine::SystemsManager>();
-    commandRegistry = std::make_unique<GameEngine::CommandRegistry>();
-    
-    // Initialize engine core
-    if (!engineCore->initialize(headlessMode)) {
-        spdlog::error("Engine::initialize - Failed to initialize engine core");
+    try {
+        // Create core modules with nullptr checks
+        engineCore = std::make_unique<GameEngine::EngineCore>();
+        if (!engineCore) {
+            spdlog::error("Engine::initialize - Failed to create EngineCore");
+            return false;
+        }
+        
+        systemsManager = std::make_unique<GameEngine::SystemsManager>();
+        if (!systemsManager) {
+            spdlog::error("Engine::initialize - Failed to create SystemsManager");
+            cleanup();
+            return false;
+        }
+        
+        commandRegistry = std::make_unique<GameEngine::CommandRegistry>();
+        if (!commandRegistry) {
+            spdlog::error("Engine::initialize - Failed to create CommandRegistry");
+            cleanup();
+            return false;
+        }
+        
+        // Initialize engine core
+        if (!engineCore->initialize(headlessMode)) {
+            spdlog::error("Engine::initialize - Failed to initialize engine core");
+            cleanup();
+            return false;
+        }
+        
+        // Initialize all systems
+        if (!systemsManager->initialize(headlessMode)) {
+            spdlog::error("Engine::initialize - Failed to initialize systems");
+            cleanup();
+            return false;
+        }
+        
+        // Register all commands
+        commandRegistry->registerAllCommands(
+            systemsManager->getCommandProcessor(),
+            engineCore.get(),
+            systemsManager->getConsole(),
+            [this]() -> Scene* { return currentScene.get(); },
+            systemsManager->getResourceManager(),
+            systemsManager->getScriptManager(),
+            systemsManager->getProjectManager(),
+            systemsManager->getBuildSystem(),
+            systemsManager->getAsyncBuildSystem(),
+            systemsManager->getPlayMode(),
+            this
+        );
+        
+        // Create default scene 
+        createScene();
+        
+        if (!headlessMode) {
+            spdlog::info("Engine::initialize - Engine initialized in project management mode");
+        }
+        
+        return true;
+        
+    } catch (const std::exception& e) {
+        spdlog::error("Engine::initialize - Exception during initialization: {}", e.what());
+        cleanup();
+        return false;
+    } catch (...) {
+        spdlog::error("Engine::initialize - Unknown exception during initialization");
+        cleanup();
         return false;
     }
-    
-    // Initialize all systems
-    if (!systemsManager->initialize(headlessMode)) {
-        spdlog::error("Engine::initialize - Failed to initialize systems");
-        return false;
-    }
-    
-    // Register all commands
-    commandRegistry->registerAllCommands(
-        systemsManager->getCommandProcessor(),
-        engineCore.get(),
-        systemsManager->getConsole(),
-        [this]() -> Scene* { return currentScene.get(); },
-        systemsManager->getResourceManager(),
-        systemsManager->getScriptManager(),
-        systemsManager->getProjectManager(),
-        systemsManager->getBuildSystem(),
-        systemsManager->getAsyncBuildSystem(),
-        systemsManager->getPlayMode(),
-        this
-    );
-    
-    // Create default scene 
-    createScene();
-    
-    if (!headlessMode) {
-        spdlog::info("Engine::initialize - Engine initialized in project management mode");
-    }
-    
-    return true;
 }
 
 void Engine::run() {
@@ -298,4 +329,12 @@ void Engine::destroyScene() {
         currentScene->onDestroy();
         currentScene.reset();
     }
+}
+
+void Engine::cleanup() {
+    // Reset in reverse order of creation
+    commandRegistry.reset();
+    systemsManager.reset();
+    engineCore.reset();
+    currentScene.reset();
 }

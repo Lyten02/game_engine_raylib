@@ -1,5 +1,6 @@
 #include "project.h"
 #include "../utils/file_utils.h"
+#include "../utils/log_limiter.h"
 #include <fstream>
 #include <filesystem>
 #include <spdlog/spdlog.h>
@@ -38,7 +39,8 @@ bool Project::load(const std::string& projectPath) {
         std::filesystem::create_directories(path + "/assets");
         std::filesystem::create_directories(path + "/scripts");
         
-        spdlog::info("Project loaded: {} (version {})", name, version);
+        // Use log limiter to prevent spam when loading many projects
+        LogLimiter::info("project_loaded", "Project loaded: {} (version {})", name, version);
         return true;
     }
     catch (const nlohmann::json::exception& e) {

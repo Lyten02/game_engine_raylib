@@ -9,6 +9,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 cd GameEngine
 ./rebuild.sh
 
+# Test all project in build folder
+# 1. Use
+sh rebuild.sh
+
+# 2. Use
+cd .. && cd build/ && clear && clear && git rev-parse --abbrev-ref HEAD && git branch && git status && make test && make test-cpp
+
 # Manual build
 mkdir -p build
 cd build

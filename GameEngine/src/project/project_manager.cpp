@@ -31,7 +31,7 @@ bool ProjectManager::createProject(const std::string& name, const std::string& t
         std::filesystem::create_directories(projectPath + "/scripts");
         
         // Copy template files
-        std::string templatePath = "templates/" + template_name;
+        std::string templatePath = "../templates/" + template_name;
         
         // Load and process project template
         std::string templateFile = templatePath + "/project_template.json";

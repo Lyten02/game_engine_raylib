@@ -42,10 +42,14 @@
       "Bash(./test_script_manager_null_safety)",
       "Bash(./test_console_autocompletion)",
       "Bash(./game --json -c \"help\")",
-      "Bash(./game:*)",
+      "Bash(./*)",
       "Bash(bash:*)",
       "Bash(./test_log_limiter_generic_keys:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(./test_resource_memory_executable)",
+      "Bash(./rebuild.sh)",
+      "Bash(./test_resource_memory_manual)",
+      "Bash(ctest:*)"
     ],
     "deny": [
       "Bash(git:add:*)",

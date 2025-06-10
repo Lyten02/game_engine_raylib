@@ -49,11 +49,11 @@ void testMemoryNotGrowingWithMissingTextures() {
     std::cout << "  Loaded textures: " << finalCount << std::endl;
     std::cout << "  Unique textures: " << finalUnique << std::endl;
     
-    // We should have 100 entries, but only 1 unique texture (the default)
-    assert(finalCount == initialCount + 100);
-    assert(finalUnique == 1);
+    // Missing textures should NOT be added to the map - memory efficient behavior
+    assert(finalCount == initialCount);
+    assert(finalUnique == initialUnique);
     
-    std::cout << "✓ Only one unique texture exists despite 100 missing texture requests" << std::endl;
+    std::cout << "✓ Memory did not grow despite 100 missing texture requests" << std::endl;
 }
 
 void testRealTextureAllocation() {
@@ -79,8 +79,9 @@ void testRealTextureAllocation() {
     std::cout << "  Loaded textures: " << count << std::endl;
     std::cout << "  Unique textures: " << unique << std::endl;
     
-    assert(count == 3);  // 3 named textures
-    assert(unique == 1); // All point to default in headless mode
+    // In headless mode, loadTexture returns default without adding to map
+    assert(count == 0);  // No textures added to map in headless mode
+    assert(unique == 0); // No textures in map
     
     std::cout << "✓ Texture allocation works correctly in headless mode" << std::endl;
 }

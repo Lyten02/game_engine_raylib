@@ -7,8 +7,10 @@
 #include <filesystem>
 #include <fstream>
 #include "../src/build/async_build_system.h"
+#include "../src/build/build_system.h"
 #include "../src/project/project.h"
-#include "nlohmann/json.hpp"
+#include "../src/utils/path_utils.h"
+#include <nlohmann/json.hpp>
 
 using namespace GameEngine;
 

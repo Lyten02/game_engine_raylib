@@ -49,7 +49,12 @@
       "Bash(./test_resource_memory_executable)",
       "Bash(./rebuild.sh)",
       "Bash(./test_resource_memory_manual)",
-      "Bash(ctest:*)"
+      "Bash(ctest:*)",
+      "Bash(./game --command \"project.create EditorTest\")",
+      "Bash(./game --batch \"project.create EditorTest\" \"project.open EditorTest\" \"scene.create test_scene\" \"entity.create Player\" \"entity.create Enemy\" \"scene.save test_scene\" \"project.build-fast\")",
+      "Bash(./game --json -c \"project.delete EditorTest\")",
+      "Bash(./game:*)",
+      "Bash(cp:*)"
     ],
     "deny": [
       "Bash(git:add:*)",

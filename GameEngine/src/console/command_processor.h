@@ -30,7 +30,7 @@ class CommandProcessor {
 private:
     std::unordered_map<std::string, CommandInfo> commands;
     Console* console;
-    int commandTimeoutSeconds = 10;
+    int commandTimeoutSeconds = 120;  // Increased timeout for compilation
     bool timeoutEnabled = true;
 
 public:

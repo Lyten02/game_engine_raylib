@@ -87,6 +87,7 @@ run_test() {
             ../src/utils/file_utils.cpp \
             ../src/utils/string_utils.cpp \
             ../src/utils/config.cpp \
+            ../src/utils/path_utils.cpp \
             ../src/scripting/script_manager.cpp \
             ../src/scripting/lua_bindings.cpp \
             ../src/project/project.cpp \
@@ -204,12 +205,30 @@ run_test() {
             failed_test_names+=("$test_name (compilation)")
             return
         fi
-    elif [[ "$test_name" == "test_default_texture_manager" ]] || [[ "$test_name" == "test_call_once_retry_behavior" ]]; then
-        # These tests appear to be outdated or require special handling
-        echo "  ⚠️  Skipping $test_name - needs update"
-        ((failed_tests++))
-        failed_test_names+=("$test_name (skipped - needs update)")
-        return
+    elif [[ "$test_name" == "test_default_texture_manager" ]]; then
+        # Default texture manager test
+        if g++ $FLAGS ${test_name}.cpp \
+            ../src/resources/resource_manager.cpp \
+            $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>&1; then
+            echo "  ✅ Compiled successfully"
+        else
+            echo "  ❌ Compilation failed!"
+            ((failed_tests++))
+            failed_test_names+=("$test_name (compilation)")
+            return
+        fi
+    elif [[ "$test_name" == "test_call_once_retry_behavior" ]]; then
+        # Thread-safe initialization test
+        if g++ $FLAGS ${test_name}.cpp \
+            ../src/resources/resource_manager.cpp \
+            $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>&1; then
+            echo "  ✅ Compiled successfully"
+        else
+            echo "  ❌ Compilation failed!"
+            ((failed_tests++))
+            failed_test_names+=("$test_name (compilation)")
+            return
+        fi
     else
         # Resource manager tests
         if g++ $FLAGS ${test_name}.cpp ../src/resources/resource_manager.cpp $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>&1; then

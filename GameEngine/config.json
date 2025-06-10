@@ -13,7 +13,7 @@
         "background_alpha": 0.8,
         "max_lines": 20,
         "toggle_key": "GRAVE",
-        "command_timeout_seconds": 10,
+        "command_timeout_seconds": 120,
         "enable_command_timeout": true
     },
     "rendering": {

@@ -29,7 +29,7 @@ link_directories(
 # Link libraries directly from parent build
 target_link_libraries({{PROJECT_NAME}} 
     ${DEPS_DIR}/raylib-build/raylib/libraylib.a
-    ${DEPS_DIR}/spdlog-build/libspdlogd.a
+    ${DEPS_DIR}/spdlog-build/libspdlog.a
 )
 
 # Platform specific libraries
@@ -52,6 +52,12 @@ elseif(UNIX)
 endif()
 
 # Copy assets and scenes to build directory
+# Remove existing files to avoid copy errors
+file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/assets)
+file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/scenes)
+file(REMOVE ${CMAKE_BINARY_DIR}/game_config.json)
+
+# Copy fresh files
 file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/scenes DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/game_config.json DESTINATION ${CMAKE_BINARY_DIR})
@@ -62,7 +68,7 @@ add_custom_command(TARGET {{PROJECT_NAME}} POST_BUILD
     ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/assets
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/scenes $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/scenes
-    COMMAND ${CMAKE_COMMAND} -E copy
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
     ${CMAKE_SOURCE_DIR}/game_config.json $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/game_config.json
     COMMENT "Copying game resources to executable directory"
 )

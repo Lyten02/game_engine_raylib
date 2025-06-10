@@ -151,9 +151,10 @@ def test_build_system():
         # Check for executable
         output_dir = f"output/{project_name}"
         possible_paths = [
-            f"{output_dir}/bin/{project_name}",
-            f"{output_dir}/build/{project_name}",
-            f"{output_dir}/{project_name}"
+            f"{output_dir}/game",  # Expected location
+            f"{output_dir}/bin/game",  # Legacy location
+            f"{output_dir}/build/{project_name}",  # Build directory
+            f"{output_dir}/{project_name}"  # Alternative
         ]
         
         exe_found = False

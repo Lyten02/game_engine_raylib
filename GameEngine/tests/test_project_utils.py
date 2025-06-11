@@ -142,7 +142,19 @@ def get_build_command(project_name, force_full=False):
             has_cached_deps = True
             break
     
-    if has_cached_deps and not force_full:
+    # Also check for global cache
+    global_cache_exists = False
+    cache_paths = [
+        "_deps/raylib-build/raylib/libraylib.a",
+        "../.deps_cache/_deps/raylib-build/raylib/libraylib.a",
+        "../../.deps_cache/_deps/raylib-build/raylib/libraylib.a"
+    ]
+    for cache_path in cache_paths:
+        if os.path.exists(cache_path):
+            global_cache_exists = True
+            break
+    
+    if (has_cached_deps or global_cache_exists) and not force_full:
         return "project.build.fast"
     else:
         return "project.build"  # Use full build when no cached deps

@@ -91,7 +91,7 @@ quit
             ["./game", "--json", "--batch"] + commands,
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=120  # Increase timeout for CMake operations
         )
         
         print(f"Exit code: {result.returncode}")

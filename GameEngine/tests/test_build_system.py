@@ -14,12 +14,17 @@ def run_build_commands(project_name, build_type="fast", force_full=False):
     # Check if project already has build output with deps
     has_cached_deps = os.path.exists(f"output/{project_name}/build/_deps")
     
-    # Use fast build if project has cached deps and not forcing full build
+    # Use fast build if possible
     if has_cached_deps and not force_full:
         build_command = "project.build.fast"
     else:
-        # For tests, always use project.build for full compilation
-        build_command = "project.build" if build_type == "fast" else "project.build"
+        # Check for global cache
+        main_deps = os.path.exists("_deps/raylib-build/raylib/libraylib.a") or \
+                   os.path.exists("../.deps_cache/_deps/raylib-build/raylib/libraylib.a")
+        if main_deps and build_type == "fast":
+            build_command = "project.build.fast"
+        else:
+            build_command = "project.build"
     script_name = f"build_test_{build_type}.txt"
     
     with open(script_name, "w") as f:
@@ -35,7 +40,7 @@ def run_build_commands(project_name, build_type="fast", force_full=False):
         f.write(f"{build_command}\n")
         f.write("exit\n")
     
-    timeout = 180 if build_type == "fast" else 600  # 1 min for fast, 10 min for full
+    timeout = 180 if build_command == "project.build.fast" else 300  # 3 min for fast, 5 min for full
     
     result = subprocess.run(
         ["./game", "--headless", "--script", script_name],

@@ -94,7 +94,7 @@ class BuildSystemTest:
         
         commands = [
             f"project.open {self.test_project_name}",
-            "project.build-fast"
+            "project.build.fast"
         ]
         
         success, stdout, stderr = self.run_command(commands)
@@ -136,10 +136,25 @@ class BuildSystemTest:
         """Test full build with compilation"""
         print_test_header("Testing full build")
         
-        # Skip full build test due to 10-second command timeout limitation
-        print("⚠️  Skipping full build test - command timeout limitation")
-        print("   Use project.build-fast for testing or increase CommandProcessor timeout")
-        print_test_result("Full build", True, "Skipped - timeout limitation")
+        # Skip full build test if skip flag is set
+        if "--skip-full-build" in sys.argv:
+            print("⚠️  Skipping full build test (--skip-full-build flag)")
+            print_test_result("Full build", True, "Skipped - fast mode")
+            return True
+        
+        # Otherwise run the full build test
+        commands = [
+            f"project.build"
+        ]
+        
+        success, stdout, stderr = self.run_command(commands)
+        
+        if not success:
+            self.errors.append(f"Full build failed: {stderr}")
+            print_test_result("Full build", False, stderr)
+            return False
+            
+        print_test_result("Full build", True)
         return True
         
     def test_cmake_template(self):
@@ -155,11 +170,6 @@ class BuildSystemTest:
         print("\n" + "="*60)
         print("BUILD SYSTEM TEST SUITE")
         print("="*60 + "\n")
-        
-        # TEMPORARY: Skip this test due to build-fast issue
-        print("⚠️  Skipping build templates test - project.build-fast command issue")
-        print("   This is a known issue with the build system")
-        return True
         
         # Clean up before tests
         self.cleanup()

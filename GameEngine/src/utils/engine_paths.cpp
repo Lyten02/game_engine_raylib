@@ -91,6 +91,12 @@ std::filesystem::path EnginePaths::getBuildDir() {
 
 std::filesystem::path EnginePaths::getDependenciesDir() {
     ensureInitialized();
+    // Check for global deps cache first
+    std::filesystem::path globalCache = engineRoot / ".deps_cache" / "_deps";
+    if (std::filesystem::exists(globalCache)) {
+        return globalCache;
+    }
+    // Fallback to build directory deps
     return engineRoot / "build" / "_deps";
 }
 

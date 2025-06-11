@@ -21,16 +21,16 @@ def run_build_commands(project_name, build_type="fast", force_full=False):
     
     # Use fast build if possible
     if has_cached_deps and not force_full:
-        build_command = "project.build-fast"
+        build_command = "project.build.fast"
     else:
         # Check for global cache
         main_deps = os.path.exists("_deps/raylib-build/raylib/libraylib.a") or \
                    os.path.exists("../.deps_cache/_deps/raylib-build/raylib/libraylib.a") or \
                    os.path.exists(".deps_cache/_deps/raylib-build/raylib/libraylib.a")
         if main_deps and build_type == "fast":
-            build_command = "project.build-fast"
+            build_command = "project.build.fast"
         else:
-            build_command = "project.build-fast"  # Always use fast build for tests
+            build_command = "project.build.fast"  # Always use fast build for tests
     script_name = f"build_test_{build_type}.txt"
     
     with open(script_name, "w") as f:
@@ -61,11 +61,6 @@ def run_build_commands(project_name, build_type="fast", force_full=False):
 def test_build_system():
     """Test both fast and full build system"""
     print("=== Game Engine Build System Test ===\n")
-    
-    # TEMPORARY: Skip this test due to build-fast issue
-    print("⚠️  Skipping build system test - project.build-fast command issue")
-    print("   This is a known issue with the build system")
-    return True
     
     try:
         # Test 1: Fast Build

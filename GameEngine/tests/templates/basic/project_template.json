@@ -1,0 +1,17 @@
+{
+    "name": "",
+    "version": "1.0.0",
+    "engine_version": "1.0.0",
+    "description": "Basic 2D game project",
+    "scenes": ["main_scene"],
+    "settings": {
+        "window": {
+            "width": 800,
+            "height": 600,
+            "title": "{{PROJECT_NAME}}"
+        },
+        "physics": {
+            "gravity": [0, -9.8]
+        }
+    }
+}

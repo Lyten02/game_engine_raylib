@@ -8,6 +8,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # В CMakeLists.txt добавьте в начало:
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Set global cache directory for dependencies
+set(GLOBAL_DEPS_CACHE "${CMAKE_SOURCE_DIR}/.deps_cache" CACHE PATH "Global dependencies cache directory")
+set(FETCHCONTENT_BASE_DIR "${GLOBAL_DEPS_CACHE}" CACHE PATH "FetchContent base directory")
+message(STATUS "Using global dependencies cache: ${GLOBAL_DEPS_CACHE}")
+
 # FetchContent for downloading dependencies
 include(FetchContent)
 

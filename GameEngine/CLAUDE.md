@@ -70,9 +70,15 @@ The test system uses cached dependencies to speed up builds significantly (from 
    - Tests automatically choose the right command
 
 ### Important directories:
-- `build/_deps/` - Main dependency cache
-- `output/*/build/_deps/` - Per-project dependency cache
-- **DO NOT DELETE** these directories unless you want full rebuild
+- `.deps_cache/_deps/` - Global dependency cache (shared by all projects)
+- `build/_deps/` - Main build dependency cache
+- `output/*/build/_deps/` - Per-project cache (no longer created with global cache)
+- **DO NOT DELETE** `.deps_cache` directory unless you want full rebuild
+
+### Global Cache Benefits:
+- **Disk space**: ~640KB per project instead of ~900MB
+- **Build time**: No need to download dependencies for each project
+- **Network**: Dependencies downloaded only once
 
 ### Best practices for fast tests:
 ```bash

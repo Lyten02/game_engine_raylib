@@ -189,7 +189,7 @@ quit
                 ["./game", "--json", "--batch", "project.open EditorTest", full_build_cmd],
                 capture_output=True,
                 text=True,
-                timeout=60  # Give more time for compilation
+                timeout=180  # 3 minutes for compilation with heavy parallel load
             )
             
             try:

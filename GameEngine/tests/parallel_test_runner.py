@@ -68,7 +68,7 @@ def run_python_test_worker(test_info: Tuple[Path, int, Dict]) -> TestResult:
         
         # Add skip-full-build flag if requested
         cmd = [config["python_executable"], str(test_path)]
-        if config.get("skip_full_build") and any(x in test_name for x in ["build_system", "build_templates"]):
+        if config.get("skip_full_build") and any(x in test_name for x in ["build_system", "build_templates", "editor_mode_build", "full_workflow"]):
             cmd.append("--skip-full-build")
         
         # Run the test

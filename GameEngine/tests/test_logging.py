@@ -8,6 +8,8 @@ import os
 import json
 import tempfile
 import shutil
+import io
+import contextlib
 from datetime import datetime
 from pathlib import Path
 
@@ -241,8 +243,10 @@ def test_json_output():
                 }
             }]
             
-            # Call print_summary to generate JSON
-            runner.print_summary()
+            # Call print_summary to generate JSON (suppress output)
+            # Redirect stdout to suppress print_summary output
+            with contextlib.redirect_stdout(io.StringIO()):
+                runner.print_summary()
             
             # Check JSON file was created
             assert os.path.exists("test_results.json"), "test_results.json should exist"

@@ -121,4 +121,14 @@ tests/temp_test_*.txt
 
 # Test output directories
 output/
-scenes/.deps_cache/
+scenes/
+
+# Global dependencies cache
+.deps_cache/
+
+# Test templates and config (copied from main)
+tests/templates/
+tests/config.json
+tests/scripts/
+tests/assets/
+tests/game

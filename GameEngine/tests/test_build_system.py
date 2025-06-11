@@ -9,10 +9,11 @@ import shutil
 
 def run_build_commands(project_name, build_type="fast", force_full=False):
     """Run build commands for a project"""
-    # Check if project already exists
-    project_exists = os.path.exists(f"projects/{project_name}")
+    # Check if project already exists (check both locations)
+    project_exists = os.path.exists(f"projects/{project_name}") or os.path.exists(f"../projects/{project_name}")
     # Check if project already has build output with deps
-    has_cached_deps = os.path.exists(f"output/{project_name}/build/_deps")
+    has_cached_deps = os.path.exists(f"output/{project_name}/build/_deps") or \
+                     os.path.exists(f"../output/{project_name}/build/_deps")
     
     # Use fast build if possible
     if has_cached_deps and not force_full:
@@ -95,7 +96,8 @@ def test_build_system():
         print(f"DEBUG: stderr = {stderr[:200] if stderr else 'None'}")
         
         # Check generated files
-        output_dir = f"output/{project_name}"
+        # Output is in parent directory when running from build
+        output_dir = f"../output/{project_name}" if os.path.exists(f"../output/{project_name}") else f"output/{project_name}"
         if os.path.exists(output_dir):
             files_to_check = [
                 ("main.cpp", "C++ source"),

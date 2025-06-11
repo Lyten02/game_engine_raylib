@@ -27,7 +27,7 @@ def clean_test_data():
         "cli_test",
         "automation_test",
         "batch_test",
-        "BuildTest",
+        # "BuildTest",  # Keep BuildTest projects for fast builds
         "ConfigTest",
         "TestGame"
     ]

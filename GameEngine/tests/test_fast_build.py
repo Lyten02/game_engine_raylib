@@ -20,18 +20,29 @@ def test_fast_build_performance():
     
     print("Testing fast build performance...")
     
-    # Clean test project if it exists
+    # Clean test project if it exists - commented out to preserve cache
     test_project = "FastBuildTest"
     projects_dir = "../projects" if os.path.exists("../projects") else "projects"
     output_dir = "../output" if os.path.exists("../output") else "output"
     
-    if os.path.exists(f"{projects_dir}/{test_project}"):
-        shutil.rmtree(f"{projects_dir}/{test_project}")
-    if os.path.exists(f"{output_dir}/{test_project}"):
-        shutil.rmtree(f"{output_dir}/{test_project}")
+    # Check if project exists with cached dependencies
+    project_exists = os.path.exists(f"{output_dir}/{test_project}/build/_deps")
     
-    # Create test script for full build
-    full_build_script = f"""project.create {test_project}
+    # Only clean if force cleanup is needed
+    # if os.path.exists(f"{projects_dir}/{test_project}"):
+    #     shutil.rmtree(f"{projects_dir}/{test_project}")
+    # if os.path.exists(f"{output_dir}/{test_project}"):
+    #     shutil.rmtree(f"{output_dir}/{test_project}")
+    
+    # Create test script for full or fast build based on project existence
+    if project_exists:
+        # If project exists with deps, use fast build from the start
+        full_build_script = f"""project.open {test_project}
+project.build.fast
+"""
+    else:
+        # First time - create project and do full build
+        full_build_script = f"""project.create {test_project}
 project.open {test_project}
 scene.create main
 entity.create Player

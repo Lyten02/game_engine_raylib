@@ -17,19 +17,51 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
     {
         std::vector<CommandParameter> projectParams = {{"name", "Name of the new project", true}};
         processor->registerCommand("project.create",
-        [console, projectManager](const std::vector<std::string>& args) {
+        [console, projectManager, getScene, engine](const std::vector<std::string>& args) {
             if (args.empty()) {
                 console->addLine("Usage: project.create <name>", RED);
                 return;
             }
             
+            // Check if project already exists
+            if (projectManager->projectExists(args[0])) {
+                console->addLine("Project already exists: " + args[0], YELLOW);
+                console->addLine("Opening existing project...", GRAY);
+                
+                // Open the existing project
+                if (projectManager->openProject(args[0])) {
+                    console->addLine("Project opened: " + args[0], GREEN);
+                    
+                    // Destroy current scene
+                    if (getScene()) {
+                        engine->destroyScene();
+                    }
+                    
+                    // Create new scene
+                    engine->createScene();
+                    
+                    // Try to load the main scene
+                    std::string mainScenePath = projectManager->getCurrentProject()->getPath() + "/scenes/main_scene.json";
+                    if (std::filesystem::exists(mainScenePath)) {
+                        SceneSerializer serializer;
+                        if (serializer.loadScene(getScene(), mainScenePath)) {
+                            console->addLine("Loaded main scene", GRAY);
+                        }
+                    }
+                } else {
+                    console->addLine("Failed to open existing project: " + args[0], RED);
+                }
+                return;
+            }
+            
+            // Create new project if it doesn't exist
             if (projectManager->createProject(args[0])) {
                 console->addLine("Project created: " + args[0], GREEN);
                 console->addLine("Use 'project.open " + args[0] + "' to open it", YELLOW);
             } else {
                 console->addLine("Failed to create project: " + args[0], RED);
             }
-        }, "Create a new project", "Project",
+        }, "Create a new project or open if it already exists", "Project",
         "project.create <name>", projectParams);
     }
     

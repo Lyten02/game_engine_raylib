@@ -1,0 +1,27 @@
+# Basic CLI test script (safe version)
+# This script tests basic CLI functionality
+# It works with existing projects
+
+# Get help
+help
+
+# List projects
+project.list
+
+# Open test project (creates if doesn't exist)
+project.open cli_test_project
+
+# Create a scene
+scene.create test_scene
+
+# Create an entity  
+entity.create TestEntity
+
+# List entities
+entity.list
+
+# Get engine info
+engine.info
+
+# Close project
+project.close

@@ -7,18 +7,30 @@ import sys
 import time
 import shutil
 
-def run_build_commands(project_name, build_type="fast"):
+def run_build_commands(project_name, build_type="fast", force_full=False):
     """Run build commands for a project"""
-    build_command = "project.build-fast" if build_type == "fast" else "project.build"
+    # Check if project already exists
+    project_exists = os.path.exists(f"projects/{project_name}")
+    # Check if project already has build output with deps
+    has_cached_deps = os.path.exists(f"output/{project_name}/build/_deps")
+    
+    # Use fast build if project has cached deps and not forcing full build
+    if has_cached_deps and not force_full:
+        build_command = "project.build.fast"
+    else:
+        build_command = "project.build-fast" if build_type == "fast" else "project.build"
     script_name = f"build_test_{build_type}.txt"
     
     with open(script_name, "w") as f:
-        f.write(f"project.create {project_name}\n")
+        # Only create project if it doesn't exist
+        if not project_exists:
+            f.write(f"project.create {project_name}\n")
         f.write(f"project.open {project_name}\n")
-        f.write("scene.create main\n")
-        f.write("entity.create Player\n") 
-        f.write("entity.create Enemy\n")
-        f.write("scene.save main\n")
+        if not project_exists:
+            f.write("scene.create main\n")
+            f.write("entity.create Player\n") 
+            f.write("entity.create Enemy\n")
+            f.write("scene.save main\n")
         f.write(f"{build_command}\n")
         f.write("exit\n")
     
@@ -53,11 +65,12 @@ def test_build_system():
         
         project_name = "BuildTestFast"
         
-        # Clean up
-        if os.path.exists(f"projects/{project_name}"):
-            shutil.rmtree(f"projects/{project_name}", ignore_errors=True)
-        if os.path.exists(f"output/{project_name}"):
-            shutil.rmtree(f"output/{project_name}", ignore_errors=True)
+        # Don't clean up to preserve cached dependencies
+        # Only clean if explicitly needed for testing
+        # if os.path.exists(f"projects/{project_name}"):
+        #     shutil.rmtree(f"projects/{project_name}", ignore_errors=True)
+        # if os.path.exists(f"output/{project_name}"):
+        #     shutil.rmtree(f"output/{project_name}", ignore_errors=True)
         
         print("Creating project and running fast build...")
         start_time = time.time()
@@ -70,6 +83,10 @@ def test_build_system():
             return False
         
         print(f"✅ Fast build completed in {elapsed:.1f}s")
+        
+        # Debug output
+        print(f"DEBUG: stdout = {stdout[:200]}")
+        print(f"DEBUG: stderr = {stderr[:200] if stderr else 'None'}")
         
         # Check generated files
         output_dir = f"output/{project_name}"

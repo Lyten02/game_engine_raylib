@@ -571,18 +571,19 @@ def main():
     else:
         print("🔨 Full mode: Including all build tests (may take several minutes)")
     
-    # Clean test data first
-    try:
-        print("\nCleaning previous test data...")
-        result = subprocess.run([sys.executable, 
-                               os.path.join(os.path.dirname(__file__), "clean_test_data.py")],
-                               capture_output=True, text=True)
-        if result.returncode == 0:
-            print(result.stdout.strip())
-        else:
-            print("Warning: Failed to clean test data")
-    except Exception as e:
-        print(f"Warning: Could not clean test data: {e}")
+    # Clean test data first - DISABLED to preserve cached dependencies
+    # Uncomment if you need to clean test data
+    # try:
+    #     print("\nCleaning previous test data...")
+    #     result = subprocess.run([sys.executable, 
+    #                            os.path.join(os.path.dirname(__file__), "clean_test_data.py")],
+    #                            capture_output=True, text=True)
+    #     if result.returncode == 0:
+    #         print(result.stdout.strip())
+    #     else:
+    #         print("Warning: Failed to clean test data")
+    # except Exception as e:
+    #     print(f"Warning: Could not clean test data: {e}")
     
     runner = TestRunner()
     

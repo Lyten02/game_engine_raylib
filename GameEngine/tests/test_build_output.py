@@ -22,21 +22,28 @@ def test_build_output():
     try:
         project_name = "BuildOutputTest"
         
-        # Clean up
-        if os.path.exists(f"projects/{project_name}"):
-            shutil.rmtree(f"projects/{project_name}", ignore_errors=True)
-        if os.path.exists(f"output/{project_name}"):
-            shutil.rmtree(f"output/{project_name}", ignore_errors=True)
+        # Check if project already exists with cached dependencies
+        has_cached_deps = os.path.exists(f"output/{project_name}/build/_deps")
+        
+        # Don't clean up to preserve cached dependencies
+        # if os.path.exists(f"projects/{project_name}"):
+        #     shutil.rmtree(f"projects/{project_name}", ignore_errors=True)
+        # if os.path.exists(f"output/{project_name}"):
+        #     shutil.rmtree(f"output/{project_name}", ignore_errors=True)
         
         # Create script
         script_name = "build_output_test.txt"
         with open(script_name, "w") as f:
-            f.write(f"project.create {project_name}\n")
+            if not os.path.exists(f"projects/{project_name}"):
+                f.write(f"project.create {project_name}\n")
             f.write(f"project.open {project_name}\n")
-            f.write("scene.create main\n")
-            f.write("entity.create Player\n")
-            f.write("scene.save main\n")
-            f.write("project.build-fast\n")
+            if not os.path.exists(f"projects/{project_name}"):
+                f.write("scene.create main\n")
+                f.write("entity.create Player\n")
+                f.write("scene.save main\n")
+            # Use fast build if cached deps exist
+            build_command = "project.build.fast" if has_cached_deps else "project.build-fast"
+            f.write(f"{build_command}\n")
             f.write("exit\n")
         
         print("Running build (ignoring return code)...")

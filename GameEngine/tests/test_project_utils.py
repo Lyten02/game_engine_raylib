@@ -99,3 +99,68 @@ def cleanup_test_projects():
 def pre_test_cleanup():
     """Clean up leftover test projects"""
     project_manager.pre_test_cleanup()
+
+def create_or_open_project(game_exe, project_name):
+    """Create a project if it doesn't exist, otherwise just open it"""
+    # Check if project exists
+    projects_dir = "projects" if os.path.exists("projects") else "../projects"
+    project_exists = os.path.exists(os.path.join(projects_dir, project_name))
+    
+    if project_exists:
+        # Project exists, just open it
+        result = subprocess.run(
+            [game_exe, "--json", "-c", f"project.open {project_name}"],
+            capture_output=True,
+            text=True
+        )
+    else:
+        # Create new project
+        result = subprocess.run(
+            [game_exe, "--json", "-c", f"project.create {project_name}"],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            # Open the newly created project
+            result = subprocess.run(
+                [game_exe, "--json", "-c", f"project.open {project_name}"],
+                capture_output=True,
+                text=True
+            )
+    
+    return result
+
+def get_build_command(project_name, force_full=False):
+    """Get appropriate build command based on project state"""
+    # Check if project has cached dependencies
+    output_dirs = ["output", "../output"]
+    
+    has_cached_deps = False
+    for output_dir in output_dirs:
+        deps_path = os.path.join(output_dir, project_name, "build", "_deps")
+        if os.path.exists(deps_path):
+            has_cached_deps = True
+            break
+    
+    if has_cached_deps and not force_full:
+        return "project.build.fast"
+    else:
+        return "project.build-fast"  # Use build-fast by default for tests
+
+def check_project_exists(project_name):
+    """Check if a project exists in any of the common locations"""
+    possible_dirs = ["projects", "../projects", "build/projects"]
+    
+    for proj_dir in possible_dirs:
+        if os.path.exists(os.path.join(proj_dir, project_name)):
+            return True
+    return False
+
+def check_output_exists(project_name):
+    """Check if build output exists for a project"""
+    possible_dirs = ["output", "../output", "build/output"]
+    
+    for out_dir in possible_dirs:
+        if os.path.exists(os.path.join(out_dir, project_name)):
+            return True
+    return False

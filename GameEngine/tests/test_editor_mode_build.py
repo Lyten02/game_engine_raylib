@@ -17,29 +17,48 @@ def run_editor_test():
     
     print("Testing editor mode build functionality...")
     
-    # Clean up any existing test project
-    # Check both in current directory and parent directory
+    # Check if project already exists with cached dependencies
+    has_cached_deps = False
     for base_dir in [".", ".."]:
-        project_path = os.path.join(base_dir, "projects/EditorTest")
         output_path = os.path.join(base_dir, "output/EditorTest")
-        
-        if os.path.exists(project_path):
-            shutil.rmtree(project_path)
-            print(f"Cleaned up existing project at: {project_path}")
-            
-        if os.path.exists(output_path):
-            shutil.rmtree(output_path)
-            print(f"Cleaned up existing output at: {output_path}")
+        if os.path.exists(os.path.join(output_path, "build/_deps")):
+            has_cached_deps = True
+            break
+    
+    # Don't clean up to preserve cached dependencies
+    # for base_dir in [".", ".."]:
+    #     project_path = os.path.join(base_dir, "projects/EditorTest")
+    #     output_path = os.path.join(base_dir, "output/EditorTest")
+    #     
+    #     if os.path.exists(project_path):
+    #         shutil.rmtree(project_path)
+    #         print(f"Cleaned up existing project at: {project_path}")
+    #         
+    #     if os.path.exists(output_path):
+    #         shutil.rmtree(output_path)
+    #         print(f"Cleaned up existing output at: {output_path}")
     
     # Create a script file with editor commands
-    test_script = """# Test editor mode build functionality
+    # Use fast build if project already exists with deps
+    build_command = "project.build.fast" if has_cached_deps else "project.build-fast"
+    
+    if has_cached_deps:
+        # Project exists, just open and build
+        test_script = f"""# Test editor mode build functionality
+project.open EditorTest
+{build_command}
+quit
+"""
+    else:
+        # Create new project
+        test_script = f"""# Test editor mode build functionality
 project.create EditorTest
 project.open EditorTest
 scene.create test_scene
 entity.create Player
 entity.create Enemy
 scene.save test_scene
-project.build-fast
+{build_command}
 quit
 """
     
@@ -48,15 +67,25 @@ quit
     
     try:
         # Run the game with batch commands and JSON output
-        commands = [
-            "project.create EditorTest",
-            "project.open EditorTest",
-            "scene.create test_scene",
-            "entity.create Player",
-            "entity.create Enemy",
-            "scene.save test_scene",
-            "project.build-fast"
-        ]
+        build_cmd = "project.build.fast" if has_cached_deps else "project.build-fast"
+        
+        if has_cached_deps:
+            # Project exists, just open and build
+            commands = [
+                "project.open EditorTest",
+                build_cmd
+            ]
+        else:
+            # Create new project
+            commands = [
+                "project.create EditorTest",
+                "project.open EditorTest",
+                "scene.create test_scene",
+                "entity.create Player",
+                "entity.create Enemy",
+                "scene.save test_scene",
+                build_cmd
+            ]
         
         result = subprocess.run(
             ["./game", "--json", "--batch"] + commands,
@@ -150,9 +179,10 @@ quit
         if cmake_available and not skip_full_build:
             print("\nTesting full build with compilation...")
             
-            # Run full build
+            # Run full build - use fast build if deps exist
+            full_build_cmd = "project.build.fast" if has_cached_deps else "project.build"
             result = subprocess.run(
-                ["./game", "--json", "--batch", "project.open EditorTest", "project.build"],
+                ["./game", "--json", "--batch", "project.open EditorTest", full_build_cmd],
                 capture_output=True,
                 text=True,
                 timeout=60  # Give more time for compilation

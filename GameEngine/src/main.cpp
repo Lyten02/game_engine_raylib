@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
         // Create CLI engine
         CLIEngine cliEngine;
         
-        if (!cliEngine.initialize(args.mode, argc, argv)) {
+        if (!cliEngine.initialize(args.mode, args.headless, argc, argv)) {
             if (args.jsonOutput) {
                 std::cout << CLIResult::Failure("Failed to initialize engine").toJson().dump() << std::endl;
             } else {
@@ -125,6 +125,11 @@ int main(int argc, char* argv[]) {
     
     // Create engine instance
     Engine engine;
+    
+    // Set headless mode if specified
+    if (args.headless) {
+        engine.setHeadlessMode(true);
+    }
     
     // Initialize engine (loads config automatically)
     if (!engine.initialize()) {

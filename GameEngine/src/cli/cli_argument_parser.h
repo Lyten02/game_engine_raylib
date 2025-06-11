@@ -4,7 +4,6 @@
 
 enum class CLIMode {
     INTERACTIVE,    // Normal mode with window (current)
-    HEADLESS,      // No graphics, logic only
     BATCH,         // Execute script commands
     SINGLE_COMMAND // One command and exit
 };
@@ -22,6 +21,7 @@ public:
         bool help = false;
         bool version = false;
         bool quiet = false;  // Suppress non-critical logs
+        bool headless = false;  // Run without graphics
         std::string logLevel = "";  // Override log level
     };
     

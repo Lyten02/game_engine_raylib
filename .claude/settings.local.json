@@ -55,7 +55,8 @@
       "Bash(./game --json -c \"project.delete EditorTest\")",
       "Bash(./game:*)",
       "Bash(cp:*)",
-      "Bash(./rebuild_fast.sh:*)"
+      "Bash(./rebuild_fast.sh:*)",
+      "Bash(python3:*)"
     ],
     "deny": [
       "Bash(git:add:*)",

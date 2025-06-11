@@ -347,6 +347,8 @@ void Engine::runHeadless() {
     const float targetDeltaTime = 1.0f / 60.0f; // 60 FPS equivalent
     
     // Main headless loop
+    int idleFrames = 0; // Move outside static scope
+    
     while (engineCore->isRunning()) {
         auto frameStart = std::chrono::steady_clock::now();
         
@@ -380,13 +382,12 @@ void Engine::runHeadless() {
         }
         
         // Auto-exit if no operations are pending
-        static int idleFrames = 0;
         if (!hasPendingOperations) {
             idleFrames++;
             
             // Wait for 60 frames (1 second) of idle time before exiting
             if (idleFrames > 60) {
-                spdlog::info("Engine::runHeadless - No pending operations, auto-exiting");
+                spdlog::info("Engine::runHeadless - No pending operations, auto-exiting after {} frames", idleFrames);
                 break;
             }
         } else {

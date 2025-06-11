@@ -15,7 +15,7 @@ public:
     ~CLIEngine();
     
     // Initialize in different modes
-    bool initialize(CLIMode mode, int argc, char* argv[]);
+    bool initialize(CLIMode mode, bool headless, int argc, char* argv[]);
     
     // Execute commands
     CLIResult executeCommand(const std::string& command);
@@ -27,7 +27,7 @@ public:
     CLIResult closeProject();
     
     // Get state
-    bool isHeadless() const { return m_mode == CLIMode::HEADLESS; }
+    bool isHeadless() const { return m_headless; }
     bool isInitialized() const { return m_engine != nullptr; }
     
     // For testing
@@ -36,6 +36,7 @@ public:
 private:
     CLIMode m_mode;
     std::unique_ptr<Engine> m_engine;
+    bool m_headless = false;
     bool m_testMode = false;
     
     // Initialize subsystems in headless mode

@@ -17,7 +17,7 @@ CLIArgumentParser::ParsedArgs CLIArgumentParser::parse(int argc, char* argv[]) {
             args.jsonOutput = true;
         }
         else if (arg == "--headless") {
-            args.mode = CLIMode::HEADLESS;
+            args.headless = true;
         }
         else if (arg == "--command" || arg == "-c") {
             if (i + 1 < argc) {

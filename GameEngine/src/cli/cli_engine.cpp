@@ -10,11 +10,12 @@
 CLIEngine::CLIEngine() = default;
 CLIEngine::~CLIEngine() = default;
 
-bool CLIEngine::initialize(CLIMode mode, int argc, char* argv[]) {
+bool CLIEngine::initialize(CLIMode mode, bool headless, int argc, char* argv[]) {
     m_mode = mode;
+    m_headless = headless;
     
     try {
-        if (mode == CLIMode::HEADLESS || mode == CLIMode::BATCH || mode == CLIMode::SINGLE_COMMAND) {
+        if (mode == CLIMode::BATCH || mode == CLIMode::SINGLE_COMMAND || headless) {
             return initializeHeadless();
         } else {
             return initializeGraphics();

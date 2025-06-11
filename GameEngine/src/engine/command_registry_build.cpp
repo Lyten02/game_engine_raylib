@@ -79,15 +79,15 @@ void CommandRegistry::registerBuildCommands(CommandProcessor* processor, Console
             }
         }, "Build the current project", "Build");
     
-    // project.build-fast command for testing
-    processor->registerCommand("project.build-fast",
+    // project.prepare command - prepares project files without compilation
+    processor->registerCommand("project.prepare",
         [console, projectManager, buildSystem](const std::vector<std::string>& args) {
             if (!projectManager->getCurrentProject()) {
                 console->addLine("No project open. Use 'project.open' first.", RED);
                 return;
             }
             
-            console->addLine("Fast build (no compilation): " + projectManager->getCurrentProject()->getName() + "...", YELLOW);
+            console->addLine("Preparing project files: " + projectManager->getCurrentProject()->getName() + "...", YELLOW);
             std::string projectName = projectManager->getCurrentProject()->getName();
             std::string outputDir = "output/" + projectName;
             
@@ -102,17 +102,17 @@ void CommandRegistry::registerBuildCommands(CommandProcessor* processor, Console
                 buildSystem->generateCMakeListsFast(projectManager->getCurrentProject(), outputDir);
                 buildSystem->processScenes(projectManager->getCurrentProject(), outputDir);
                 buildSystem->packageAssets(projectManager->getCurrentProject(), outputDir);
-                console->addLine("Build preparation completed!", GREEN);
+                console->addLine("Project preparation completed!", GREEN);
                 console->addLine("Generated files in: " + outputDir, GRAY);
                 
                 // Set success message for CLI
                 if (console->isCaptureMode()) {
-                    console->addLine("Build completed successfully", GREEN);
+                    console->addLine("Project prepared successfully", GREEN);
                 }
             } else {
-                console->addLine("Build preparation failed!", RED);
+                console->addLine("Project preparation failed!", RED);
             }
-        }, "Fast build without compilation (for testing)", "Build");
+        }, "Prepare project files without compilation", "Build");
     
     // project.clean command
     processor->registerCommand("project.clean",

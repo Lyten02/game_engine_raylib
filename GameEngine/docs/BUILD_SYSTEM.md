@@ -46,6 +46,14 @@ Run it:
 ./game --headless --script build_script.txt
 ```
 
+### Available Build Commands
+
+- `project.build` - Full build from scratch (downloads dependencies if needed, ~60s first time)
+- `project.build.fast` - Fast build using cached dependencies (~3-6s)
+- `project.prepare` - Prepare project files without compilation (instant, for editor preview)
+- `project.clean` - Clean build artifacts
+- `project.rebuild` - Clean and build from scratch
+
 ## Build Output Structure
 
 After a successful build, your project will have the following structure:

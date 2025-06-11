@@ -128,6 +128,11 @@ make test  # Takes ~30-60 seconds total
 # DON'T do this before tests:
 # make clean-tests  # This would delete cache!
 
+### Build commands:
+- `project.build` - Full build from scratch with compilation
+- `project.build.fast` - Fast build using cached dependencies with compilation  
+- `project.prepare` - Prepare project files without compilation (for editor/preview)
+
 # If you need to clean a specific test:
 rm -rf ../output/TestProject/bin
 rm -rf ../output/TestProject/CMakeFiles

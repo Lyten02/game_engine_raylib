@@ -73,6 +73,7 @@ add_executable(game
     src/utils/string_utils.cpp
     src/utils/config.cpp
     src/utils/path_utils.cpp
+    src/utils/engine_paths.cpp
     src/scripting/script_manager.cpp
     src/scripting/lua_bindings.cpp
     src/project/project.cpp

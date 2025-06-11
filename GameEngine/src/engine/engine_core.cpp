@@ -4,6 +4,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include "../utils/config.h"
+#include "../utils/engine_paths.h"
 #include <filesystem>
 #include <sstream>
 #include <iomanip>
@@ -18,6 +19,9 @@ EngineCore::~EngineCore() = default;
 bool EngineCore::initialize(bool headless) {
     headlessMode = headless;
     
+    // Initialize EnginePaths first
+    EnginePaths::initialize();
+    
     if (!headlessMode) {
         spdlog::info("EngineCore::initialize - Starting engine initialization");
     } else {
@@ -25,10 +29,11 @@ bool EngineCore::initialize(bool headless) {
         spdlog::set_level(spdlog::level::off);
     }
     
-    // Load configuration
-    if (!Config::load("config.json")) {
+    // Load configuration using EnginePaths
+    std::string configPath = EnginePaths::getConfigFile().string();
+    if (!Config::load(configPath)) {
         if (!headlessMode) {
-            spdlog::warn("EngineCore::initialize - Failed to load config.json, using defaults");
+            spdlog::warn("EngineCore::initialize - Failed to load {}, using defaults", configPath);
         }
     }
     
@@ -76,6 +81,9 @@ bool EngineCore::initializeGraphics() {
     // Initialize logging
     initializeLogging();
     
+    // Display engine paths information
+    displayEnginePaths();
+    
     running = true;
     spdlog::info("EngineCore::initialize - Engine core initialized successfully ({}x{}, \"{}\")", 
                  width, height, title);
@@ -102,16 +110,19 @@ bool EngineCore::initializeHeadless() {
 
 void EngineCore::initializeLogging() {
     try {
-        // Create logs directory
-        std::filesystem::create_directories("logs");
+        // Create logs directory using EnginePaths
+        std::filesystem::path logsDir = EnginePaths::getLogsDir();
+        std::filesystem::create_directories(logsDir);
         
         // Create file sink with timestamp
         auto now = std::chrono::system_clock::now();
         auto time = std::chrono::system_clock::to_time_t(now);
         std::stringstream logFileName;
-        logFileName << "logs/engine_" << std::put_time(std::localtime(&time), "%Y%m%d_%H%M%S") << ".log";
+        logFileName << "engine_" << std::put_time(std::localtime(&time), "%Y%m%d_%H%M%S") << ".log";
         
-        auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFileName.str());
+        std::filesystem::path logFilePath = logsDir / logFileName.str();
+        
+        auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath.string());
         auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
         
         std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
@@ -121,7 +132,7 @@ void EngineCore::initializeLogging() {
         spdlog::set_level(spdlog::level::info);
         spdlog::flush_on(spdlog::level::info);
         
-        spdlog::info("Log file created: {}", logFileName.str());
+        spdlog::info("Log file created: {}", logFilePath.string());
     } catch (const std::exception& e) {
         spdlog::error("Failed to create log file: {}", e.what());
         spdlog::set_level(spdlog::level::info);
@@ -194,6 +205,11 @@ void EngineCore::setVSync(bool enabled) {
     } else {
         ClearWindowState(FLAG_VSYNC_HINT);
     }
+}
+
+void EngineCore::displayEnginePaths() {
+    // Use centralized EnginePaths for display
+    EnginePaths::displayPaths();
 }
 
 } // namespace GameEngine

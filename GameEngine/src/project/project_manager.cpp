@@ -2,6 +2,7 @@
 #include "../utils/file_utils.h"
 #include "../utils/string_utils.h"
 #include "../utils/path_utils.h"
+#include "../utils/engine_paths.h"
 #include <filesystem>
 #include <fstream>
 #include <regex>
@@ -24,20 +25,20 @@ bool ProjectManager::createProject(const std::string& name, const std::string& t
     }
     
     try {
-        // Create project directory structure
-        std::string projectPath = projectsRootPath + name;
+        // Create project directory structure using EnginePaths
+        std::filesystem::path projectPath = EnginePaths::getProjectDir(name);
         std::filesystem::create_directories(projectPath);
-        std::filesystem::create_directories(projectPath + "/scenes");
-        std::filesystem::create_directories(projectPath + "/assets");
-        std::filesystem::create_directories(projectPath + "/scripts");
+        std::filesystem::create_directories(projectPath / "scenes");
+        std::filesystem::create_directories(projectPath / "assets");
+        std::filesystem::create_directories(projectPath / "scripts");
         
         // Copy template files
-        std::string templatePath = PathUtils::resolveTemplatePath(template_name + "/");
+        std::filesystem::path templatePath = EnginePaths::getTemplatesDir() / template_name;
         
         // Load and process project template
-        std::string templateFile = templatePath + "project_template.json";
+        std::filesystem::path templateFile = templatePath / "project_template.json";
         if (std::filesystem::exists(templateFile)) {
-            std::string content = FileUtils::readFile(templateFile);
+            std::string content = FileUtils::readFile(templateFile.string());
             
             // Replace template variables
             content = StringUtils::replace(content, "{{PROJECT_NAME}}", name);
@@ -47,19 +48,19 @@ bool ProjectManager::createProject(const std::string& name, const std::string& t
             projectData["name"] = name;
             
             // Save project file
-            std::ofstream file(projectPath + "/project.json");
+            std::ofstream file(projectPath / "project.json");
             file << projectData.dump(4);
             file.close();
             
             // Copy scene templates
-            std::string scenesTemplatePath = templatePath + "scenes";
+            std::filesystem::path scenesTemplatePath = templatePath / "scenes";
             if (std::filesystem::exists(scenesTemplatePath)) {
                 for (const auto& entry : std::filesystem::directory_iterator(scenesTemplatePath)) {
                     if (entry.path().extension() == ".json") {
                         std::string sceneContent = FileUtils::readFile(entry.path().string());
                         std::string sceneName = entry.path().stem().string();
                         
-                        std::ofstream sceneFile(projectPath + "/scenes/" + sceneName + ".json");
+                        std::ofstream sceneFile(projectPath / "scenes" / (sceneName + ".json"));
                         sceneFile << sceneContent;
                         sceneFile.close();
                     }
@@ -85,12 +86,12 @@ bool ProjectManager::createProject(const std::string& name, const std::string& t
                 }}
             };
             
-            std::ofstream file(projectPath + "/project.json");
+            std::ofstream file(projectPath / "project.json");
             file << projectData.dump(4);
             file.close();
         }
         
-        spdlog::info("Project created: {} at {}", name, projectPath);
+        spdlog::info("Project created: {} at {}", name, projectPath.string());
         return true;
     }
     catch (const std::exception& e) {
@@ -100,7 +101,7 @@ bool ProjectManager::createProject(const std::string& name, const std::string& t
 }
 
 bool ProjectManager::openProject(const std::string& name) {
-    std::string projectPath = projectsRootPath + name;
+    std::filesystem::path projectPath = EnginePaths::getProjectDir(name);
     
     if (!std::filesystem::exists(projectPath)) {
         spdlog::error("Project not found: {}", name);
@@ -112,7 +113,7 @@ bool ProjectManager::openProject(const std::string& name) {
     
     // Create and load new project
     currentProject = std::make_unique<Project>();
-    if (!currentProject->load(projectPath)) {
+    if (!currentProject->load(projectPath.string())) {
         currentProject.reset();
         return false;
     }
@@ -147,15 +148,16 @@ bool ProjectManager::closeProject() {
 std::vector<std::string> ProjectManager::listProjects() {
     std::vector<std::string> projects;
     
-    if (!std::filesystem::exists(projectsRootPath)) {
-        std::filesystem::create_directories(projectsRootPath);
+    std::filesystem::path projectsDir = EnginePaths::getProjectsDir();
+    if (!std::filesystem::exists(projectsDir)) {
+        std::filesystem::create_directories(projectsDir);
         return projects;
     }
     
     try {
-        for (const auto& entry : std::filesystem::directory_iterator(projectsRootPath)) {
+        for (const auto& entry : std::filesystem::directory_iterator(projectsDir)) {
             if (entry.is_directory()) {
-                std::string projectFile = entry.path().string() + "/project.json";
+                std::filesystem::path projectFile = entry.path() / "project.json";
                 if (std::filesystem::exists(projectFile)) {
                     projects.push_back(entry.path().filename().string());
                 }
@@ -174,8 +176,8 @@ Project* ProjectManager::getCurrentProject() {
 }
 
 bool ProjectManager::projectExists(const std::string& name) {
-    std::string projectPath = projectsRootPath + name + "/project.json";
-    return std::filesystem::exists(projectPath);
+    std::filesystem::path projectFile = EnginePaths::getProjectDir(name) / "project.json";
+    return std::filesystem::exists(projectFile);
 }
 
 } // namespace GameEngine

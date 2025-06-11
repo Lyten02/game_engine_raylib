@@ -64,6 +64,7 @@ private:
     
     // Initialize logging
     void initializeLogging();
+    void displayEnginePaths();
 };
 
 } // namespace GameEngine

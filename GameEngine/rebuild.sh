@@ -1,14 +1,35 @@
 #!/bin/bash
 
+# Full clean rebuild - removes everything including cached dependencies
+# Use this when you want a completely fresh build
+
+echo "=== Full Clean Rebuild ==="
+echo "This will remove all cached dependencies and rebuild everything from scratch."
+echo "For faster rebuilds, use:"
+echo "  ./rebuild_fast.sh       - Preserves cached dependencies"
+echo "  ./rebuild_incremental.sh - Only recompiles changed files"
+echo ""
+
 echo "Cleaning build directory..."
 rm -rf build
 mkdir build
 cd build
 
 echo "Running CMake..."
-cmake ..
+cmake .. -DCMAKE_BUILD_TYPE=Release
 
 echo "Building project..."
-make -j8
+time make -j8
 
-echo "Build complete!"
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "Build complete!"
+    echo "Executable: build/game"
+    echo "Run with: cd build && ./game"
+    echo ""
+    echo "TIP: Next time use ./rebuild_incremental.sh for faster builds!"
+else
+    echo ""
+    echo "Build failed!"
+    exit 1
+fi

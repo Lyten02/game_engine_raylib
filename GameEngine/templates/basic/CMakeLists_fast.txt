@@ -4,9 +4,30 @@ project({{PROJECT_NAME}})
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Use the parent project's dependency paths
-set(PARENT_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../")
-set(DEPS_DIR "${PARENT_BUILD_DIR}/_deps")
+# Find the main project's dependency paths
+# The project structure is: GameEngine/output/ProjectName/
+# We need to find: GameEngine/build/_deps/
+set(SEARCH_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(DEPS_DIR "")
+
+# Search up to 5 levels up for the build/_deps directory
+foreach(i RANGE 5)
+    if(EXISTS "${SEARCH_DIR}/build/_deps")
+        set(DEPS_DIR "${SEARCH_DIR}/build/_deps")
+        break()
+    elseif(EXISTS "${SEARCH_DIR}/_deps")
+        set(DEPS_DIR "${SEARCH_DIR}/_deps")
+        break()
+    endif()
+    set(SEARCH_DIR "${SEARCH_DIR}/..")
+endforeach()
+
+# Verify dependencies exist
+if(NOT EXISTS "${DEPS_DIR}/raylib-build/raylib/libraylib.a")
+    message(FATAL_ERROR "Dependencies not found. Searched for build/_deps but found: ${DEPS_DIR}. Run full build first in main project.")
+endif()
+
+message(STATUS "Using dependencies from: ${DEPS_DIR}")
 
 # Add include directories from parent build
 include_directories(
@@ -51,24 +72,18 @@ elseif(UNIX)
     )
 endif()
 
-# Copy assets and scenes to build directory
-# Remove existing files to avoid copy errors
-file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/assets)
-file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/scenes)
-file(REMOVE ${CMAKE_BINARY_DIR}/game_config.json)
-
-# Copy fresh files
+# Always copy game files to build directory (overwrite if exists)
 file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/scenes DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/game_config.json DESTINATION ${CMAKE_BINARY_DIR})
 
-# Also copy files to the executable directory after build
+# Also copy files next to the executable after build
 add_custom_command(TARGET {{PROJECT_NAME}} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/assets
+        ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/assets
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/scenes $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/scenes
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_SOURCE_DIR}/game_config.json $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/game_config.json
+        ${CMAKE_SOURCE_DIR}/scenes $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/scenes
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/game_config.json $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/game_config.json
     COMMENT "Copying game resources to executable directory"
 )

@@ -1,7 +1,0 @@
-project.create BuildTestSimple
-project.open BuildTestSimple
-scene.create main
-entity.create Player
-scene.save main
-project.build-fast
-exit

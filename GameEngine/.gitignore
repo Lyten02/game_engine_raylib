@@ -1,7 +1,7 @@
 # Build directories
-build/
-cmake-build-*/
-out/
+/build/
+/cmake-build-*/
+/out/
 
 # IDE specific files
 .vscode/
@@ -68,9 +68,10 @@ docs/_build/
 docs/_static/
 docs/_templates/
 
-# Game executable
-game
-GameEngine
+# Game executable (only in root and build directories)
+/game
+/build/game
+/GameEngine
 
 # Debug symbols
 *.dSYM/

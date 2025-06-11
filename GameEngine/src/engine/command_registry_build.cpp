@@ -7,6 +7,7 @@
 #include "../build/async_build_system.h"
 #include "../engine/play_mode.h"
 #include "../utils/log_limiter.h"
+#include "../utils/engine_paths.h"
 #include <raylib.h>
 #include <spdlog/spdlog.h>
 #include <filesystem>
@@ -198,6 +199,72 @@ void CommandRegistry::registerBuildCommands(CommandProcessor* processor, Console
             }
         }, "Run the built executable", "Build");
     
+    // project.build.fast command - fast build with pre-compiled dependencies
+    processor->registerCommand("project.build.fast",
+        [console, projectManager, buildSystem](const std::vector<std::string>& args) {
+            if (!projectManager->getCurrentProject()) {
+                console->addLine("No project open. Use 'project.open' first.", RED);
+                return;
+            }
+            
+            console->addLine("Fast build with cached dependencies: " + projectManager->getCurrentProject()->getName() + "...", YELLOW);
+            std::string projectName = projectManager->getCurrentProject()->getName();
+            std::string outputDir = EnginePaths::getProjectOutputDir(projectName).string();
+            
+            // Check if main project dependencies exist
+            // Use centralized path system
+            std::filesystem::path mainBuildDir = EnginePaths::getBuildDir();
+            std::filesystem::path depsDir = EnginePaths::getDependenciesDir();
+            
+            // Check if dependencies exist
+            if (!std::filesystem::exists(depsDir)) {
+                console->addLine("Cannot find main build directory with dependencies.", RED);
+                console->addLine("Expected at: " + depsDir.string(), GRAY);
+                console->addLine("Make sure you've run 'make' in the " + mainBuildDir.string() + " directory first.", YELLOW);
+                return;
+            }
+            
+            std::filesystem::path depsPath = depsDir / "raylib-build/raylib/libraylib.a";
+            if (!std::filesystem::exists(depsPath)) {
+                console->addLine("Cached dependencies not found. Run a full build first.", RED);
+                console->addLine("Missing: " + depsPath.string(), GRAY);
+                console->addLine("Dependencies directory: " + depsDir.string(), GRAY);
+                return;
+            }
+            
+            // Create build directory
+            if (!buildSystem->createBuildDirectory(projectName)) {
+                console->addLine("Failed to create build directory!", RED);
+                return;
+            }
+            
+            // Generate game code
+            if (!buildSystem->generateGameCode(projectManager->getCurrentProject(), outputDir)) {
+                console->addLine("Failed to generate game code!", RED);
+                return;
+            }
+            
+            // Generate fast CMakeLists
+            if (!buildSystem->generateCMakeListsFast(projectManager->getCurrentProject(), outputDir)) {
+                console->addLine("Failed to generate CMakeLists.txt!", RED);
+                return;
+            }
+            
+            // Process scenes and assets
+            buildSystem->processScenes(projectManager->getCurrentProject(), outputDir);
+            buildSystem->packageAssets(projectManager->getCurrentProject(), outputDir);
+            
+            // Compile with fast build
+            bool success = buildSystem->compileProject(projectManager->getCurrentProject(), outputDir, outputDir);
+            if (success) {
+                console->addLine("Fast build succeeded!", GREEN);
+                std::string execPath = outputDir + "/game";
+                console->addLine("Executable: " + execPath, GRAY);
+            } else {
+                console->addLine("Fast build failed!", RED);
+            }
+        }, "Build project using cached dependencies (fast)", "Build");
+    
     // project.build.async command  
     processor->registerCommand("project.build.async",
         [console, projectManager, asyncBuildSystem](const std::vector<std::string>& args) {
@@ -219,6 +286,28 @@ void CommandRegistry::registerBuildCommands(CommandProcessor* processor, Console
                 console->addLine("Failed to start build - another build may be in progress", RED);
             }
         }, "Build project asynchronously", "Build");
+    
+    // project.build.async.fast command - async fast build with cached dependencies
+    processor->registerCommand("project.build.async.fast",
+        [console, projectManager, asyncBuildSystem](const std::vector<std::string>& args) {
+            if (!projectManager->getCurrentProject()) {
+                console->addLine("No project open. Use 'project.open' first.", RED);
+                return;
+            }
+            
+            if (asyncBuildSystem->getStatus() == AsyncBuildSystem::BuildStatus::InProgress) {
+                // Use log limiter to prevent spam
+                if (LogLimiter::shouldLog("build_in_progress")) {
+                    console->addLine("Build already in progress", YELLOW);
+                }
+                return;
+            }
+            
+            console->addLine("Starting async fast build for: " + projectManager->getCurrentProject()->getName(), YELLOW);
+            if (!asyncBuildSystem->startFastBuild(projectManager->getCurrentProject())) {
+                console->addLine("Failed to start fast build - another build may be in progress", RED);
+            }
+        }, "Build project asynchronously with cached dependencies (fastest)", "Build");
 }
 
 } // namespace GameEngine

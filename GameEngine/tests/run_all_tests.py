@@ -530,6 +530,11 @@ class TestRunner:
         # Python tests
         python_tests = list(Path(test_dir).glob("test_*.py"))
         exclude_tests = ["test_build_system_fixed.py", "test_build_system_simple.py"]
+        
+        # In fast mode, also exclude slow build tests
+        if self.skip_full_build:
+            exclude_tests.extend(["test_fast_build.py", "test_full_workflow.py", "test_build_full.py"])
+        
         python_tests = [t for t in python_tests if t.name not in exclude_tests]
         count += len(python_tests)
         
@@ -609,6 +614,11 @@ def main():
     # 1. Run Python tests
     python_tests = list(Path(test_dir).glob("test_*.py"))
     exclude_tests = ["test_build_system_fixed.py", "test_build_system_simple.py"]
+    
+    # In fast mode, also exclude slow build tests
+    if runner.skip_full_build:
+        exclude_tests.extend(["test_fast_build.py", "test_full_workflow.py", "test_build_full.py"])
+    
     python_tests = [t for t in python_tests if t.name not in exclude_tests]
     
     if python_tests:

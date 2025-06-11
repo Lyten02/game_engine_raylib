@@ -73,8 +73,11 @@ void CommandProcessor::executeCommand(const std::string& input) {
         try {
             std::vector<std::string> args(tokens.begin() + 1, tokens.end());
             
-            // If timeout is disabled, execute directly
-            if (!timeoutEnabled) {
+            // Check if this is a build command - no timeout for builds
+            bool isBuildCommand = commandName.find("build") != std::string::npos;
+            
+            // If timeout is disabled or this is a build command, execute directly
+            if (!timeoutEnabled || isBuildCommand) {
                 it->second.function(args);
                 return;
             }

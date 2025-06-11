@@ -223,6 +223,7 @@ handle_enter:
         if (historyIndex < static_cast<int>(commandHistory.size()) - 1) {
             historyIndex++;
             currentInput = commandHistory[historyIndex];
+            cursorPosition = currentInput.length();
         } else {
             historyIndex = -1;
             currentInput.clear();
@@ -397,7 +398,8 @@ void Console::render() {
                {10, consoleHeight - 30}, fontSize, 1, inputColor);
     
     // Draw inline suggestion
-    if (!currentSuggestion.empty() && cursorPosition == currentInput.length()) {
+    if (!currentSuggestion.empty() && cursorPosition == currentInput.length() &&
+        currentSuggestion.length() > currentInput.length()) {
         std::string suggestionPart = currentSuggestion.substr(currentInput.length());
         std::string beforeSuggestion = "> " + currentInput;
         int suggestionX = 10 + MeasureText(beforeSuggestion.c_str(), fontSize);
@@ -481,7 +483,7 @@ void Console::render() {
     }
     
     // Draw cursor
-    if (static_cast<int>(GetTime() * 2) % 2 == 0) {
+    if (static_cast<int>(GetTime() * 2) % 2 == 0 && cursorPosition <= currentInput.length()) {
         std::string beforeCursor = "> " + currentInput.substr(0, cursorPosition);
         int cursorX = 10 + MeasureText(beforeCursor.c_str(), fontSize);
         DrawRectangle(cursorX, consoleHeight - 30, 2, fontSize, inputColor);

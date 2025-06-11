@@ -2,6 +2,7 @@
 #include "cli/cli_engine.h"
 #include "cli/cli_argument_parser.h"
 #include "utils/log_limiter.h"
+#include "utils/engine_paths.h"
 #include <spdlog/spdlog.h>
 #include <iostream>
 
@@ -15,10 +16,10 @@ int main(int argc, char* argv[]) {
         pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
     #endif
     
-    // Parse command line arguments
+    // Parse command line arguments FIRST
     auto args = CLIArgumentParser::parse(argc, argv);
     
-    // Configure logging based on command line arguments
+    // Configure logging based on command line arguments BEFORE any initialization
     if (!args.logLevel.empty()) {
         // Set specific log level if provided
         if (args.logLevel == "trace") spdlog::set_level(spdlog::level::trace);
@@ -37,6 +38,9 @@ int main(int argc, char* argv[]) {
         // Verbose mode - show debug logs
         spdlog::set_level(spdlog::level::debug);
     }
+    
+    // Initialize engine paths AFTER logging is configured
+    GameEngine::EnginePaths::initialize();
     
     // Configure log limiting for test mode
     if (args.mode == CLIMode::BATCH || args.mode == CLIMode::SINGLE_COMMAND) {

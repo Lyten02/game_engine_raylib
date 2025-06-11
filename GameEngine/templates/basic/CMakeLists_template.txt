@@ -57,24 +57,18 @@ target_link_libraries({{PROJECT_NAME}}
     spdlog::spdlog
 )
 
-# Copy assets and scenes to build directory
-# Remove existing files to avoid copy errors
-file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/assets)
-file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/scenes)
-file(REMOVE ${CMAKE_BINARY_DIR}/game_config.json)
-
-# Copy fresh files
+# Always copy game files to build directory (overwrite if exists)
 file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/scenes DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/game_config.json DESTINATION ${CMAKE_BINARY_DIR})
 
-# Also copy files to the executable directory after build
+# Also copy files next to the executable after build
 add_custom_command(TARGET {{PROJECT_NAME}} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/assets
+        ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/assets
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/scenes $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/scenes
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_SOURCE_DIR}/game_config.json $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/game_config.json
+        ${CMAKE_SOURCE_DIR}/scenes $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/scenes
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/game_config.json $<TARGET_FILE_DIR:{{PROJECT_NAME}}>/game_config.json
     COMMENT "Copying game resources to executable directory"
 )

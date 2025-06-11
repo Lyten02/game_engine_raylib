@@ -5,8 +5,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build Commands
 
 ```bash
-# Quick rebuild from scratch
+# Rebuild options (from fastest to slowest)
 cd GameEngine
+
+# Smart rebuild - automatically chooses best strategy
+./rebuild_smart.sh
+
+# Incremental rebuild - only recompiles changed files (fastest)
+./rebuild_incremental.sh  
+
+# Fast rebuild - preserves cached dependencies
+./rebuild_fast.sh
+
+# Full clean rebuild - removes everything including deps
 ./rebuild.sh
 
 # Test all project in build folder

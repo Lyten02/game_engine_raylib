@@ -20,7 +20,16 @@ class BuildSystemTest:
     def __init__(self):
         self.game_engine_dir = Path(__file__).parent.parent
         # Tests are always run from build directory
-        self.game_executable = Path("./game")
+        # Find game executable
+        if Path("./game").exists():
+            self.game_executable = Path("./game").absolute()
+        elif Path("../build/game").exists():
+            self.game_executable = Path("../build/game").absolute()
+        elif Path(self.game_engine_dir / "build" / "game").exists():
+            self.game_executable = Path(self.game_engine_dir / "build" / "game").absolute()
+        else:
+            raise FileNotFoundError("Cannot find game executable")
+        
         self.test_project_name = "BuildTestProject"
         # Output directory is relative to game engine dir
         self.output_dir = self.game_engine_dir / "output" / self.test_project_name

@@ -19,8 +19,12 @@ def run_editor_test():
     
     # Check if project already exists with cached dependencies
     has_cached_deps = False
+    project_exists = False
     for base_dir in [".", ".."]:
+        project_path = os.path.join(base_dir, "projects/EditorTest")
         output_path = os.path.join(base_dir, "output/EditorTest")
+        if os.path.exists(project_path):
+            project_exists = True
         if os.path.exists(os.path.join(output_path, "build/_deps")):
             has_cached_deps = True
             break
@@ -42,7 +46,7 @@ def run_editor_test():
     # Use fast build if project already exists with deps
     build_command = "project.build.fast" if has_cached_deps else "project.build"
     
-    if has_cached_deps:
+    if project_exists:
         # Project exists, just open and build
         test_script = f"""# Test editor mode build functionality
 project.open EditorTest
@@ -69,7 +73,7 @@ quit
         # Run the game with batch commands and JSON output
         build_cmd = "project.build.fast" if has_cached_deps else "project.build"
         
-        if has_cached_deps:
+        if project_exists:
             # Project exists, just open and build
             commands = [
                 "project.open EditorTest",

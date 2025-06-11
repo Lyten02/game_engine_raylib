@@ -121,4 +121,4 @@ tests/temp_test_*.txt
 
 # Test output directories
 output/
-scenes/
+scenes/.deps_cache/

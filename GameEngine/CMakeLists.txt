@@ -148,6 +148,40 @@ add_custom_target(test-fast
     COMMENT "Running tests without full builds"
 )
 
+# Add custom target for parallel tests
+add_custom_target(test-parallel
+    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests in parallel mode..."
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py --parallel --skip-full-build
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    DEPENDS game
+    COMMENT "Running tests in parallel"
+)
+
+# Add custom target for parallel tests with custom worker count
+add_custom_target(test-parallel-2
+    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests in parallel mode - 2 workers..."
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py --parallel --skip-full-build --workers 2
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    DEPENDS game
+    COMMENT "Running tests in parallel with 2 workers"
+)
+
+add_custom_target(test-parallel-4
+    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests in parallel mode - 4 workers..."
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py --parallel --skip-full-build --workers 4
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    DEPENDS game
+    COMMENT "Running tests in parallel with 4 workers"
+)
+
+add_custom_target(test-parallel-8
+    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests in parallel mode - 8 workers..."
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py --parallel --skip-full-build --workers 8
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    DEPENDS game
+    COMMENT "Running tests in parallel with 8 workers"
+)
+
 # Add custom target for running C++ tests
 add_custom_target(test-cpp
     COMMAND ${CMAKE_COMMAND} -E echo "Running C++ tests..."

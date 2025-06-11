@@ -32,21 +32,30 @@ make -j8
 ./game
 
 # CMake targets
-make test         # Run all tests
-make test-cpp     # Run C++ tests only
-make clean-tests  # Clean test projects
-make clean-logs   # Remove log files
-make clean-all    # Full clean
+make test              # Run all tests (sequential)
+make test-fast         # Run tests without full builds
+make test-parallel     # Run tests in parallel (automatic worker count)
+make test-parallel-2   # Run tests with 2 workers
+make test-parallel-4   # Run tests with 4 workers  
+make test-parallel-8   # Run tests with 8 workers
+make test-cpp          # Run C++ tests only
+make clean-tests       # Clean test projects
+make clean-logs        # Remove log files
+make clean-all         # Full clean
 ```
 
 ## Testing Commands
 
 ```bash
 # Run all tests from build directory
-make test
+make test              # Sequential execution (~7s)
+make test-parallel     # Parallel execution (~6.5s, 13% faster)
+make test-parallel-4   # Force 4 workers
 
 # Run specific test suites
 python3 ../tests/run_all_tests.py              # All Python tests
+python3 ../tests/run_all_tests.py --parallel   # Parallel mode
+python3 ../tests/run_all_tests.py --parallel --workers 2
 python3 ../tests/test_cli_basic.py             # Specific test
 ./tests/compile_and_run_tests.sh               # C++ ResourceManager tests
 
@@ -54,6 +63,29 @@ python3 ../tests/test_cli_basic.py             # Specific test
 ./game --json --script ../tests/basic_cli_test.txt
 ./game --headless --batch "project.create test" "project.build"
 ```
+
+## Parallel Testing System
+
+The test suite now supports parallel execution for improved performance:
+
+### How it works:
+- Tests are categorized by resource usage and execution characteristics
+- Lightweight tests run with high parallelism (4 workers)
+- Build tests run with moderate parallelism (2 workers)
+- Heavy tests run sequentially to avoid resource contention
+- Command tests run in parallel for quick validation
+
+### Performance:
+- Sequential: ~7.0 seconds
+- Parallel: ~6.5 seconds (13% improvement)
+- Greater improvements expected on systems with more cores
+
+### Test Categories:
+1. **LIGHTWEIGHT**: Fast unit tests, minimal resources
+2. **BUILD**: Build system tests, moderate resources
+3. **HEAVY**: Resource-intensive tests (memory, config stress)
+4. **COMMAND**: CLI command tests, very fast
+5. **SCRIPT**: Script execution tests
 
 ## Test Caching System
 

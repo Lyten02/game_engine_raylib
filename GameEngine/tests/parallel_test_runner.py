@@ -253,6 +253,7 @@ class ParallelTestRunner:
         self.game_executable = game_executable
         self.skip_full_build = skip_full_build
         self.categorizer = TestCategorizer()
+        self.max_workers_override = None
         
         # Results tracking
         self.all_results: List[TestResult] = []
@@ -313,6 +314,10 @@ class ParallelTestRunner:
         """Run a group of tests in parallel"""
         if not tests:
             return []
+        
+        # Apply worker override if set
+        if self.max_workers_override and max_workers > 1:
+            max_workers = min(max_workers, self.max_workers_override)
         
         print(f"\n🔄 Running {group_name} ({len(tests)} tests, {max_workers} workers)")
         

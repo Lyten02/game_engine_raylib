@@ -563,6 +563,8 @@ def main():
         print("  --verbose, -v     Show real-time error details")
         print("  --no-progress     Disable progress bar")
         print("  --skip-full-build Skip full build tests (faster)")
+        print("  --parallel, -p    Run tests in parallel (experimental)")
+        print("  --workers N       Number of parallel workers (default: auto)")
         print("  --help, -h        Show this help message")
         sys.exit(0)
     
@@ -575,6 +577,85 @@ def main():
         print("⚡ Fast mode: Skipping full build tests")
     else:
         print("🔨 Full mode: Including all build tests (may take several minutes)")
+    
+    # Check for parallel mode
+    use_parallel = "--parallel" in sys.argv or "-p" in sys.argv
+    if use_parallel:
+        # Import and use parallel runner
+        from parallel_test_runner import ParallelTestRunner
+        
+        print("🚀 Parallel execution mode enabled (experimental)")
+        
+        # Parse workers argument
+        max_workers = None
+        if "--workers" in sys.argv:
+            try:
+                idx = sys.argv.index("--workers")
+                if idx + 1 < len(sys.argv):
+                    max_workers = int(sys.argv[idx + 1])
+                    print(f"  Using {max_workers} workers")
+            except (ValueError, IndexError):
+                print("  Invalid --workers argument, using default")
+        
+        # Run parallel tests
+        test_dir = Path(__file__).parent
+        game_exe = runner.game_exe if 'runner' in locals() else "./game"
+        
+        # Find game executable
+        if os.path.exists("game"):
+            game_exe = "./game"
+        elif os.path.exists("../build/game"):
+            game_exe = "../build/game"
+        elif os.path.exists("build/game"):
+            game_exe = "./build/game"
+        
+        parallel_runner = ParallelTestRunner(
+            test_dir,
+            game_exe,
+            skip_full_build="--skip-full-build" in sys.argv
+        )
+        
+        # Override worker counts if specified
+        if max_workers:
+            # Need to override in the runner before execution
+            parallel_runner.max_workers_override = max_workers
+        
+        # Run tests
+        summary = parallel_runner.run_all_tests()
+        
+        # Save results in standard format
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        log_file = f"test_log_{timestamp}.log"
+        
+        with open(log_file, 'w') as f:
+            f.write(f"GameEngine Parallel Test Log - {datetime.now().isoformat()}\n")
+            f.write("="*80 + "\n")
+            f.write(f"Total tests: {summary['total_tests']}\n")
+            f.write(f"Passed: {summary['passed']}\n")
+            f.write(f"Failed: {summary['failed']}\n")
+            f.write(f"Success rate: {summary['success_rate']:.1f}%\n")
+            f.write(f"Total time: {summary['total_time']:.1f}s\n")
+            f.write("="*80 + "\n\n")
+            
+            # Write detailed results
+            for result_dict in summary.get('all_results', []):
+                f.write(f"\n[{result_dict['timestamp']}] {result_dict['test_name']}\n")
+                f.write(f"  Type: {result_dict['test_type']}\n")
+                f.write(f"  Success: {result_dict['success']}\n")
+                f.write(f"  Time: {result_dict['elapsed']:.2f}s\n")
+                f.write(f"  Worker: {result_dict['worker_id']}\n")
+                if not result_dict['success']:
+                    f.write(f"  Error: {result_dict['error']}\n")
+        
+        # Save JSON results
+        with open("test_results.json", 'w') as f:
+            json.dump(summary, f, indent=2, default=str)
+        
+        print(f"\n📋 Full details saved to: {log_file}")
+        print("📊 Detailed results saved to: test_results.json")
+        
+        # Exit with appropriate code
+        sys.exit(0 if summary['failed'] == 0 else 1)
     
     # Clean test data first - DISABLED to preserve cached dependencies
     # Uncomment if you need to clean test data

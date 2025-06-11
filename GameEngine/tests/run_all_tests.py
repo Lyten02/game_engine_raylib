@@ -29,10 +29,17 @@ class TestRunner:
         self.total_tests = 0
         self.start_time = time.time()
         
-        # Create the log file
+        # Create the log file with enhanced header
         with open(self.log_file, 'w') as f:
-            f.write(f"GameEngine Test Log - {datetime.now().isoformat()}\n")
+            f.write(f"GameEngine Test Suite Execution Log\n")
             f.write("="*80 + "\n")
+            f.write(f"Start Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Python Version: {sys.version.split()[0]}\n")
+            f.write(f"Platform: {sys.platform}\n")
+            f.write(f"Working Directory: {os.getcwd()}\n")
+            f.write(f"Skip Full Build: {self.skip_full_build}\n")
+            f.write(f"Verbose Mode: {self.verbose_mode}\n")
+            f.write("="*80 + "\n\n")
         
         # Find game executable - look in correct relative paths
         if os.path.exists("game"):
@@ -48,8 +55,8 @@ class TestRunner:
     
     def log_message(self, message, level="INFO"):
         """Write message to log file with timestamp"""
-        timestamp = datetime.now().strftime('%H:%M:%S.%f')[:-3]
-        log_entry = f"[{timestamp}] [{level}] {message}\n"
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        log_entry = f"[{timestamp}] [{level:<8}] {message}\n"
         
         with open(self.log_file, 'a') as f:
             f.write(log_entry)
@@ -109,9 +116,15 @@ class TestRunner:
         test_name = os.path.basename(test_file)
         self.current_test += 1
         
+        # Log test start with separator
+        self.log_message(f"{'='*60}", "INFO")
+        self.log_message(f"TEST START: {test_name} ({self.current_test}/{self.total_tests})", "INFO")
+        self.log_message(f"Type: Python Test", "INFO")
+        self.log_message(f"File: {test_file}", "INFO")
+        self.log_message(f"{'='*60}", "INFO")
+        
         # Show running status
         self.print_progress(self.current_test, self.total_tests, test_name, "running")
-        self.log_message(f"Starting Python test: {test_name}")
         
         start_time = time.time()
         
@@ -138,7 +151,12 @@ class TestRunner:
             
             if result.returncode == 0:
                 self.print_progress(self.current_test, self.total_tests, test_name, "passed", elapsed)
-                self.log_message(f"Python test PASSED: {test_name} ({elapsed:.2f}s)")
+                self.log_message(f"TEST PASSED: {test_name}", "SUCCESS")
+                self.log_message(f"Duration: {elapsed:.2f} seconds", "INFO")
+                self.log_message(f"Return Code: 0", "INFO")
+                if result.stdout.strip():
+                    self.log_message(f"Output Preview: {result.stdout[:200]}{'...' if len(result.stdout) > 200 else ''}", "INFO")
+                self.log_message(f"{'='*60}\n", "INFO")
                 self.passed += 1
                 self.test_results.append({
                     "test": test_file,
@@ -149,6 +167,22 @@ class TestRunner:
             else:
                 self.print_progress(self.current_test, self.total_tests, test_name, "failed", elapsed)
                 self.failed += 1
+                
+                # Log detailed failure information
+                self.log_message(f"TEST FAILED: {test_name}", "ERROR")
+                self.log_message(f"Duration: {elapsed:.2f} seconds", "ERROR")
+                self.log_message(f"Return Code: {result.returncode}", "ERROR")
+                self.log_message(f"Command: {' '.join(args)}", "ERROR")
+                
+                if result.stdout.strip():
+                    self.log_message(f"{'='*40} STDOUT {'='*40}", "ERROR")
+                    self.log_message(result.stdout, "ERROR")
+                
+                if result.stderr.strip():
+                    self.log_message(f"{'='*40} STDERR {'='*40}", "ERROR")
+                    self.log_message(result.stderr, "ERROR")
+                
+                self.log_message(f"{'='*60}\n", "ERROR")
                 
                 error_info = {
                     "return_code": result.returncode,
@@ -175,6 +209,13 @@ class TestRunner:
             self.print_progress(self.current_test, self.total_tests, test_name, "timeout", elapsed)
             self.failed += 1
             
+            # Log timeout details
+            self.log_message(f"TEST TIMEOUT: {test_name}", "ERROR")
+            self.log_message(f"Duration: {elapsed:.2f} seconds (exceeded {timeout}s timeout)", "ERROR")
+            self.log_message(f"Command: {' '.join(args)}", "ERROR")
+            self.log_message(f"The test was forcefully terminated after {timeout} seconds", "ERROR")
+            self.log_message(f"{'='*60}\n", "ERROR")
+            
             error_info = {
                 "return_code": -1,
                 "stdout": "",
@@ -197,6 +238,15 @@ class TestRunner:
             elapsed = time.time() - start_time
             self.print_progress(self.current_test, self.total_tests, test_name, "failed", elapsed)
             self.failed += 1
+            
+            # Log exception details
+            self.log_message(f"TEST EXCEPTION: {test_name}", "ERROR")
+            self.log_message(f"Duration: {elapsed:.2f} seconds", "ERROR")
+            self.log_message(f"Exception Type: {type(e).__name__}", "ERROR")
+            self.log_message(f"Exception Message: {str(e)}", "ERROR")
+            self.log_message(f"{'='*40} TRACEBACK {'='*40}", "ERROR")
+            self.log_message(traceback.format_exc(), "ERROR")
+            self.log_message(f"{'='*60}\n", "ERROR")
             
             error_info = {
                 "return_code": -1,
@@ -222,9 +272,15 @@ class TestRunner:
         test_name = os.path.basename(script_file)
         self.current_test += 1
         
+        # Log test start with separator
+        self.log_message(f"{'='*60}", "INFO")
+        self.log_message(f"TEST START: {test_name} ({self.current_test}/{self.total_tests})", "INFO")
+        self.log_message(f"Type: Script Test", "INFO")
+        self.log_message(f"File: {script_file}", "INFO")
+        self.log_message(f"{'='*60}", "INFO")
+        
         # Show running status
         self.print_progress(self.current_test, self.total_tests, test_name, "running")
-        self.log_message(f"Starting script test: {test_name}")
         
         start_time = time.time()
         
@@ -349,9 +405,16 @@ class TestRunner:
         """Run a single command test with enhanced error capture"""
         self.current_test += 1
         
+        # Log test start with separator
+        self.log_message(f"{'='*60}", "INFO")
+        self.log_message(f"TEST START: Command - {name} ({self.current_test}/{self.total_tests})", "INFO")
+        self.log_message(f"Type: Command Test", "INFO")
+        self.log_message(f"Command: {command}", "INFO")
+        self.log_message(f"Expected Success: {expected_success}", "INFO")
+        self.log_message(f"{'='*60}", "INFO")
+        
         # Show running status
         self.print_progress(self.current_test, self.total_tests, f"cmd: {name}", "running")
-        self.log_message(f"Starting command test: {name}")
         
         start_time = time.time()
         
@@ -513,6 +576,36 @@ class TestRunner:
         # Show detailed failure analysis
         self.print_detailed_failure_summary()
         
+        # Add final summary to log file
+        with open(self.log_file, 'a') as f:
+            f.write("\n" + "="*80 + "\n")
+            f.write("FINAL TEST EXECUTION SUMMARY\n")
+            f.write("="*80 + "\n")
+            f.write(f"End Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Total Duration: {total_time:.1f} seconds\n")
+            f.write(f"Total Tests: {total}\n")
+            f.write(f"Passed: {self.passed} ({(self.passed/total)*100:.1f}%)\n")
+            f.write(f"Failed: {self.failed} ({(self.failed/total)*100:.1f}%)\n")
+            f.write("\n")
+            
+            # Add execution time table
+            f.write("TEST EXECUTION TIME BREAKDOWN\n")
+            f.write("-"*80 + "\n")
+            f.write(f"{'Test Name':<50} {'Type':<10} {'Status':<10} {'Time (s)':<10}\n")
+            f.write("-"*80 + "\n")
+            
+            # Sort tests by execution time
+            sorted_results = sorted(self.test_results, key=lambda x: x.get('time', 0), reverse=True)
+            for result in sorted_results:
+                test_name = os.path.basename(result['test'])
+                if len(test_name) > 47:
+                    test_name = test_name[:44] + "..."
+                status = "PASSED" if result['passed'] else "FAILED"
+                time_str = f"{result.get('time', 0):.2f}" if 'time' in result else "N/A"
+                f.write(f"{test_name:<50} {result['type']:<10} {status:<10} {time_str:<10}\n")
+            
+            f.write("="*80 + "\n")
+        
         # Save results to JSON
         with open("test_results.json", "w") as f:
             json.dump({
@@ -628,8 +721,21 @@ def main():
         log_file = f"test_log_{timestamp}.log"
         
         with open(log_file, 'w') as f:
-            f.write(f"GameEngine Parallel Test Log - {datetime.now().isoformat()}\n")
+            # Enhanced header with system information
+            f.write(f"GameEngine Parallel Test Suite Execution Log\n")
             f.write("="*80 + "\n")
+            f.write(f"Start Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Test Mode: Parallel Execution\n")
+            f.write(f"Python Version: {sys.version.split()[0]}\n")
+            f.write(f"Platform: {sys.platform}\n")
+            f.write(f"Working Directory: {os.getcwd()}\n")
+            f.write(f"Skip Full Build: {'--skip-full-build' in sys.argv}\n")
+            f.write(f"Max Workers: {max_workers if max_workers else 'Auto'}\n")
+            f.write("="*80 + "\n\n")
+            
+            # Summary section
+            f.write("EXECUTION SUMMARY\n")
+            f.write("-"*80 + "\n")
             f.write(f"Total tests: {summary['total_tests']}\n")
             f.write(f"Passed: {summary['passed']}\n")
             f.write(f"Failed: {summary['failed']}\n")
@@ -637,15 +743,55 @@ def main():
             f.write(f"Total time: {summary['total_time']:.1f}s\n")
             f.write("="*80 + "\n\n")
             
-            # Write detailed results
+            # Group results by type
+            f.write("TEST RESULTS BY TYPE\n")
+            f.write("="*80 + "\n\n")
+            
+            # Organize results by test type
+            results_by_type = {}
             for result_dict in summary.get('all_results', []):
-                f.write(f"\n[{result_dict['timestamp']}] {result_dict['test_name']}\n")
-                f.write(f"  Type: {result_dict['test_type']}\n")
-                f.write(f"  Success: {result_dict['success']}\n")
-                f.write(f"  Time: {result_dict['elapsed']:.2f}s\n")
-                f.write(f"  Worker: {result_dict['worker_id']}\n")
-                if not result_dict['success']:
-                    f.write(f"  Error: {result_dict['error']}\n")
+                test_type = result_dict['test_type']
+                if test_type not in results_by_type:
+                    results_by_type[test_type] = []
+                results_by_type[test_type].append(result_dict)
+            
+            # Write results grouped by type
+            for test_type, results in sorted(results_by_type.items()):
+                f.write(f"{test_type.upper()} TESTS ({len(results)} tests)\n")
+                f.write("-"*60 + "\n")
+                
+                for result_dict in sorted(results, key=lambda x: x['timestamp']):
+                    status = "PASSED" if result_dict['success'] else "FAILED"
+                    f.write(f"\n[{result_dict['timestamp']}] {status}: {result_dict['test_name']}\n")
+                    f.write(f"  Duration: {result_dict['elapsed']:.2f}s\n")
+                    f.write(f"  Worker ID: {result_dict['worker_id']}\n")
+                    f.write(f"  Return Code: {result_dict.get('return_code', 'N/A')}\n")
+                    
+                    if not result_dict['success']:
+                        f.write(f"  {'='*40} ERROR DETAILS {'='*40}\n")
+                        if result_dict.get('error'):
+                            f.write(f"  Error: {result_dict['error']}\n")
+                        if result_dict.get('output'):
+                            f.write(f"  Output: {result_dict['output'][:500]}{'...' if len(result_dict.get('output', '')) > 500 else ''}\n")
+                        f.write(f"  {'='*80}\n")
+                f.write("\n")
+            
+            # Failed tests summary at the end
+            if summary.get('failed_tests'):
+                f.write("\n" + "="*80 + "\n")
+                f.write("FAILED TESTS SUMMARY\n")
+                f.write("="*80 + "\n")
+                for failed in summary['failed_tests']:
+                    f.write(f"\n❌ {failed['test_name']}\n")
+                    f.write(f"   Type: {failed['test_type']}\n")
+                    f.write(f"   Duration: {failed['elapsed']:.2f}s\n")
+                    f.write(f"   Worker: {failed['worker_id']}\n")
+                    if failed.get('error'):
+                        error_lines = failed['error'].split('\n')
+                        f.write(f"   Error: {error_lines[0]}\n")
+                        for line in error_lines[1:5]:  # Show first 5 lines
+                            if line.strip():
+                                f.write(f"          {line}\n")
         
         # Save JSON results
         with open("test_results.json", 'w') as f:

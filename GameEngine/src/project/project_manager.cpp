@@ -19,15 +19,25 @@ bool ProjectManager::createProject(const std::string& name, const std::string& t
         return false;
     }
     
-    if (projectExists(name)) {
-        spdlog::error("Project already exists: {}", name);
-        return false;
-    }
-    
     try {
-        // Create project directory structure using EnginePaths
+        // Atomic check and create: Create project directory structure using EnginePaths
         std::filesystem::path projectPath = EnginePaths::getProjectDir(name);
-        std::filesystem::create_directories(projectPath);
+        
+        // Use create_directories with error checking to make it atomic
+        std::error_code ec;
+        bool created = std::filesystem::create_directories(projectPath, ec);
+        
+        if (ec) {
+            spdlog::error("Failed to create project directory: {}", ec.message());
+            return false;
+        }
+        
+        // If directory wasn't created by us, it might already exist - check for project.json
+        if (!created && std::filesystem::exists(projectPath / "project.json")) {
+            spdlog::error("Project already exists: {}", name);
+            return false;
+        }
+        
         std::filesystem::create_directories(projectPath / "scenes");
         std::filesystem::create_directories(projectPath / "assets");
         std::filesystem::create_directories(projectPath / "scripts");

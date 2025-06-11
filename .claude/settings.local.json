@@ -54,7 +54,8 @@
       "Bash(./game --batch \"project.create EditorTest\" \"project.open EditorTest\" \"scene.create test_scene\" \"entity.create Player\" \"entity.create Enemy\" \"scene.save test_scene\" \"project.build-fast\")",
       "Bash(./game --json -c \"project.delete EditorTest\")",
       "Bash(./game:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(./rebuild_fast.sh:*)"
     ],
     "deny": [
       "Bash(git:add:*)",

@@ -4,6 +4,7 @@
 #include "../utils/string_utils.h"
 #include "../utils/path_utils.h"
 #include "../utils/engine_paths.h"
+#include "../utils/process_executor.h"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -114,19 +115,20 @@ bool BuildSystem::compileProject(Project* project, const std::string& projectDir
         std::filesystem::current_path(buildDir);
         
         // Configure with CMake - explicitly set compilers on macOS
-        std::string cmakeCmd = "cmake -DCMAKE_BUILD_TYPE=Release";
+        std::vector<std::string> cmakeArgs = {"-DCMAKE_BUILD_TYPE=Release"};
         #ifdef __APPLE__
             // On macOS, explicitly set the compilers to avoid issues
-            cmakeCmd += " -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++";
+            cmakeArgs.push_back("-DCMAKE_C_COMPILER=clang");
+            cmakeArgs.push_back("-DCMAKE_CXX_COMPILER=clang++");
         #endif
-        cmakeCmd += " ..";
+        cmakeArgs.push_back("..");
         
-        int result = std::system(cmakeCmd.c_str());
-        if (result != 0) {
+        auto result = ProcessExecutor::execute("cmake", cmakeArgs, buildDir);
+        if (!result.success) {
             // Check if CMakeLists.txt was generated despite warnings
             if (!std::filesystem::exists("Makefile") && !std::filesystem::exists("build.ninja") && 
                 !std::filesystem::exists(project->getName() + ".sln") && !std::filesystem::exists("CMakeCache.txt")) {
-                spdlog::error("CMake configuration failed - no build files generated");
+                spdlog::error("CMake configuration failed - no build files generated: {}", result.error);
                 std::filesystem::current_path(currentDir);
                 return false;
             }
@@ -134,8 +136,8 @@ bool BuildSystem::compileProject(Project* project, const std::string& projectDir
         }
         
         // Build with CMake
-        std::string buildCmd = "cmake --build . --config Release";
-        result = std::system(buildCmd.c_str());
+        std::vector<std::string> buildArgs = {"--build", ".", "--config", "Release"};
+        auto buildResult = ProcessExecutor::execute("cmake", buildArgs, buildDir);
         
         // Check if executable was actually created despite return code
         std::string exeName = project->getName();
@@ -147,11 +149,11 @@ bool BuildSystem::compileProject(Project* project, const std::string& projectDir
                                std::filesystem::exists("Debug/" + exeName) ||
                                std::filesystem::exists("Release/" + exeName);
         
-        if (result != 0 && !executableExists) {
-            spdlog::error("CMake build failed - no executable generated");
+        if (!buildResult.success && !executableExists) {
+            spdlog::error("CMake build failed - no executable generated: {}", buildResult.error);
             std::filesystem::current_path(currentDir);
             return false;
-        } else if (result != 0 && executableExists) {
+        } else if (!buildResult.success && executableExists) {
             spdlog::warn("CMake build returned non-zero exit code but executable exists - likely due to warnings");
         }
         

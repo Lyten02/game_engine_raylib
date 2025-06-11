@@ -3,6 +3,7 @@
 #include "../utils/string_utils.h"
 #include "../utils/path_utils.h"
 #include "../utils/engine_paths.h"
+#include "../utils/process_executor.h"
 #include <filesystem>
 #include <fstream>
 #include <regex>
@@ -12,9 +13,8 @@ namespace GameEngine {
 
 
 bool ProjectManager::createProject(const std::string& name, const std::string& template_name) {
-    // Validate project name
-    std::regex validNameRegex("^[a-zA-Z0-9_-]+$");
-    if (!std::regex_match(name, validNameRegex)) {
+    // Use enhanced security validation
+    if (!ProcessExecutor::isValidProjectName(name)) {
         spdlog::error("Invalid project name: {}. Only letters, numbers, underscores and hyphens are allowed.", name);
         return false;
     }

@@ -3,6 +3,7 @@
 #include "../project/project.h"
 #include "../utils/log_limiter.h"
 #include "../utils/engine_paths.h"
+#include "../utils/process_executor.h"
 #include <spdlog/spdlog.h>
 #include <sstream>
 #include <regex>
@@ -190,23 +191,21 @@ void AsyncBuildSystem::buildThreadFunc(Project* project, const std::string& buil
             std::filesystem::current_path(cmakeBuildDir);
             
             addMessage("Running CMake configuration...");
-            std::string cmakeCmd = "cmake -DCMAKE_BUILD_TYPE=" + buildConfig + " .. 2>&1";
-            FILE* pipe = popen(cmakeCmd.c_str(), "r");
-            if (pipe) {
-                char buffer[128];
-                while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                    std::string line(buffer);
+            std::vector<std::string> cmakeArgs = {"-DCMAKE_BUILD_TYPE=" + buildConfig, ".."};
+            
+            auto result = ProcessExecutor::executeStreaming(
+                "cmake", cmakeArgs, cmakeBuildDir.string(),
+                [this](const std::string& line) {
                     // Filter out some verbose CMake output
                     if (line.find("-- ") == 0 || line.find("CMake") != std::string::npos) {
-                        line.erase(line.find_last_not_of("\n\r") + 1);
                         addMessage(line);
                     }
                 }
-                int result = pclose(pipe);
-                if (result != 0) {
-                    std::filesystem::current_path(currentDir);
-                    throw std::runtime_error("CMake configuration failed");
-                }
+            );
+            
+            if (!result.success) {
+                std::filesystem::current_path(currentDir);
+                throw std::runtime_error("CMake configuration failed: " + result.error);
             }
         } catch (...) {
             std::filesystem::current_path(currentDir);
@@ -218,16 +217,12 @@ void AsyncBuildSystem::buildThreadFunc(Project* project, const std::string& buil
         addMessage("Starting compilation...");
         
         try {
-            std::string buildCmd = "cmake --build . --config " + buildConfig + " 2>&1";
-            FILE* pipe = popen(buildCmd.c_str(), "r");
-            if (pipe) {
-                char buffer[256];
-                std::regex progressRegex(R"(\[\s*(\d+)%\])");
-                
-                while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                    std::string line(buffer);
-                    line.erase(line.find_last_not_of("\n\r") + 1);
-                    
+            std::vector<std::string> buildArgs = {"--build", ".", "--config", buildConfig};
+            std::regex progressRegex(R"(\[\s*(\d+)%\])");
+            
+            auto buildResult = ProcessExecutor::executeStreaming(
+                "cmake", buildArgs, cmakeBuildDir.string(),
+                [this, &progressRegex](const std::string& line) {
                     // Parse build progress
                     std::smatch match;
                     if (std::regex_search(line, match, progressRegex)) {
@@ -243,12 +238,11 @@ void AsyncBuildSystem::buildThreadFunc(Project* project, const std::string& buil
                         addMessage(line);
                     }
                 }
-                
-                int result = pclose(pipe);
-                if (result != 0) {
-                    std::filesystem::current_path(currentDir);
-                    throw std::runtime_error("Build failed");
-                }
+            );
+            
+            if (!buildResult.success) {
+                std::filesystem::current_path(currentDir);
+                throw std::runtime_error("Build failed: " + buildResult.error);
             }
             
             std::filesystem::current_path(currentDir);
@@ -361,22 +355,20 @@ void AsyncBuildSystem::fastBuildThreadFunc(Project* project, const std::string& 
             std::filesystem::current_path(cmakeBuildDir);
             
             addMessage("Running CMake configuration (fast mode)...");
-            std::string cmakeCmd = "cmake -DCMAKE_BUILD_TYPE=" + buildConfig + " .. 2>&1";
-            FILE* pipe = popen(cmakeCmd.c_str(), "r");
-            if (pipe) {
-                char buffer[128];
-                while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                    std::string line(buffer);
+            std::vector<std::string> cmakeArgs = {"-DCMAKE_BUILD_TYPE=" + buildConfig, ".."};
+            
+            auto result = ProcessExecutor::executeStreaming(
+                "cmake", cmakeArgs, cmakeBuildDir.string(),
+                [this](const std::string& line) {
                     if (line.find("-- ") == 0 || line.find("Found cached") != std::string::npos) {
-                        line.erase(line.find_last_not_of("\n\r") + 1);
                         addMessage(line);
                     }
                 }
-                int result = pclose(pipe);
-                if (result != 0) {
-                    std::filesystem::current_path(currentDir);
-                    throw std::runtime_error("CMake configuration failed");
-                }
+            );
+            
+            if (!result.success) {
+                std::filesystem::current_path(currentDir);
+                throw std::runtime_error("CMake configuration failed: " + result.error);
             }
         } catch (...) {
             std::filesystem::current_path(currentDir);
@@ -388,16 +380,12 @@ void AsyncBuildSystem::fastBuildThreadFunc(Project* project, const std::string& 
         addMessage("Starting compilation with cached dependencies...");
         
         try {
-            std::string buildCmd = "cmake --build . --config " + buildConfig + " 2>&1";
-            FILE* pipe = popen(buildCmd.c_str(), "r");
-            if (pipe) {
-                char buffer[256];
-                std::regex progressRegex(R"(\[\s*(\d+)%\])");
-                
-                while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                    std::string line(buffer);
-                    line.erase(line.find_last_not_of("\n\r") + 1);
-                    
+            std::vector<std::string> buildArgs = {"--build", ".", "--config", buildConfig};
+            std::regex progressRegex(R"(\[\s*(\d+)%\])");
+            
+            auto buildResult = ProcessExecutor::executeStreaming(
+                "cmake", buildArgs, cmakeBuildDir.string(),
+                [this, &progressRegex](const std::string& line) {
                     // Parse build progress
                     std::smatch match;
                     if (std::regex_search(line, match, progressRegex)) {
@@ -413,12 +401,11 @@ void AsyncBuildSystem::fastBuildThreadFunc(Project* project, const std::string& 
                         addMessage(line);
                     }
                 }
-                
-                int result = pclose(pipe);
-                if (result != 0) {
-                    std::filesystem::current_path(currentDir);
-                    throw std::runtime_error("Build failed");
-                }
+            );
+            
+            if (!buildResult.success) {
+                std::filesystem::current_path(currentDir);
+                throw std::runtime_error("Build failed: " + buildResult.error);
             }
             
             std::filesystem::current_path(currentDir);

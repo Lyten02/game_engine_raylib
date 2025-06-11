@@ -144,19 +144,28 @@ void EngineCore::processFrame(float deltaTime) {
 }
 
 bool EngineCore::shouldContinueRunning() const {
+    if (headlessMode) {
+        return running; // In headless mode, only check the running flag
+    }
     return running && !WindowShouldClose();
 }
 
 void EngineCore::beginFrame() {
-    BeginDrawing();
+    if (!headlessMode) {
+        BeginDrawing();
+    }
 }
 
 void EngineCore::endFrame() {
-    EndDrawing();
+    if (!headlessMode) {
+        EndDrawing();
+    }
 }
 
 void EngineCore::clearBackground() {
-    ClearBackground(GRAY);
+    if (!headlessMode) {
+        ClearBackground(GRAY);
+    }
 }
 
 void EngineCore::shutdown() {
@@ -178,32 +187,48 @@ bool EngineCore::isWindowReady() const {
 }
 
 int EngineCore::getScreenWidth() const {
+    if (headlessMode) {
+        return 1280; // Virtual screen width for headless mode
+    }
     return GetScreenWidth();
 }
 
 int EngineCore::getScreenHeight() const {
+    if (headlessMode) {
+        return 720; // Virtual screen height for headless mode
+    }
     return GetScreenHeight();
 }
 
 int EngineCore::getFPS() const {
+    if (headlessMode) {
+        return targetFPS; // Return target FPS in headless mode
+    }
     return GetFPS();
 }
 
 float EngineCore::getFrameTime() const {
+    if (headlessMode) {
+        return 1.0f / targetFPS; // Fixed frame time in headless mode
+    }
     return GetFrameTime();
 }
 
 void EngineCore::setTargetFPS(int fps) {
     targetFPS = fps;
-    SetTargetFPS(targetFPS);
+    if (!headlessMode) {
+        SetTargetFPS(targetFPS);
+    }
 }
 
 void EngineCore::setVSync(bool enabled) {
     vsyncEnabled = enabled;
-    if (vsyncEnabled) {
-        SetWindowState(FLAG_VSYNC_HINT);
-    } else {
-        ClearWindowState(FLAG_VSYNC_HINT);
+    if (!headlessMode) {
+        if (vsyncEnabled) {
+            SetWindowState(FLAG_VSYNC_HINT);
+        } else {
+            ClearWindowState(FLAG_VSYNC_HINT);
+        }
     }
 }
 

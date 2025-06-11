@@ -15,6 +15,8 @@
 #include <spdlog/spdlog.h>
 #include <iomanip>
 #include <sstream>
+#include <chrono>
+#include <thread>
 
 
 Engine::Engine() = default;
@@ -100,9 +102,10 @@ void Engine::run() {
         return;
     }
     
-    // In headless mode, we don't run a game loop
+    // In headless mode, run a simplified game loop
     if (headlessMode) {
-        spdlog::info("Engine::run - Headless mode, skipping game loop");
+        spdlog::info("Engine::run - Starting headless game loop");
+        runHeadless();
         return;
     }
     
@@ -117,7 +120,7 @@ void Engine::run() {
     // Main game loop
     while (engineCore->shouldContinueRunning()) {
         // Update phase
-        float deltaTime = GetFrameTime();
+        float deltaTime = engineCore->getFrameTime();
         engineCore->processFrame(deltaTime);
         
         // Update console
@@ -329,6 +332,79 @@ void Engine::destroyScene() {
         currentScene->onDestroy();
         currentScene.reset();
     }
+}
+
+void Engine::runHeadless() {
+    spdlog::info("Engine::runHeadless - Starting headless game loop");
+    
+    auto* console = systemsManager->getConsole();
+    auto* projectManager = systemsManager->getProjectManager();
+    auto* asyncBuildSystem = systemsManager->getAsyncBuildSystem();
+    
+    // Configuration for headless mode
+    auto startTime = std::chrono::steady_clock::now();
+    const auto maxDuration = std::chrono::seconds(300); // 5 minutes max runtime
+    const float targetDeltaTime = 1.0f / 60.0f; // 60 FPS equivalent
+    
+    // Main headless loop
+    while (engineCore->isRunning()) {
+        auto frameStart = std::chrono::steady_clock::now();
+        
+        // Check timeout
+        auto currentTime = std::chrono::steady_clock::now();
+        auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime);
+        
+        if (elapsedTime > maxDuration) {
+            spdlog::info("Engine::runHeadless - Maximum runtime reached ({}s), shutting down", elapsedTime.count());
+            break;
+        }
+        
+        // Update engine core
+        engineCore->processFrame(targetDeltaTime);
+        
+        // Update console for command processing
+        if (console) {
+            console->update(targetDeltaTime);
+        }
+        
+        // Update current scene if project is loaded
+        if (currentScene && projectManager && projectManager->getCurrentProject()) {
+            currentScene->onUpdate(targetDeltaTime);
+        }
+        
+        // Check if async build system has pending operations
+        bool hasPendingOperations = false;
+        if (asyncBuildSystem) {
+            auto status = asyncBuildSystem->getStatus();
+            hasPendingOperations = (status == GameEngine::AsyncBuildSystem::BuildStatus::InProgress);
+        }
+        
+        // Auto-exit if no operations are pending
+        static int idleFrames = 0;
+        if (!hasPendingOperations) {
+            idleFrames++;
+            
+            // Wait for 60 frames (1 second) of idle time before exiting
+            if (idleFrames > 60) {
+                spdlog::info("Engine::runHeadless - No pending operations, auto-exiting");
+                break;
+            }
+        } else {
+            // Reset idle counter if there's activity
+            idleFrames = 0;
+        }
+        
+        // Frame timing to maintain consistent update rate
+        auto frameEnd = std::chrono::steady_clock::now();
+        auto frameDuration = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart);
+        auto targetFrameDuration = std::chrono::milliseconds(16); // ~60 FPS
+        
+        if (frameDuration < targetFrameDuration) {
+            std::this_thread::sleep_for(targetFrameDuration - frameDuration);
+        }
+    }
+    
+    spdlog::info("Engine::runHeadless - Headless game loop ended");
 }
 
 void Engine::cleanup() {

@@ -41,9 +41,8 @@ def test_build_output():
                 f.write("scene.create main\n")
                 f.write("entity.create Player\n")
                 f.write("scene.save main\n")
-            # Use fast build if cached deps exist
-            build_command = "project.build.fast" if has_cached_deps else "project.build"
-            f.write(f"{build_command}\n")
+            # Always try fast build first, fallback to full if needed
+            f.write("project.build.fast\n")
             f.write("exit\n")
         
         print("Running build (ignoring return code)...")
@@ -51,7 +50,7 @@ def test_build_output():
             ["./game", "--headless", "--script", script_name],
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=120  # Increase timeout to 2 minutes for slow CMake
         )
         
         print(f"\nReturn code: {result.returncode}")

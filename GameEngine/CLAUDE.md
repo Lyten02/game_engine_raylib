@@ -59,6 +59,17 @@ python3 ../tests/test_cli_basic.py             # Specific test
 
 The test system uses cached dependencies to speed up builds significantly (from ~60s to ~3s).
 
+### Speed up slow builds:
+If builds are taking too long even with cache, try:
+```bash
+# Use environment variable to skip git updates
+export FETCHCONTENT_FULLY_DISCONNECTED=TRUE
+make test
+
+# Or use fast build command directly
+./game --headless -c "project.build.fast"
+```
+
 ### How caching works:
 1. **First test run**: Downloads and builds dependencies (~60 seconds)
    - Creates `_deps/` directories with compiled libraries

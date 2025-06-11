@@ -39,9 +39,19 @@ def test_full_workflow():
         # Fallback - assume we're in GameEngine directory
         build_dir = os.path.join(os.path.dirname(os.path.dirname(exe)), 'build')
     
-    # Test project name
-    project_name = f"FullWorkflowTest_{int(time.time())}"
+    # Test project name - use fixed name for better caching
+    project_name = "FullWorkflowTest"
     scene_name = "test_scene"
+    
+    # Clean up any previous test run
+    try:
+        # Clean from parent directory since we're in build
+        project_path = os.path.join('..', 'projects', project_name)
+        if os.path.exists(project_path):
+            shutil.rmtree(project_path)
+        # Don't clean output directory to preserve cache
+    except:
+        pass
     
     try:
         # Step 1: Create a new project
@@ -131,11 +141,11 @@ def test_full_workflow():
         print("\n7. Saving scene and building project...")
         
         # Check if project already has cached dependencies
-        output_dir = os.path.join(build_dir, 'output', project_name)
+        output_dir = os.path.join('..', 'output', project_name)
         has_cached_deps = os.path.exists(os.path.join(output_dir, 'build', '_deps'))
         
-        # Use fast build if cached dependencies exist
-        build_command = 'project.build.fast' if has_cached_deps else 'project.build'
+        # Use fast build command (with hyphen)
+        build_command = 'project.build-fast'
         
         batch_result = run_cli_batch([
             f'project.open {project_name}',  # Make sure project is open
@@ -172,12 +182,9 @@ def test_full_workflow():
         
         # Step 9: Verify project structure
         print("\n9. Verifying project structure...")
-        # Normalize build dir first
-        build_dir = os.path.normpath(build_dir)
-        
-        # After build-fast, files are in output directory, not projects
-        output_dir = os.path.normpath(os.path.join(build_dir, 'output', project_name))
-        project_dir = os.path.normpath(os.path.join(build_dir, 'projects', project_name))
+        # We're in build dir, so use parent paths
+        output_dir = os.path.normpath(os.path.join('..', 'output', project_name))
+        project_dir = os.path.normpath(os.path.join('..', 'projects', project_name))
         
         print(f"Build dir: {build_dir}")
         print(f"Output dir: {output_dir}")

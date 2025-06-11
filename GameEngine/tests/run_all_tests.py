@@ -34,14 +34,16 @@ class TestRunner:
             f.write(f"GameEngine Test Log - {datetime.now().isoformat()}\n")
             f.write("="*80 + "\n")
         
-        # Find game executable
+        # Find game executable - look in correct relative paths
         if os.path.exists("game"):
             self.game_exe = "./game"
+        elif os.path.exists("../build/game"):
+            self.game_exe = "../build/game"
         elif os.path.exists("build/game"):
             self.game_exe = "./build/game"
         else:
             print("❌ Error: game executable not found!")
-            print("   Run this script from build directory or project root")
+            print("   Run this script from tests directory or build directory")
             sys.exit(1)
     
     def log_message(self, message, level="INFO"):
@@ -118,6 +120,8 @@ class TestRunner:
             timeout = 180 if "build" in test_file else 30
             if "resource_manager_memory" in test_file:
                 timeout = 120  # 2 minutes for C++ compilation
+            if "full_workflow" in test_file:
+                timeout = 180  # 3 minutes for full workflow test
             
             # Add --skip-full-build flag if requested
             args = [sys.executable, test_file]
@@ -538,8 +542,9 @@ class TestRunner:
         python_tests = [t for t in python_tests if t.name not in exclude_tests]
         count += len(python_tests)
         
-        # Script tests
+        # Script tests (exclude CMakeCache.txt and other non-test files)
         script_tests = list(Path(test_dir).glob("*.txt"))
+        script_tests = [t for t in script_tests if t.name not in ["CMakeCache.txt", "CMakeLists.txt"]]
         count += len(script_tests)
         
         # Command tests (hardcoded for now)
@@ -590,17 +595,24 @@ def main():
     # Log start
     runner.log_message("Starting test suite execution")
     
-    # Change to correct directory
-    if os.path.exists("build/game"):
-        os.chdir("build")
-    
-    # Find test directory
-    if os.path.exists("../tests"):
-        test_dir = "../tests"
-    elif os.path.exists("tests"):
+    # Determine where we are and set paths accordingly
+    current_dir = os.getcwd()
+    if current_dir.endswith("/tests"):
+        # We're in the tests directory
+        test_dir = "."
+        build_dir = "../build"
+    elif os.path.exists("tests") and os.path.exists("build/game"):
+        # We're in the GameEngine root directory
         test_dir = "tests"
+        build_dir = "build"
+        os.chdir("build")
+    elif os.path.exists("../tests") and os.path.exists("game"):
+        # We're in the build directory
+        test_dir = "../tests"
+        build_dir = "."
     else:
-        print("❌ Error: tests directory not found!")
+        print("❌ Error: Cannot determine directory structure!")
+        print(f"   Current directory: {current_dir}")
         sys.exit(1)
     
     print(f"\nTest directory: {test_dir}")
@@ -626,8 +638,9 @@ def main():
         for test in sorted(python_tests):
             runner.run_python_test(str(test))
     
-    # 2. Run script tests
+    # 2. Run script tests (exclude CMakeCache.txt and other non-test files)
     script_tests = list(Path(test_dir).glob("*.txt"))
+    script_tests = [t for t in script_tests if t.name not in ["CMakeCache.txt", "CMakeLists.txt"]]
     if script_tests:
         for test in sorted(script_tests):
             runner.run_script_test(str(test))

@@ -35,8 +35,18 @@ def run_test():
 cd "$(dirname "$0")"
 
 # Common compile flags
-INCLUDES="-I../src -I../build/_deps/raylib-src/src -I../build/_deps/spdlog-src/include -I../build/_deps/entt-src/src -I../build/_deps/glm-src -I../build/_deps/json-src/include"
-LIBS="-L../build -L../build/_deps/raylib-build/raylib -L../build/_deps/spdlog-build -lraylib -lspdlog"
+# Check if we have a deps cache
+if [ -d "../.deps_cache/_deps" ]; then
+    DEPS_DIR="../.deps_cache/_deps"
+elif [ -d "../build/_deps" ]; then
+    DEPS_DIR="../build/_deps"
+else
+    echo "Error: Cannot find dependencies directory"
+    exit 1
+fi
+
+INCLUDES="-I../src -I$DEPS_DIR/raylib-src/src -I$DEPS_DIR/spdlog-src/include -I$DEPS_DIR/entt-src/src -I$DEPS_DIR/glm-src -I$DEPS_DIR/json-src/include"
+LIBS="-L../build -L$DEPS_DIR/raylib-build/raylib -L$DEPS_DIR/spdlog-build -lraylib -lspdlog"
 FRAMEWORKS="-framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation"
 FLAGS="-std=c++20"
 

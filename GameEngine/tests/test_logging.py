@@ -81,10 +81,10 @@ def test_log_message_writing():
             assert "Test error message" in log_content, "Error message should be in log"
             assert "Test warning message" in log_content, "Warning message should be in log"
             
-            # Check log levels
-            assert "[INFO]" in log_content, "INFO level should be in log"
-            assert "[ERROR]" in log_content, "ERROR level should be in log"
-            assert "[WARNING]" in log_content, "WARNING level should be in log"
+            # Check log levels (with padding to 8 characters)
+            assert "[INFO    ]" in log_content, "INFO level should be in log"
+            assert "[ERROR   ]" in log_content, "ERROR level should be in log"
+            assert "[WARNING ]" in log_content, "WARNING level should be in log"
             
             # Check timestamps (skip header lines)
             lines = log_content.strip().split('\n')

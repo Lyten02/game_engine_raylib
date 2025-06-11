@@ -56,12 +56,23 @@ make test-parallel-4   # Force 4 workers
 python3 ../tests/run_all_tests.py              # All Python tests
 python3 ../tests/run_all_tests.py --parallel   # Parallel mode
 python3 ../tests/run_all_tests.py --parallel --workers 2
+python3 ../tests/run_all_tests.py --verbose    # Show real-time errors
 python3 ../tests/test_cli_basic.py             # Specific test
 ./tests/compile_and_run_tests.sh               # C++ ResourceManager tests
 
 # CLI testing
 ./game --json --script ../tests/basic_cli_test.txt
 ./game --headless --batch "project.create test" "project.build"
+
+# Test logging and debugging
+# After running tests, check the generated log files:
+# - test_log_YYYYMMDD_HHMMSS.log - Detailed execution log with full error output
+# - test_results.json - Structured test results
+# - parallel_test_results.json - Results from parallel execution
+
+# Finding test failures in logs:
+grep "TEST FAILED" test_log_*.log
+grep -A 50 "TEST FAILED: test_name.py" test_log_*.log
 ```
 
 ## Parallel Testing System
@@ -86,6 +97,33 @@ The test suite now supports parallel execution for improved performance:
 3. **HEAVY**: Resource-intensive tests (memory, config stress)
 4. **COMMAND**: CLI command tests, very fast
 5. **SCRIPT**: Script execution tests
+
+## Test Logging System
+
+The test suite creates detailed logs for every test run, making debugging much easier:
+
+### Log File Structure
+- **Header**: System info, Python version, working directory, test configuration
+- **Test Entries**: Each test with timestamps, status, duration, and full paths
+- **Error Details**: Complete stdout/stderr, stack traces, command lines
+- **Summary**: Pass/fail counts, execution time breakdown, failed test summaries
+
+### Log Levels in Tests
+- **INFO**: Test start/end, configuration, normal flow
+- **SUCCESS**: Test passed successfully
+- **ERROR**: Test failures with full details
+- **WARNING**: Non-critical issues
+
+### Debugging Failed Tests
+1. Check the timestamped log file: `test_log_YYYYMMDD_HHMMSS.log`
+2. Search for specific failure: `grep -A 50 "TEST FAILED: test_name.py" test_log_*.log`
+3. View execution times: `grep "Duration:" test_log_*.log | sort -k3 -n`
+4. Check JSON results for structured data: `test_results.json`
+
+### Best Practices
+- Use `--verbose` during development for real-time error visibility
+- Archive log files from CI/CD for debugging intermittent failures
+- The log timestamp matches test start time for easy correlation
 
 ## Test Caching System
 

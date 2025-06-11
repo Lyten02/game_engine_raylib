@@ -129,3 +129,121 @@ When writing C++ tests that may produce repetitive logs:
    # Log limiting is built into the engine components
    make test-cpp
    ```
+
+## Test Suite Logging System
+
+The GameEngine test suite includes an enhanced logging system that provides detailed information about test execution, making it easier to debug failures and track performance.
+
+### Log File Structure
+
+When running tests, a timestamped log file is created (e.g., `test_log_20250611_220519.log`) with the following structure:
+
+1. **Header Section**
+   - Start time
+   - Python version
+   - Platform information
+   - Working directory
+   - Test configuration (skip full build, verbose mode, parallel mode)
+
+2. **Test Execution Details**
+   - Each test is clearly separated with dividers
+   - Test start/end timestamps
+   - Test type (Python, Script, Command)
+   - Full file paths
+   - Execution duration
+   - Return codes
+
+3. **Error Reporting**
+   - Complete stdout/stderr output for failed tests
+   - Full stack traces for exceptions
+   - Command line used to run the test
+   - Timeout information if applicable
+
+4. **Summary Sections**
+   - Execution summary with pass/fail counts
+   - Test results grouped by type
+   - Failed tests summary with error previews
+   - Test execution time breakdown table
+
+### Running Tests with Enhanced Logging
+
+```bash
+# Standard test run (creates log file automatically)
+python3 tests/run_all_tests.py
+
+# Verbose mode - shows real-time error details
+python3 tests/run_all_tests.py --verbose
+
+# Parallel mode with enhanced logging
+python3 tests/run_all_tests.py --parallel
+
+# Skip full build tests (faster)
+python3 tests/run_all_tests.py --skip-full-build
+```
+
+### Log File Examples
+
+**Successful Test Entry:**
+```
+[2025-06-11 22:13:59.058] [INFO    ] ============================================================
+[2025-06-11 22:13:59.058] [INFO    ] TEST START: test_categories.py (1/43)
+[2025-06-11 22:13:59.058] [INFO    ] Type: Python Test
+[2025-06-11 22:13:59.058] [INFO    ] File: ../tests/test_categories.py
+[2025-06-11 22:13:59.058] [INFO    ] ============================================================
+[2025-06-11 22:13:59.083] [SUCCESS ] TEST PASSED: test_categories.py
+[2025-06-11 22:13:59.083] [INFO    ] Duration: 0.02 seconds
+[2025-06-11 22:13:59.083] [INFO    ] Return Code: 0
+```
+
+**Failed Test Entry:**
+```
+[2025-06-11 22:14:26.310] [ERROR   ] TEST FAILED: test_example.py
+[2025-06-11 22:14:26.310] [ERROR   ] Duration: 0.02 seconds
+[2025-06-11 22:14:26.310] [ERROR   ] Return Code: 1
+[2025-06-11 22:14:26.311] [ERROR   ] Command: python3 ../tests/test_example.py
+[2025-06-11 22:14:26.311] [ERROR   ] ======================================== STDOUT ========================================
+[2025-06-11 22:14:26.311] [ERROR   ] Debug output before error...
+[2025-06-11 22:14:26.311] [ERROR   ] ======================================== STDERR ========================================
+[2025-06-11 22:14:26.311] [ERROR   ] Traceback (most recent call last):
+  File "test_example.py", line 12, in test_function
+    assert False, "Test assertion failed"
+AssertionError: Test assertion failed
+```
+
+### Parallel Test Logging
+
+When using `--parallel` mode, the log file includes:
+- Worker ID for each test
+- Test results grouped by type (Python, Script, Command)
+- Performance metrics for parallel execution
+- Clear indication of which worker processed each test
+
+### Log File Locations
+
+- **Log Files**: `test_log_YYYYMMDD_HHMMSS.log` in the current directory
+- **JSON Results**: `test_results.json` with structured test data
+- **Parallel Results**: `parallel_test_results.json` (when using --parallel)
+
+### Best Practices
+
+1. **Always check the log file for failed tests** - it contains complete error information
+2. **Use --verbose during development** to see errors in real-time
+3. **Archive log files from CI/CD** for debugging intermittent failures
+4. **The log file timestamp matches test start time** for easy correlation
+
+### Troubleshooting with Logs
+
+1. **Finding specific test failures:**
+   ```bash
+   grep "TEST FAILED" test_log_*.log
+   ```
+
+2. **Viewing full error for a specific test:**
+   ```bash
+   grep -A 50 "TEST FAILED: test_name.py" test_log_*.log
+   ```
+
+3. **Checking test execution times:**
+   ```bash
+   grep -E "Duration: [0-9.]+ seconds" test_log_*.log | sort -k3 -n
+   ```

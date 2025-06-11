@@ -42,7 +42,7 @@ def test_build_output():
                 f.write("entity.create Player\n")
                 f.write("scene.save main\n")
             # Use fast build if cached deps exist
-            build_command = "project.build.fast" if has_cached_deps else "project.build-fast"
+            build_command = "project.build.fast" if has_cached_deps else "project.build"
             f.write(f"{build_command}\n")
             f.write("exit\n")
         

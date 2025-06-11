@@ -18,7 +18,8 @@ def run_build_commands(project_name, build_type="fast", force_full=False):
     if has_cached_deps and not force_full:
         build_command = "project.build.fast"
     else:
-        build_command = "project.build-fast" if build_type == "fast" else "project.build"
+        # For tests, always use project.build for full compilation
+        build_command = "project.build" if build_type == "fast" else "project.build"
     script_name = f"build_test_{build_type}.txt"
     
     with open(script_name, "w") as f:

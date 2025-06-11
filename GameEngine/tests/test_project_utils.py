@@ -145,7 +145,7 @@ def get_build_command(project_name, force_full=False):
     if has_cached_deps and not force_full:
         return "project.build.fast"
     else:
-        return "project.build-fast"  # Use build-fast by default for tests
+        return "project.build"  # Use full build when no cached deps
 
 def check_project_exists(project_name):
     """Check if a project exists in any of the common locations"""

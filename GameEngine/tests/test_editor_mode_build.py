@@ -40,7 +40,7 @@ def run_editor_test():
     
     # Create a script file with editor commands
     # Use fast build if project already exists with deps
-    build_command = "project.build.fast" if has_cached_deps else "project.build-fast"
+    build_command = "project.build.fast" if has_cached_deps else "project.build"
     
     if has_cached_deps:
         # Project exists, just open and build
@@ -67,7 +67,7 @@ quit
     
     try:
         # Run the game with batch commands and JSON output
-        build_cmd = "project.build.fast" if has_cached_deps else "project.build-fast"
+        build_cmd = "project.build.fast" if has_cached_deps else "project.build"
         
         if has_cached_deps:
             # Project exists, just open and build

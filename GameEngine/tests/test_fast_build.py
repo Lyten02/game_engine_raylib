@@ -34,15 +34,15 @@ def test_fast_build_performance():
     # if os.path.exists(f"{output_dir}/{test_project}"):
     #     shutil.rmtree(f"{output_dir}/{test_project}")
     
-    # Create test script for full or fast build based on project existence
-    if project_exists:
-        # If project exists with deps, use fast build from the start
-        full_build_script = f"""project.open {test_project}
-project.build.fast
-"""
-    else:
-        # First time - create project and do full build
-        full_build_script = f"""project.create {test_project}
+    # For the first build, we need to ensure we have a baseline
+    # Always do a clean full build first to measure baseline time
+    
+    # Clean the project to force full rebuild
+    if os.path.exists(f"{output_dir}/{test_project}"):
+        shutil.rmtree(f"{output_dir}/{test_project}")
+    
+    # Create test script for full build
+    full_build_script = f"""project.create {test_project}
 project.open {test_project}
 scene.create main
 entity.create Player

@@ -135,7 +135,7 @@ def test_full_workflow():
         has_cached_deps = os.path.exists(os.path.join(output_dir, 'build', '_deps'))
         
         # Use fast build if cached dependencies exist
-        build_command = 'project.build.fast' if has_cached_deps else 'project.build-fast'
+        build_command = 'project.build.fast' if has_cached_deps else 'project.build'
         
         batch_result = run_cli_batch([
             f'project.open {project_name}',  # Make sure project is open

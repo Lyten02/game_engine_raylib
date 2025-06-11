@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Priority: 1) Global cache, 2) Main build/_deps, 3) Local _deps
 set(SEARCH_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(DEPS_DIR "")
-set(GAMEENGINE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
+set(GAMEENGINE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
 
 # First, check for global cache
 if(EXISTS "${GAMEENGINE_ROOT}/.deps_cache/_deps")

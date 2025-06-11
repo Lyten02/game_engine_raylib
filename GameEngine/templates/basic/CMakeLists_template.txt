@@ -16,11 +16,17 @@ endif()
 # FetchContent for downloading dependencies
 include(FetchContent)
 
+# Optimize FetchContent for faster builds
+set(FETCHCONTENT_QUIET FALSE)  # Show what's happening
+set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)  # Don't check for updates if already downloaded
+
 # Download and configure raylib
 FetchContent_Declare(
     raylib
     GIT_REPOSITORY https://github.com/raysan5/raylib.git
     GIT_TAG 5.0
+    GIT_SHALLOW TRUE  # Don't clone full history
+    GIT_PROGRESS TRUE # Show download progress
 )
 
 # Download and configure spdlog
@@ -28,6 +34,8 @@ FetchContent_Declare(
     spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
     GIT_TAG v1.14.1
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
 )
 
 # Download and configure EnTT
@@ -35,6 +43,8 @@ FetchContent_Declare(
     EnTT
     GIT_REPOSITORY https://github.com/skypjack/entt.git
     GIT_TAG v3.13.2
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
 )
 
 # Download and configure GLM
@@ -42,6 +52,8 @@ FetchContent_Declare(
     glm
     GIT_REPOSITORY https://github.com/g-truc/glm.git
     GIT_TAG 1.0.1
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
 )
 
 # Download and configure nlohmann/json
@@ -49,6 +61,8 @@ FetchContent_Declare(
     json
     GIT_REPOSITORY https://github.com/nlohmann/json.git
     GIT_TAG v3.11.3
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
 )
 
 # Make dependencies available

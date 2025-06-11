@@ -16,6 +16,10 @@ message(STATUS "Using global dependencies cache: ${GLOBAL_DEPS_CACHE}")
 # FetchContent for downloading dependencies
 include(FetchContent)
 
+# Optimize FetchContent for faster builds
+set(FETCHCONTENT_QUIET FALSE)
+set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
+
 # Download and configure raylib
 FetchContent_Declare(
     raylib

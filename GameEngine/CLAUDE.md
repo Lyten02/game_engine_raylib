@@ -55,6 +55,62 @@ python3 ../tests/test_cli_basic.py             # Specific test
 ./game --headless --batch "project.create test" "project.build"
 ```
 
+## Test Caching System
+
+The test system uses cached dependencies to speed up builds significantly (from ~60s to ~3s).
+
+### How caching works:
+1. **First test run**: Downloads and builds dependencies (~60 seconds)
+   - Creates `_deps/` directories with compiled libraries
+   - Caches raylib, glfw, spdlog, etc.
+
+2. **Subsequent runs**: Uses cached dependencies (~3 seconds)
+   - `project.build` - Full build from scratch (slow)
+   - `project.build.fast` - Fast build using cache (fast)
+   - Tests automatically choose the right command
+
+### Important directories:
+- `build/_deps/` - Main dependency cache
+- `output/*/build/_deps/` - Per-project dependency cache
+- **DO NOT DELETE** these directories unless you want full rebuild
+
+### Best practices for fast tests:
+```bash
+# First run (builds cache)
+make test  # Takes ~2-3 minutes total
+
+# Subsequent runs (uses cache)
+make test  # Takes ~30-60 seconds total
+
+# DON'T do this before tests:
+# make clean-tests  # This would delete cache!
+
+# If you need to clean a specific test:
+rm -rf ../output/TestProject/bin
+rm -rf ../output/TestProject/CMakeFiles
+# But keep ../output/TestProject/build/_deps/
+
+# Full clean only when necessary:
+make clean-all  # Removes everything including cache
+```
+
+### When cache is automatically invalidated:
+- Changes to CMakeLists.txt dependencies
+- Changes to compiler flags
+- Corrupted cache files
+
+### Debugging slow tests:
+```bash
+# Check if cache exists
+ls -la ../output/YourTest/build/_deps/
+
+# Run single test with verbose output
+python3 ../tests/test_fast_build.py -v
+
+# Force full rebuild for one project
+rm -rf ../output/YourTest/build/_deps/
+```
+
 ## Common CLI Usage
 
 ```bash

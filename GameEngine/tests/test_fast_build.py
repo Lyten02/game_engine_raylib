@@ -35,9 +35,11 @@ def test_fast_build_performance():
     #     shutil.rmtree(f"{output_dir}/{test_project}")
     
     # For the first build, we need to ensure we have a baseline
-    # Always do a clean full build first to measure baseline time
+    # Use a unique project name to avoid conflicts with other tests
+    import random
+    test_project = f"FastBuildTest_{random.randint(1000, 9999)}"
     
-    # Clean the project to force full rebuild
+    # Always start fresh for accurate timing comparison
     if os.path.exists(f"{output_dir}/{test_project}"):
         shutil.rmtree(f"{output_dir}/{test_project}")
     

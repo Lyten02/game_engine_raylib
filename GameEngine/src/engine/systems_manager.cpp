@@ -113,28 +113,12 @@ bool SystemsManager::initializeConsole() {
 }
 
 bool SystemsManager::initializeScriptManager() {
-    if (!Config::getBool("scripting.lua_enabled", true)) {
-        return true; // Scripting disabled
-    }
-    
+    // Lua scripting has been replaced with C++ GameLogicManager
+    // Keeping ScriptManager stub for compatibility
     scriptManager = std::make_unique<ScriptManager>();
-    if (scriptManager->initialize()) {
-        spdlog::info("SystemsManager::initialize - Script manager initialized");
-        
-        if (!headlessMode) {
-            // Execute test script
-            std::string scriptDir = Config::getString("scripting.script_directory", "scripts/");
-            if (scriptManager->executeScript(scriptDir + "test.lua")) {
-                console->addLine("Lua scripting initialized successfully", GREEN);
-            }
-        }
-        
-        return true;
-    } else {
-        spdlog::error("SystemsManager::initialize - Failed to initialize script manager");
-        scriptManager.reset();
-        return false;
-    }
+    scriptManager->initialize();
+    spdlog::info("SystemsManager::initialize - Script manager stub initialized");
+    return true;
 }
 
 bool SystemsManager::initializeProjectManager() {

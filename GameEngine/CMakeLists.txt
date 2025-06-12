@@ -58,8 +58,7 @@ FetchContent_Declare(
 # Make dependencies available
 FetchContent_MakeAvailable(raylib spdlog EnTT glm json)
 
-# Find Lua
-find_package(Lua REQUIRED)
+# Lua removed - using C++ game logic system instead
 
 # Add executable
 add_executable(game 
@@ -84,8 +83,7 @@ add_executable(game
     src/utils/path_utils.cpp
     src/utils/engine_paths.cpp
     src/utils/process_executor.cpp
-    src/scripting/script_manager.cpp
-    src/scripting/lua_bindings.cpp
+    src/scripting/script_manager_stub.cpp
     src/scripting/game_logic_manager.cpp
     src/scripting/example_game_logic.cpp
     src/project/project.cpp
@@ -104,7 +102,6 @@ add_executable(game
 # Include directories
 target_include_directories(game PRIVATE 
     src
-    ${LUA_INCLUDE_DIR}
 )
 
 # Link libraries
@@ -114,7 +111,6 @@ target_link_libraries(game
     EnTT::EnTT
     glm::glm
     nlohmann_json::nlohmann_json
-    ${LUA_LIBRARIES}
 )
 
 # Copy assets directory to build directory

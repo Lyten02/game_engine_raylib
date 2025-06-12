@@ -5,54 +5,41 @@
 #include <memory>
 #include <vector>
 
-extern "C" {
-    #include <lua.h>
-    #include <lualib.h>
-    #include <lauxlib.h>
-}
-
+// Stub class for ScriptManager - Lua scripting has been replaced with C++ GameLogicManager
 class ScriptManager {
 private:
-    lua_State* L = nullptr;
-    std::unordered_map<std::string, std::string> loadedScripts;
     bool initialized = false;
-    
-    // Error handling
-    void reportError(const std::string& context);
     
 public:
     ScriptManager() = default;
-    ~ScriptManager();
+    ~ScriptManager() = default;
     
-    // Initialize Lua state and standard libraries
-    bool initialize();
+    // Initialize (no-op)
+    bool initialize() { initialized = true; return true; }
     
-    // Shutdown and cleanup
-    void shutdown();
+    // Shutdown (no-op)
+    void shutdown() { initialized = false; }
     
-    // Execute a Lua script from file
-    bool executeScript(const std::string& scriptPath);
+    // Execute a script (no-op, returns false)
+    bool executeScript(const std::string& scriptPath) { return false; }
     
-    // Execute a Lua string
-    bool executeString(const std::string& luaCode);
+    // Execute a string (no-op, returns false)
+    bool executeString(const std::string& luaCode) { return false; }
     
-    // Register engine bindings (Vector3, Transform, logging, etc.)
-    void registerEngineBindings();
+    // Register engine bindings (no-op)
+    void registerEngineBindings() {}
     
-    // Reload and execute a script
-    void reloadScript(const std::string& scriptPath);
+    // Reload and execute a script (no-op)
+    void reloadScript(const std::string& scriptPath) {}
     
-    // Check if a script is loaded
-    bool isScriptLoaded(const std::string& scriptPath) const;
+    // Check if a script is loaded (always returns false)
+    bool isScriptLoaded(const std::string& scriptPath) const { return false; }
     
-    // Get loaded scripts list
-    std::vector<std::string> getLoadedScripts() const;
+    // Get loaded scripts list (always empty)
+    std::vector<std::string> getLoadedScripts() const { return {}; }
     
-    // Call a Lua function by name
-    bool callFunction(const std::string& functionName, int numArgs = 0, int numResults = 0);
-    
-    // Get Lua state (for advanced usage)
-    lua_State* getLuaState() { return L; }
+    // Call a function (no-op, returns false)
+    bool callFunction(const std::string& functionName, int numArgs = 0, int numResults = 0) { return false; }
     
     // Check if initialized
     bool isInitialized() const { return initialized; }

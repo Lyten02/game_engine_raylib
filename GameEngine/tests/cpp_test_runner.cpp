@@ -130,17 +130,49 @@ void CppTestRunner::registerTest(const TestDefinition& test) {
 }
 
 void CppTestRunner::registerAllDefaultTests() {
-    // Resource Manager tests
-    registerTest({"test_resource_manager_safety", "test_resource_manager_safety.cpp", TestCategory::RESOURCE});
-    registerTest({"test_resource_manager_threading", "test_resource_manager_threading.cpp", TestCategory::THREADING});
-    registerTest({"test_resource_manager_headless", "test_resource_manager_headless.cpp", TestCategory::RESOURCE});
-    registerTest({"test_resource_manager_memory", "test_resource_manager_memory.cpp", TestCategory::MEMORY, 120});
-    registerTest({"test_resource_manager_exception_safety", "test_resource_manager_exception_safety.cpp", TestCategory::RESOURCE});
-    registerTest({"test_resource_manager_simple", "test_resource_manager_simple.cpp", TestCategory::UNIT});
+    // Resource Manager tests - all need resource_manager.cpp
+    TestDefinition rmSafety("test_resource_manager_safety", "test_resource_manager_safety.cpp", TestCategory::RESOURCE);
+    rmSafety.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(rmSafety);
+    
+    TestDefinition rmThreading("test_resource_manager_threading", "test_resource_manager_threading.cpp", TestCategory::THREADING);
+    rmThreading.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(rmThreading);
+    
+    TestDefinition rmHeadless("test_resource_manager_headless", "test_resource_manager_headless.cpp", TestCategory::RESOURCE);
+    rmHeadless.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(rmHeadless);
+    
+    TestDefinition rmMemory("test_resource_manager_memory", "test_resource_manager_memory.cpp", TestCategory::MEMORY, 120);
+    rmMemory.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(rmMemory);
+    
+    TestDefinition rmException("test_resource_manager_exception_safety", "test_resource_manager_exception_safety.cpp", TestCategory::RESOURCE);
+    rmException.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(rmException);
+    
+    TestDefinition rmSimple("test_resource_manager_simple", "test_resource_manager_simple.cpp", TestCategory::UNIT);
+    rmSimple.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(rmSimple);
     
     // Threading tests
-    registerTest({"test_async_build_threading", "test_async_build_threading.cpp", TestCategory::THREADING});
-    registerTest({"test_default_texture_manager", "test_default_texture_manager.cpp", TestCategory::THREADING});
+    TestDefinition asyncBuildTest("test_async_build_threading", "test_async_build_threading.cpp", TestCategory::THREADING);
+    asyncBuildTest.additionalSources = {
+        "../src/build/async_build_system.cpp",
+        "../src/build/build_system.cpp",
+        "../src/build/build_config.cpp",
+        "../src/project/project.cpp",
+        "../src/utils/file_utils.cpp",
+        "../src/utils/string_utils.cpp",
+        "../src/utils/path_utils.cpp",
+        "../src/utils/engine_paths.cpp",
+        "../src/utils/process_executor.cpp"
+    };
+    registerTest(asyncBuildTest);
+    
+    TestDefinition defaultTexTest("test_default_texture_manager", "test_default_texture_manager.cpp", TestCategory::THREADING);
+    defaultTexTest.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(defaultTexTest);
     
     // Engine tests
     TestDefinition engineTest("test_engine_init", "test_engine_init.cpp", TestCategory::INTEGRATION);
@@ -163,6 +195,8 @@ void CppTestRunner::registerAllDefaultTests() {
         "../src/utils/string_utils.cpp",
         "../src/utils/config.cpp",
         "../src/utils/path_utils.cpp",
+        "../src/utils/engine_paths.cpp",
+        "../src/utils/process_executor.cpp",
         "../src/scripting/script_manager.cpp",
         "../src/scripting/lua_bindings.cpp",
         "../src/project/project.cpp",
@@ -187,14 +221,83 @@ void CppTestRunner::registerAllDefaultTests() {
         "../src/project/project.cpp",
         "../src/utils/file_utils.cpp",
         "../src/utils/string_utils.cpp",
-        "../src/utils/path_utils.cpp"
+        "../src/utils/path_utils.cpp",
+        "../src/utils/engine_paths.cpp",
+        "../src/utils/process_executor.cpp"
     };
     registerTest(buildTest);
     
     // More unit tests
-    registerTest({"test_config_depth", "test_config_depth.cpp", TestCategory::UNIT});
+    TestDefinition configDepthTest("test_config_depth", "test_config_depth.cpp", TestCategory::UNIT);
+    configDepthTest.additionalSources = {"../src/utils/config.cpp"};
+    registerTest(configDepthTest);
+    
+    // Log limiter test is header-only, no additional sources needed
     registerTest({"test_log_limiter_generic_keys", "test_log_limiter_generic_keys.cpp", TestCategory::UNIT});
-    registerTest({"test_script_manager_null_safety", "test_script_manager_null_safety.cpp", TestCategory::UNIT});
+    
+    TestDefinition scriptMgrTest("test_script_manager_null_safety", "test_script_manager_null_safety.cpp", TestCategory::UNIT);
+    scriptMgrTest.additionalSources = {
+        "../src/scripting/script_manager.cpp",
+        "../src/scripting/lua_bindings.cpp",
+        "../src/utils/file_utils.cpp"
+    };
+    registerTest(scriptMgrTest);
+    
+    // Additional resource manager tests
+    TestDefinition rmThreadingFix("test_resource_manager_threading_fix", "test_resource_manager_threading_fix.cpp", TestCategory::THREADING);
+    rmThreadingFix.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(rmThreadingFix);
+    
+    TestDefinition rmMemoryFix("test_resource_manager_memory_fix", "test_resource_manager_memory_fix.cpp", TestCategory::MEMORY);
+    rmMemoryFix.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(rmMemoryFix);
+    
+    TestDefinition rmInitOrder("test_resource_manager_init_order", "test_resource_manager_init_order.cpp", TestCategory::RESOURCE);
+    rmInitOrder.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(rmInitOrder);
+    
+    TestDefinition rmIntegration("test_resource_manager_integration", "test_resource_manager_integration.cpp", TestCategory::INTEGRATION);
+    rmIntegration.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(rmIntegration);
+    
+    // Threading and memory tests
+    TestDefinition callOnceTest("test_call_once_retry_behavior", "test_call_once_retry_behavior.cpp", TestCategory::THREADING);
+    callOnceTest.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(callOnceTest);
+    
+    TestDefinition memOrderTest("test_memory_ordering", "test_memory_ordering.cpp", TestCategory::MEMORY);
+    memOrderTest.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(memOrderTest);
+    
+    TestDefinition exceptionTest("test_exception_safety", "test_exception_safety.cpp", TestCategory::UNIT);
+    exceptionTest.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(exceptionTest);
+    
+    // Console test
+    TestDefinition consoleTest("test_console_autocompletion", "test_console_autocompletion.cpp", TestCategory::UNIT);
+    consoleTest.additionalSources = {
+        "../src/console/console.cpp",
+        "../src/console/command_processor.cpp",
+        "../src/utils/config.cpp"
+    };
+    registerTest(consoleTest);
+    
+    // Additional resource tests
+    TestDefinition resFuncTest("test_resource_functionality", "test_resource_functionality.cpp", TestCategory::RESOURCE);
+    resFuncTest.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(resFuncTest);
+    
+    TestDefinition resMemTest("test_resource_memory", "test_resource_memory.cpp", TestCategory::MEMORY);
+    resMemTest.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(resMemTest);
+    
+    TestDefinition resPtrTest("test_resource_pointer_consistency", "test_resource_pointer_consistency.cpp", TestCategory::RESOURCE);
+    resPtrTest.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(resPtrTest);
+    
+    TestDefinition resSimpleTest("test_resource_simple", "test_resource_simple.cpp", TestCategory::UNIT);
+    resSimpleTest.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(resSimpleTest);
 }
 
 void CppTestRunner::runAll() {

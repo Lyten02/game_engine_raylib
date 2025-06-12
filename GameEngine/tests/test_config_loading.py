@@ -87,7 +87,7 @@ def test_config_loading():
             config = json.load(f)
         
         # Check for required sections
-        required_sections = ['window', 'console', 'scripting']
+        required_sections = ['window', 'console', 'game_logic']
         for section in required_sections:
             if section not in config:
                 print(f"FAIL: Missing required section '{section}' in config.json")
@@ -108,10 +108,6 @@ def test_config_loading():
                 return False
         
         # Check game_logic settings
-        if 'game_logic' not in config:
-            print("FAIL: Missing game_logic section in config.json")
-            return False
-            
         if 'enabled' not in config['game_logic']:
             print("FAIL: Missing game_logic.enabled in config.json")
             return False

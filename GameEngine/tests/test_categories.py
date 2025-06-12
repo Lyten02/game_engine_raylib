@@ -43,6 +43,7 @@ class TestCategorizer:
                 "test_scene_list_only.py",
                 "test_script_runner.py",
                 "test_security_cli.py",
+                "test_game_logic_commands.py",
                 "test_sync_build.py",
                 "test_utils.py",
             },

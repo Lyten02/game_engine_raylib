@@ -1,6 +1,7 @@
 import os
 import subprocess
 import time
+import json
 
 def find_executable():
     """Find the game executable in the build directory"""
@@ -86,7 +87,7 @@ def run_cli_batch(commands, timeout=30):
     
     try:
         # Build the batch command arguments
-        batch_args = [exe, '--headless', '--batch']
+        batch_args = [exe, '--headless', '--json', '--batch']
         for cmd in commands:
             batch_args.append(cmd if isinstance(cmd, str) else ' '.join(cmd))
         
@@ -98,11 +99,22 @@ def run_cli_batch(commands, timeout=30):
             cwd=build_dir  # Run from build directory
         )
         
-        return {
-            'success': result.returncode == 0,
-            'output': result.stdout,
-            'error': result.stderr
-        }
+        # Try to parse JSON output for batch mode
+        if result.returncode == 0 and result.stdout:
+            try:
+                return json.loads(result.stdout)
+            except json.JSONDecodeError:
+                return {
+                    'success': result.returncode == 0,
+                    'output': result.stdout,
+                    'error': result.stderr
+                }
+        else:
+            return {
+                'success': result.returncode == 0,
+                'output': result.stdout,
+                'error': result.stderr
+            }
     except subprocess.TimeoutExpired:
         return {'success': False, 'output': '', 'error': 'Commands timed out'}
     except Exception as e:

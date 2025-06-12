@@ -107,13 +107,13 @@ def test_config_loading():
                 print(f"FAIL: Missing console.{key} in config.json")
                 return False
         
-        # Check scripting settings
-        if 'lua_enabled' not in config['scripting']:
-            print("FAIL: Missing scripting.lua_enabled in config.json")
+        # Check game_logic settings
+        if 'game_logic' not in config:
+            print("FAIL: Missing game_logic section in config.json")
             return False
-        
-        if 'script_directory' not in config['scripting']:
-            print("FAIL: Missing scripting.script_directory in config.json")
+            
+        if 'enabled' not in config['game_logic']:
+            print("FAIL: Missing game_logic.enabled in config.json")
             return False
             
         print("PASS: config.json has all required sections and keys")

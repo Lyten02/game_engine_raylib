@@ -127,10 +127,9 @@ def create_test_config():
             "rendering": {
                 "clear_color": [64, 64, 64, 255]
             },
-            "scripting": {
-                "lua_enabled": True,
-                "auto_reload": True,
-                "script_directory": "scripts/"
+            "game_logic": {
+                "enabled": True,
+                "auto_register_example": False
             }
         }
         

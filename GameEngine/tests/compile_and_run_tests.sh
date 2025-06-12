@@ -9,8 +9,8 @@ echo "================================================"
 cd "$(dirname "$0")"
 
 # Common compile flags
-INCLUDES="-I../src -I../build/_deps/raylib-src/src -I../build/_deps/spdlog-src/include -I../build/_deps/entt-src/src -I../build/_deps/glm-src -I../build/_deps/json-src/include"
-LIBS="-L../build -L../build/_deps/raylib-build/raylib -L../build/_deps/spdlog-build -lraylib -lspdlog"
+INCLUDES="-I../src -I../.deps_cache/_deps/raylib-src/src -I../.deps_cache/_deps/spdlog-src/include -I../.deps_cache/_deps/entt-src/src -I../.deps_cache/_deps/glm-src -I../.deps_cache/_deps/json-src/include"
+LIBS="-L../build -L../.deps_cache/_deps/raylib-build/raylib -L../.deps_cache/_deps/spdlog-build -lraylib -lspdlog"
 FRAMEWORKS="-framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation"
 FLAGS="-std=c++20"
 

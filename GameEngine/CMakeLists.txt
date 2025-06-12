@@ -182,12 +182,50 @@ add_custom_target(test-parallel-8
     COMMENT "Running tests in parallel with 8 workers"
 )
 
-# Add custom target for running C++ tests
-add_custom_target(test-cpp
-    COMMAND ${CMAKE_COMMAND} -E echo "Running C++ tests..."
+# Add custom target for running C++ tests (old version)
+add_custom_target(test-cpp-old
+    COMMAND ${CMAKE_COMMAND} -E echo "Running C++ tests (old system)..."
     COMMAND bash ${CMAKE_SOURCE_DIR}/tests/compile_and_run_tests.sh
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
-    COMMENT "Compiling and running C++ tests"
+    COMMENT "Compiling and running C++ tests (old system)"
+)
+
+# Add custom target for running C++ tests (new unified runner)
+add_custom_target(test-cpp
+    COMMAND ${CMAKE_COMMAND} -E echo "Running C++ tests..."
+    COMMAND bash ${CMAKE_SOURCE_DIR}/tests/run_cpp_test_suite.sh
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
+    COMMENT "Running C++ tests with unified runner"
+)
+
+# Add custom target for running C++ tests in parallel
+add_custom_target(test-cpp-parallel
+    COMMAND ${CMAKE_COMMAND} -E echo "Running C++ tests in parallel..."
+    COMMAND bash ${CMAKE_SOURCE_DIR}/tests/run_cpp_test_suite.sh --parallel
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
+    COMMENT "Running C++ tests in parallel mode"
+)
+
+# Add custom target for running C++ tests with custom worker count
+add_custom_target(test-cpp-parallel-2
+    COMMAND ${CMAKE_COMMAND} -E echo "Running C++ tests with 2 workers..."
+    COMMAND bash ${CMAKE_SOURCE_DIR}/tests/run_cpp_test_suite.sh --parallel --workers 2
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
+    COMMENT "Running C++ tests with 2 workers"
+)
+
+add_custom_target(test-cpp-parallel-4
+    COMMAND ${CMAKE_COMMAND} -E echo "Running C++ tests with 4 workers..."
+    COMMAND bash ${CMAKE_SOURCE_DIR}/tests/run_cpp_test_suite.sh --parallel --workers 4
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
+    COMMENT "Running C++ tests with 4 workers"
+)
+
+add_custom_target(test-cpp-parallel-8
+    COMMAND ${CMAKE_COMMAND} -E echo "Running C++ tests with 8 workers..."
+    COMMAND bash ${CMAKE_SOURCE_DIR}/tests/run_cpp_test_suite.sh --parallel --workers 8
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
+    COMMENT "Running C++ tests with 8 workers"
 )
 
 # Add custom target for cleaning test data

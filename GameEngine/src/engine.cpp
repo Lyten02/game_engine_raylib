@@ -7,6 +7,7 @@
 #include "resources/resource_manager.h"
 #include "systems/render_system.h"
 #include "scripting/script_manager.h"
+#include "scripting/game_logic_manager.h"
 #include "project/project_manager.h"
 #include "project/project.h"
 #include "build/async_build_system.h"
@@ -69,6 +70,7 @@ bool Engine::initialize() {
             [this]() -> Scene* { return currentScene.get(); },
             systemsManager->getResourceManager(),
             systemsManager->getScriptManager(),
+            systemsManager->getGameLogicManager(),
             systemsManager->getProjectManager(),
             systemsManager->getBuildSystem(),
             systemsManager->getAsyncBuildSystem(),
@@ -116,6 +118,7 @@ void Engine::run() {
     auto* asyncBuildSystem = systemsManager->getAsyncBuildSystem();
     auto* renderSystem = systemsManager->getRenderSystem();
     auto* projectManager = systemsManager->getProjectManager();
+    auto* gameLogicManager = systemsManager->getGameLogicManager();
     
     // Main game loop
     while (engineCore->shouldContinueRunning()) {
@@ -135,6 +138,11 @@ void Engine::run() {
         // Otherwise update the current scene only if a project is loaded
         else if (currentScene && !console->isOpen() && projectManager && projectManager->getCurrentProject()) {
             currentScene->onUpdate(deltaTime);
+            
+            // Update game logic manager
+            if (gameLogicManager) {
+                gameLogicManager->update(currentScene->registry, deltaTime);
+            }
         }
         
         // Handle play mode controls
@@ -314,6 +322,10 @@ CommandProcessor* Engine::getCommandProcessor() const {
 
 ScriptManager* Engine::getScriptManager() const {
     return systemsManager ? systemsManager->getScriptManager() : nullptr;
+}
+
+GameLogicManager* Engine::getGameLogicManager() const {
+    return systemsManager ? systemsManager->getGameLogicManager() : nullptr;
 }
 
 GameEngine::ProjectManager* Engine::getProjectManager() const {

@@ -8,6 +8,8 @@
 #include "play_mode.h"
 #include "../project/project_manager.h"
 #include "../project/project.h"
+#include "../scripting/game_logic_manager.h"
+#include "../scripting/game_logic_interface.h"
 #include <entt/entt.hpp>
 #include <sstream>
 #include <filesystem>
@@ -222,6 +224,109 @@ void CommandRegistry::registerPlayModeCommands(CommandProcessor* processor, Cons
                 console->addLine("Play mode is not running", YELLOW);
             }
         }, "Check play mode status", "Play");
+}
+
+// Forward declaration for ExampleGameLogic
+class ExampleGameLogic : public IGameLogic {
+public:
+    void initialize(entt::registry& registry) override {}
+    void update(entt::registry& registry, float deltaTime) override {
+        // Simple rotation logic
+        auto view = registry.view<TransformComponent>();
+        for (auto entity : view) {
+            auto& transform = view.get<TransformComponent>(entity);
+            transform.rotation.y += 45.0f * deltaTime;
+        }
+    }
+    void shutdown() override {}
+    std::string getName() const override { return "ExampleGameLogic"; }
+};
+
+void CommandRegistry::registerGameLogicCommands(CommandProcessor* processor, Console* console, 
+                                              GameLogicManager* gameLogicManager, std::function<Scene*()> getScene) {
+    if (!gameLogicManager) return;
+    
+    // logic.list command
+    processor->registerCommand("logic.list",
+        [console, gameLogicManager](const std::vector<std::string>& args) {
+            auto activeLogics = gameLogicManager->getActiveLogics();
+            
+            if (activeLogics.empty()) {
+                console->addLine("No active game logics", YELLOW);
+            } else {
+                console->addLine("Active game logics:", GREEN);
+                for (const auto& logic : activeLogics) {
+                    console->addLine("  - " + logic, GRAY);
+                }
+            }
+        }, "List active game logics", "GameLogic");
+    
+    // logic.create command
+    {
+        std::vector<CommandParameter> createParams = {
+            {"name", "Name of the game logic to create", true}
+        };
+        processor->registerCommand("logic.create",
+            [console, gameLogicManager, getScene](const std::vector<std::string>& args) {
+                if (args.empty()) {
+                    console->addLine("Usage: logic.create <name>", RED);
+                    return;
+                }
+                
+                Scene* scene = getScene();
+                if (!scene) {
+                    console->addLine("No active scene for game logic", RED);
+                    return;
+                }
+                
+                if (gameLogicManager->createLogic(args[0], scene->registry)) {
+                    console->addLine("Created game logic: " + args[0], GREEN);
+                } else {
+                    console->addLine("Failed to create game logic: " + args[0], RED);
+                    console->addLine("Make sure the logic is registered", GRAY);
+                }
+            }, "Create a new game logic instance", "GameLogic", "", createParams);
+    }
+    
+    // logic.remove command
+    {
+        std::vector<CommandParameter> removeParams = {
+            {"name", "Name of the game logic to remove", true}
+        };
+        processor->registerCommand("logic.remove",
+            [console, gameLogicManager](const std::vector<std::string>& args) {
+                if (args.empty()) {
+                    console->addLine("Usage: logic.remove <name>", RED);
+                    return;
+                }
+                
+                if (gameLogicManager->removeLogic(args[0])) {
+                    console->addLine("Removed game logic: " + args[0], GREEN);
+                } else {
+                    console->addLine("Failed to remove game logic: " + args[0], RED);
+                    console->addLine("Logic not found or already removed", GRAY);
+                }
+            }, "Remove a game logic instance", "GameLogic", "", removeParams);
+    }
+    
+    // logic.clear command
+    processor->registerCommand("logic.clear",
+        [console, gameLogicManager](const std::vector<std::string>& args) {
+            gameLogicManager->clearLogics();
+            console->addLine("All game logics cleared", GREEN);
+        }, "Remove all active game logics", "GameLogic");
+    
+    // logic.register command - Example registration
+    processor->registerCommand("logic.register.example",
+        [console, gameLogicManager](const std::vector<std::string>& args) {
+            // Register the example game logic factory
+            auto exampleFactory = []() -> std::unique_ptr<IGameLogic> {
+                return std::make_unique<ExampleGameLogic>();
+            };
+            gameLogicManager->registerLogicFactory("ExampleGameLogic", exampleFactory);
+            console->addLine("Registered ExampleGameLogic", GREEN);
+            console->addLine("Use 'logic.create ExampleGameLogic' to instantiate", GRAY);
+        }, "Register the example game logic", "GameLogic");
 }
 
 } // namespace GameEngine

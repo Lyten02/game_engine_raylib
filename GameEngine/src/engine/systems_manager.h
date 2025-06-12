@@ -8,6 +8,7 @@ class ResourceManager;
 class Console;
 class CommandProcessor;
 class ScriptManager;
+class GameLogicManager;
 class Scene;
 
 namespace GameEngine {
@@ -38,6 +39,7 @@ public:
     Console* getConsole() const { return console.get(); }
     CommandProcessor* getCommandProcessor() const { return commandProcessor.get(); }
     ScriptManager* getScriptManager() const { return scriptManager.get(); }
+    GameLogicManager* getGameLogicManager() const { return gameLogicManager.get(); }
     ProjectManager* getProjectManager() const { return projectManager.get(); }
     BuildSystem* getBuildSystem() const { return buildSystem.get(); }
     AsyncBuildSystem* getAsyncBuildSystem() const { return asyncBuildSystem.get(); }
@@ -52,6 +54,7 @@ private:
     bool initializeRenderSystem(bool headlessMode);
     bool initializeConsole();
     bool initializeScriptManager();
+    bool initializeGameLogicManager();
     bool initializeProjectManager();
     bool initializeBuildSystems();
     bool initializePlayMode();
@@ -62,6 +65,7 @@ private:
     std::unique_ptr<Console> console;
     std::unique_ptr<CommandProcessor> commandProcessor;
     std::unique_ptr<ScriptManager> scriptManager;
+    std::unique_ptr<GameLogicManager> gameLogicManager;
     std::unique_ptr<ProjectManager> projectManager;
     std::unique_ptr<BuildSystem> buildSystem;
     std::unique_ptr<AsyncBuildSystem> asyncBuildSystem;

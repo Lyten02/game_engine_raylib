@@ -39,6 +39,7 @@ public:
     class Console* getConsole() const;
     class CommandProcessor* getCommandProcessor() const;
     class ScriptManager* getScriptManager() const;
+    class GameLogicManager* getGameLogicManager() const;
     GameEngine::ProjectManager* getProjectManager() const;
     
     // Engine control

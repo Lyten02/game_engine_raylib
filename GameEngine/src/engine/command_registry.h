@@ -11,6 +11,7 @@ class CommandProcessor;
 class Scene;
 class ResourceManager;
 class ScriptManager;
+class GameLogicManager;
 class Engine;  // Add global Engine forward declaration
 namespace GameEngine {
     class ProjectManager;
@@ -34,6 +35,7 @@ public:
                            std::function<Scene*()> getScene,
                            ResourceManager* resourceManager,
                            ScriptManager* scriptManager,
+                           GameLogicManager* gameLogicManager,
                            ProjectManager* projectManager,
                            BuildSystem* buildSystem,
                            AsyncBuildSystem* asyncBuildSystem,
@@ -51,6 +53,7 @@ private:
     void registerConsoleCommands(CommandProcessor* processor, Console* console);
     void registerConfigCommands(CommandProcessor* processor, Console* console, EngineCore* engineCore);
     void registerScriptCommands(CommandProcessor* processor, Console* console, ScriptManager* scriptManager);
+    void registerGameLogicCommands(CommandProcessor* processor, Console* console, GameLogicManager* gameLogicManager, std::function<Scene*()> getScene);
     void registerProjectCommands(CommandProcessor* processor, Console* console, ProjectManager* projectManager, std::function<Scene*()> getScene, Engine* engine);
     void registerBuildCommands(CommandProcessor* processor, Console* console, ProjectManager* projectManager, 
                              BuildSystem* buildSystem, AsyncBuildSystem* asyncBuildSystem);

@@ -4,6 +4,7 @@
 #include "../console/console.h"
 #include "../console/command_processor.h"
 #include "../scripting/script_manager.h"
+#include "../scripting/game_logic_manager.h"
 #include "../project/project_manager.h"
 #include "../build/build_system.h"
 #include "../build/async_build_system.h"
@@ -40,6 +41,7 @@ bool SystemsManager::initialize(bool headless) {
     
     // Initialize optional systems
     initializeScriptManager();
+    initializeGameLogicManager();
     initializeProjectManager();
     initializeBuildSystems();
     
@@ -159,6 +161,23 @@ bool SystemsManager::initializePlayMode() {
     return true;
 }
 
+bool SystemsManager::initializeGameLogicManager() {
+    gameLogicManager = std::make_unique<GameLogicManager>();
+    if (gameLogicManager->initialize()) {
+        spdlog::info("SystemsManager::initialize - Game logic manager initialized");
+        
+        if (!headlessMode) {
+            console->addLine("Game Logic Manager initialized. C++ game logic system ready.", GREEN);
+        }
+        
+        return true;
+    } else {
+        spdlog::error("SystemsManager::initialize - Failed to initialize game logic manager");
+        gameLogicManager.reset();
+        return false;
+    }
+}
+
 void SystemsManager::registerComponents() {
     ComponentRegistry::getInstance().registerComponent<TransformComponent>("Transform");
     ComponentRegistry::getInstance().registerComponent<Sprite>("Sprite");
@@ -193,6 +212,12 @@ void SystemsManager::shutdown() {
         scriptManager->shutdown();
         scriptManager.reset();
         spdlog::info("SystemsManager::shutdown - Script manager shut down");
+    }
+    
+    if (gameLogicManager) {
+        gameLogicManager->shutdown();
+        gameLogicManager.reset();
+        spdlog::info("SystemsManager::shutdown - Game logic manager shut down");
     }
     
     if (console) {

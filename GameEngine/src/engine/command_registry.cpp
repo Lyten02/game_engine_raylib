@@ -24,6 +24,7 @@ void CommandRegistry::registerAllCommands(CommandProcessor* processor,
                                         std::function<Scene*()> getScene,
                                         ResourceManager* resourceManager,
                                         ScriptManager* scriptManager,
+                                        GameLogicManager* gameLogicManager,
                                         ProjectManager* projectManager,
                                         BuildSystem* buildSystem,
                                         AsyncBuildSystem* asyncBuildSystem,
@@ -45,6 +46,10 @@ void CommandRegistry::registerAllCommands(CommandProcessor* processor,
     
     if (scriptManager) {
         registerScriptCommands(processor, console, scriptManager);
+    }
+    
+    if (gameLogicManager) {
+        registerGameLogicCommands(processor, console, gameLogicManager, getScene);
     }
     
     registerProjectCommands(processor, console, projectManager, getScene, engine);

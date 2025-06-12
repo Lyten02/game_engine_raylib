@@ -19,9 +19,8 @@
     "rendering": {
         "clear_color": [64, 64, 64, 255]
     },
-    "scripting": {
-        "lua_enabled": true,
-        "auto_reload": true,
-        "script_directory": "scripts/"
+    "game_logic": {
+        "enabled": true,
+        "auto_register_example": false
     }
 }

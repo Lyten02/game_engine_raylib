@@ -5,6 +5,7 @@
 #include "../src/systems/render_system.h"
 #include "../src/resources/resource_manager.h"
 #include "../src/console/console.h"
+#include "../src/scripting/game_logic_manager.h"
 
 // Simple test framework
 #define REQUIRE(condition) do { if (!(condition)) { std::cerr << "FAILED: " << #condition << " at " << __FILE__ << ":" << __LINE__ << std::endl; exit(1); } } while(0)
@@ -21,7 +22,8 @@ void test_engine_basic_initialization() {
     REQUIRE(engine.getResourceManager() != nullptr);
     REQUIRE(engine.getConsole() != nullptr);
     REQUIRE(engine.getCommandProcessor() != nullptr);
-    REQUIRE(engine.getScriptManager() != nullptr);
+    REQUIRE(engine.getScriptManager() != nullptr);  // Stub for compatibility
+    REQUIRE(engine.getGameLogicManager() != nullptr);
     REQUIRE(engine.getProjectManager() != nullptr);
     REQUIRE(engine.getCurrentScene() != nullptr);
     

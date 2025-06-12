@@ -197,8 +197,9 @@ void CppTestRunner::registerAllDefaultTests() {
         "../src/utils/path_utils.cpp",
         "../src/utils/engine_paths.cpp",
         "../src/utils/process_executor.cpp",
-        "../src/scripting/script_manager.cpp",
-        "../src/scripting/lua_bindings.cpp",
+        "../src/scripting/script_manager_stub.cpp",
+        "../src/scripting/game_logic_manager.cpp",
+        "../src/scripting/example_game_logic.cpp",
         "../src/project/project.cpp",
         "../src/project/project_manager.cpp",
         "../src/project/project_validator.cpp",
@@ -235,13 +236,7 @@ void CppTestRunner::registerAllDefaultTests() {
     // Log limiter test is header-only, no additional sources needed
     registerTest({"test_log_limiter_generic_keys", "test_log_limiter_generic_keys.cpp", TestCategory::UNIT});
     
-    TestDefinition scriptMgrTest("test_script_manager_null_safety", "test_script_manager_null_safety.cpp", TestCategory::UNIT);
-    scriptMgrTest.additionalSources = {
-        "../src/scripting/script_manager.cpp",
-        "../src/scripting/lua_bindings.cpp",
-        "../src/utils/file_utils.cpp"
-    };
-    registerTest(scriptMgrTest);
+    // ScriptManager test removed - using GameLogicManager instead
     
     // Additional resource manager tests
     TestDefinition rmThreadingFix("test_resource_manager_threading_fix", "test_resource_manager_threading_fix.cpp", TestCategory::THREADING);

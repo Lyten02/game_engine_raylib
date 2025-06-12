@@ -116,8 +116,7 @@ target_link_libraries(game
 # Copy assets directory to build directory
 file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})
 
-# Copy scripts directory to build directory
-file(COPY ${CMAKE_SOURCE_DIR}/scripts DESTINATION ${CMAKE_BINARY_DIR})
+# Scripts directory removed - using C++ game logic instead
 
 # Copy config.json to build directory
 file(COPY ${CMAKE_SOURCE_DIR}/config.json DESTINATION ${CMAKE_BINARY_DIR})

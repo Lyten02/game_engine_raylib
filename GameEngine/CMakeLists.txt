@@ -86,6 +86,8 @@ add_executable(game
     src/utils/process_executor.cpp
     src/scripting/script_manager.cpp
     src/scripting/lua_bindings.cpp
+    src/scripting/game_logic_manager.cpp
+    src/scripting/example_game_logic.cpp
     src/project/project.cpp
     src/project/project_manager.cpp
     src/project/project_validator.cpp

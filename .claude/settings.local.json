@@ -56,7 +56,9 @@
       "Bash(./game:*)",
       "Bash(cp:*)",
       "Bash(./rebuild_fast.sh:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(./rebuild_incremental.sh:*)",
+      "Bash(./test_game_logic_system)"
     ],
     "deny": [
       "Bash(git:add:*)",

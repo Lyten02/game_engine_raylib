@@ -32,6 +32,7 @@ declare -a tests=(
     "test_resource_manager_exception_safety"
     "test_resource_manager_simple"
     "test_async_build_threading"
+    "test_async_build_thread_safety"
     "test_default_texture_manager"
     "test_call_once_retry_behavior"
     "test_memory_ordering"
@@ -107,7 +108,7 @@ run_test() {
             failed_test_names+=("$test_name (compilation)")
             return
         fi
-    elif [[ "$test_name" == "test_async_build_threading" ]]; then
+    elif [[ "$test_name" == "test_async_build_threading" ]] || [[ "$test_name" == "test_async_build_thread_safety" ]]; then
         # Async build system test
         if g++ $FLAGS ${test_name}.cpp \
             ../src/build/async_build_system.cpp \
@@ -116,6 +117,9 @@ run_test() {
             ../src/project/project.cpp \
             ../src/utils/file_utils.cpp \
             ../src/utils/string_utils.cpp \
+            ../src/utils/log_limiter.cpp \
+            ../src/utils/engine_paths.cpp \
+            ../src/utils/process_executor.cpp \
             $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>/dev/null; then
             echo "  ✅ Compiled successfully"
         else

@@ -24,6 +24,7 @@ public:
     struct BuildProgress {
         std::atomic<float> progress{0.0f};
         std::atomic<BuildStatus> status{BuildStatus::Idle};
+        mutable std::mutex currentStepMutex;
         std::string currentStep;
         std::queue<std::string> messages;
         std::mutex messageMutex;
@@ -34,6 +35,7 @@ public:
     
 private:
     std::unique_ptr<std::thread> buildThread;
+    std::mutex buildThreadMutex;  // Protects access to buildThread
     BuildProgress buildProgress;
     std::unique_ptr<BuildSystem> buildSystem;
     
@@ -47,7 +49,10 @@ public:
     
     BuildStatus getStatus() const { return buildProgress.status.load(); }
     float getProgress() const { return buildProgress.progress.load(); }
-    std::string getCurrentStep() const { return buildProgress.currentStep; }
+    std::string getCurrentStep() const { 
+        std::lock_guard<std::mutex> lock(buildProgress.currentStepMutex);
+        return buildProgress.currentStep; 
+    }
     
     bool hasMessages();
     std::string getNextMessage();

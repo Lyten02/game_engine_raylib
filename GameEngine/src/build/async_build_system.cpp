@@ -20,6 +20,9 @@ AsyncBuildSystem::~AsyncBuildSystem() {
 }
 
 bool AsyncBuildSystem::startBuild(Project* project, const std::string& buildConfig) {
+    // Lock for thread-safe access to buildThread
+    std::lock_guard<std::mutex> threadLock(buildThreadMutex);
+    
     // Check if previous build thread needs to be cleaned up
     if (buildThread && buildThread->joinable()) {
         BuildStatus currentStatus = buildProgress.status.load();
@@ -43,6 +46,12 @@ bool AsyncBuildSystem::startBuild(Project* project, const std::string& buildConf
     // Reset progress
     buildProgress.progress.store(0.0f);
     buildProgress.errorMessage.clear();
+    
+    // Clear currentStep
+    {
+        std::lock_guard<std::mutex> lock(buildProgress.currentStepMutex);
+        buildProgress.currentStep.clear();
+    }
     
     // Clear message queue
     {
@@ -64,6 +73,9 @@ bool AsyncBuildSystem::startBuild(Project* project, const std::string& buildConf
 }
 
 bool AsyncBuildSystem::startFastBuild(Project* project, const std::string& buildConfig) {
+    // Lock for thread-safe access to buildThread
+    std::lock_guard<std::mutex> threadLock(buildThreadMutex);
+    
     // Check if previous build thread needs to be cleaned up
     if (buildThread && buildThread->joinable()) {
         BuildStatus currentStatus = buildProgress.status.load();
@@ -88,6 +100,12 @@ bool AsyncBuildSystem::startFastBuild(Project* project, const std::string& build
     buildProgress.progress.store(0.0f);
     buildProgress.errorMessage.clear();
     
+    // Clear currentStep
+    {
+        std::lock_guard<std::mutex> lock(buildProgress.currentStepMutex);
+        buildProgress.currentStep.clear();
+    }
+    
     // Clear message queue
     {
         std::lock_guard<std::mutex> lock(buildProgress.messageMutex);
@@ -108,6 +126,7 @@ bool AsyncBuildSystem::startFastBuild(Project* project, const std::string& build
 }
 
 void AsyncBuildSystem::cancelBuild() {
+    std::lock_guard<std::mutex> lock(buildThreadMutex);
     if (buildThread && buildThread->joinable()) {
         // In a real implementation, we'd have a cancellation mechanism
         // For now, just wait for it to finish
@@ -131,6 +150,7 @@ std::string AsyncBuildSystem::getNextMessage() {
 }
 
 void AsyncBuildSystem::waitForCompletion() {
+    std::lock_guard<std::mutex> lock(buildThreadMutex);
     if (buildThread && buildThread->joinable()) {
         buildThread->join();
     }
@@ -286,7 +306,10 @@ void AsyncBuildSystem::addMessageWithLimit(const std::string& key, const std::st
 
 void AsyncBuildSystem::setProgress(float progress, const std::string& step) {
     buildProgress.progress.store(progress);
-    buildProgress.currentStep = step;
+    {
+        std::lock_guard<std::mutex> lock(buildProgress.currentStepMutex);
+        buildProgress.currentStep = step;
+    }
 }
 
 void AsyncBuildSystem::fastBuildThreadFunc(Project* project, const std::string& buildConfig) {

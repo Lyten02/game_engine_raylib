@@ -6,13 +6,11 @@
 #include <atomic>
 #include <iostream>
 #include <cassert>
+#include <filesystem>
+#include <fstream>
+#include "nlohmann/json.hpp"
 
 using namespace GameEngine;
-
-class MockProject : public Project {
-public:
-    MockProject(const std::string& name) : Project(name) {}
-};
 
 // Simple test framework macros
 #define ASSERT(condition) \
@@ -24,8 +22,8 @@ public:
 #define ASSERT_EQ(a, b) \
     if ((a) != (b)) { \
         std::cerr << "Assertion failed: " #a " == " #b " at " << __FILE__ << ":" << __LINE__ << std::endl; \
-        std::cerr << "  Expected: " << (b) << std::endl; \
-        std::cerr << "  Actual: " << (a) << std::endl; \
+        std::cerr << "  Expected: " << static_cast<int>(b) << std::endl; \
+        std::cerr << "  Actual: " << static_cast<int>(a) << std::endl; \
         return false; \
     }
 
@@ -37,11 +35,33 @@ public:
         return false; \
     }
 
+// Helper to create a test project
+std::unique_ptr<Project> createTestProject(const std::string& name) {
+    // Create project directory
+    std::filesystem::path testDir = std::filesystem::temp_directory_path() / "async_build_test" / name;
+    std::filesystem::create_directories(testDir);
+    
+    // Create project.json
+    nlohmann::json projectJson;
+    projectJson["name"] = name;
+    projectJson["version"] = "1.0.0";
+    projectJson["scenes"] = nlohmann::json::array();
+    
+    std::ofstream file(testDir / "project.json");
+    file << projectJson.dump(4);
+    file.close();
+    
+    // Load project
+    auto project = std::make_unique<Project>();
+    project->load(testDir.string());
+    return project;
+}
+
 bool test_concurrent_start_build_requests() {
     std::cout << "Testing concurrent start build requests..." << std::endl;
     
     auto buildSystem = std::make_unique<AsyncBuildSystem>();
-    auto project = std::make_unique<MockProject>("TestProject");
+    auto project = createTestProject("TestProject");
     
     std::atomic<int> successCount{0};
     std::atomic<int> failCount{0};
@@ -79,7 +99,7 @@ bool test_start_build_while_previous_in_progress() {
     std::cout << "Testing start build while previous in progress..." << std::endl;
     
     auto buildSystem = std::make_unique<AsyncBuildSystem>();
-    auto project = std::make_unique<MockProject>("TestProject");
+    auto project = createTestProject("TestProject");
     
     // Start first build
     ASSERT(buildSystem->startBuild(project.get(), "Debug"));
@@ -103,7 +123,7 @@ bool test_race_condition_between_check_and_join() {
     
     for (int i = 0; i < iterations; ++i) {
         auto localBuildSystem = std::make_unique<AsyncBuildSystem>();
-        auto project = std::make_unique<MockProject>("TestProject");
+        auto project = createTestProject("TestProject" + std::to_string(i));
         
         // Start a build
         localBuildSystem->startBuild(project.get(), "Debug");
@@ -152,7 +172,7 @@ bool test_current_step_thread_safety() {
     std::cout << "Testing current step thread safety..." << std::endl;
     
     auto buildSystem = std::make_unique<AsyncBuildSystem>();
-    auto project = std::make_unique<MockProject>("TestProject");
+    auto project = createTestProject("TestProject");
     
     const int readerCount = 5;
     std::atomic<bool> inconsistencyDetected{false};
@@ -202,7 +222,7 @@ bool test_destructor_while_build_in_progress() {
     std::cout << "Testing destructor while build in progress..." << std::endl;
     
     auto localBuildSystem = std::make_unique<AsyncBuildSystem>();
-    auto project = std::make_unique<MockProject>("TestProject");
+    auto project = createTestProject("TestProject");
     
     // Start a build
     ASSERT(localBuildSystem->startBuild(project.get(), "Debug"));
@@ -219,7 +239,7 @@ bool test_message_queue_thread_safety() {
     std::cout << "Testing message queue thread safety..." << std::endl;
     
     auto buildSystem = std::make_unique<AsyncBuildSystem>();
-    auto project = std::make_unique<MockProject>("TestProject");
+    auto project = createTestProject("TestProject");
     
     std::atomic<int> messageCount{0};
     std::atomic<bool> stopReading{false};
@@ -262,6 +282,13 @@ bool test_message_queue_thread_safety() {
 int main() {
     std::cout << "Running AsyncBuildSystem thread safety tests..." << std::endl;
     std::cout << "=============================================" << std::endl;
+    
+    // Clean up any previous test directories
+    try {
+        std::filesystem::remove_all(std::filesystem::temp_directory_path() / "async_build_test");
+    } catch (...) {
+        // Ignore errors
+    }
     
     int passed = 0;
     int failed = 0;

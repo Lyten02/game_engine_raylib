@@ -277,6 +277,14 @@ void CppTestRunner::registerAllDefaultTests() {
     resMemTest.additionalSources = {"../src/resources/resource_manager.cpp"};
     registerTest(resMemTest);
     
+    // Dangling pointer tests - demonstrate the theoretical issue
+    registerTest({"test_resource_manager_dangling_pointers", "test_resource_manager_dangling_pointers.cpp", TestCategory::UNIT});
+    registerTest({"test_resource_manager_rehash", "test_resource_manager_rehash.cpp", TestCategory::UNIT});
+    
+    TestDefinition ptrStabilityTest("test_resource_manager_pointer_stability", "test_resource_manager_pointer_stability.cpp", TestCategory::RESOURCE);
+    ptrStabilityTest.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(ptrStabilityTest);
+    
     TestDefinition resPtrTest("test_resource_pointer_consistency", "test_resource_pointer_consistency.cpp", TestCategory::RESOURCE);
     resPtrTest.additionalSources = {"../src/resources/resource_manager.cpp"};
     registerTest(resPtrTest);
@@ -284,6 +292,11 @@ void CppTestRunner::registerAllDefaultTests() {
     TestDefinition resSimpleTest("test_resource_simple", "test_resource_simple.cpp", TestCategory::UNIT);
     resSimpleTest.additionalSources = {"../src/resources/resource_manager.cpp"};
     registerTest(resSimpleTest);
+    
+    // Pointer stability test
+    TestDefinition ptrStabilityTest("test_resource_manager_pointer_stability", "test_resource_manager_pointer_stability.cpp", TestCategory::RESOURCE);
+    ptrStabilityTest.additionalSources = {"../src/resources/resource_manager.cpp"};
+    registerTest(ptrStabilityTest);
 }
 
 void CppTestRunner::runAll() {

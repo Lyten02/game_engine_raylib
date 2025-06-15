@@ -12,15 +12,17 @@ After comprehensive scanning of the GameEngine codebase, I've identified **1 CRI
 
 ---
 
-## 🔴 HIGHEST PRIORITY: Command Injection Vulnerability
+## 🔴 HIGHEST PRIORITY: Command Injection Vulnerability [FIXED]
 
 **Issue:** Remote Code Execution via system() call  
 **Location:** `/GameEngine/src/engine/command_registry_build.cpp:194`  
 **Severity:** CRITICAL  
-**Risk Level:** IMMEDIATE
+**Risk Level:** IMMEDIATE  
+**Status:** ✅ FIXED (2025-06-15)
 
 ### Details:
 ```cpp
+// VULNERABLE CODE (REMOVED):
 #ifdef _WIN32
     std::string command = "start \"\" \"" + execPath + "\"";
 #else  
@@ -29,7 +31,7 @@ After comprehensive scanning of the GameEngine codebase, I've identified **1 CRI
 int result = std::system(command.c_str());  // VULNERABILITY!
 ```
 
-The `project.run` command constructs shell commands using user-controlled paths and executes them via `std::system()`. This creates a direct injection point for arbitrary command execution.
+The `project.run` command was constructing shell commands using user-controlled paths and executing them via `std::system()`. This created a direct injection point for arbitrary command execution.
 
 ### Impact:
 - **Remote Code Execution** on host system
@@ -37,19 +39,25 @@ The `project.run` command constructs shell commands using user-controlled paths 
 - **Data exfiltration** or destruction
 - **Privilege escalation** if engine runs with elevated permissions
 
-### Example Exploit:
+### Example Exploit (Now Mitigated):
 ```bash
 ./game -c "project.create \"test\"; rm -rf /; echo \""
 ./game -c "project.build"
-./game -c "project.run"  # Executes rm -rf /
+./game -c "project.run"  # Would have executed rm -rf /
 ```
 
-### Recommended Fix:
-Replace `std::system()` call with existing `ProcessExecutor::execute()`:
+### Fix Applied:
+Replaced `std::system()` call with safe `ProcessExecutor::execute()`:
 ```cpp
+// SECURE CODE (IMPLEMENTED):
 ProcessExecutor executor;
-auto result = executor.execute(execPath, {}, cmakeBuildDir);
+std::filesystem::path execFullPath = std::filesystem::absolute(execPath);
+std::string workingDir = execFullPath.parent_path().string();
+auto result = executor.execute(execFullPath.string(), {}, workingDir);
 ```
+
+### Security Test:
+Created `test_command_injection_simple.py` which confirms the vulnerability is fixed.
 
 ---
 
@@ -195,8 +203,19 @@ if (!defaultTexture) {
 
 ## Session Metrics
 
+### Анализ (Сессия 1)
 * **Время на задачу:** 20 минут
 * **Количество промптов:** 1
 * **Результат:** ✓ Успешно выполнено
 
-**Заключение:** Самая критическая проблема - Command Injection через std::system(), требующая немедленного исправления. Также выявлены множественные race conditions и проблемы производительности.
+### Исправление Command Injection (Сессия 2)
+* **Время на задачу:** 30 минут
+* **Количество промптов:** 2
+* **Результат:** ✓ Успешно выполнено
+* **Изменения:**
+  - Добавлен #include для ProcessExecutor
+  - Заменен std::system() на безопасный ProcessExecutor::execute()
+  - Создан тест безопасности test_command_injection_simple.py
+  - Тест подтвердил устранение уязвимости
+
+**Заключение:** Критическая уязвимость Command Injection успешно устранена. Следующая приоритетная задача - исправление Race Condition в AsyncBuildSystem.

@@ -8,6 +8,7 @@
 #include "../engine/play_mode.h"
 #include "../utils/log_limiter.h"
 #include "../utils/engine_paths.h"
+#include "../utils/process_executor.h"
 #include <raylib.h>
 #include <spdlog/spdlog.h>
 #include <filesystem>
@@ -184,18 +185,23 @@ void CommandRegistry::registerBuildCommands(CommandProcessor* processor, Console
             
             console->addLine("Running: " + execPath, YELLOW);
             
-            // Run in background
-            #ifdef _WIN32
-                std::string command = "start \"\" \"" + execPath + "\"";
-            #else
-                std::string command = "\"" + execPath + "\" &";
-            #endif
+            // Use ProcessExecutor for safe execution
+            ProcessExecutor executor;
             
-            int result = std::system(command.c_str());
-            if (result == 0) {
+            // Get the directory containing the executable
+            std::filesystem::path execFullPath = std::filesystem::absolute(execPath);
+            std::string workingDir = execFullPath.parent_path().string();
+            
+            // Execute the game safely without shell interpretation
+            auto result = executor.execute(execFullPath.string(), {}, workingDir);
+            
+            if (result.exitCode == 0 || result.exitCode == -2) {  // -2 means process launched in background
                 console->addLine("Game launched successfully", GREEN);
             } else {
-                console->addLine("Failed to launch game", RED);
+                console->addLine("Failed to launch game. Exit code: " + std::to_string(result.exitCode), RED);
+                if (!result.error.empty()) {
+                    console->addLine("Error: " + result.error, RED);
+                }
             }
         }, "Run the built executable", "Build");
     

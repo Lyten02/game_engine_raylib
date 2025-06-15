@@ -299,3 +299,29 @@ When implementing features:
 - Support both interactive and headless modes
 - Include JSON output for automation
 - Write tests for new functionality
+
+### Security Considerations
+
+1. **Command Execution**: Always use `ProcessExecutor` for running external commands
+   - NEVER use `std::system()` - it's vulnerable to command injection
+   - ProcessExecutor provides safe argument passing without shell interpretation
+   - Example: `ProcessExecutor executor; executor.execute(command, args, workingDir);`
+
+2. **Path Validation**: Use `ProcessExecutor::sanitizePath()` for all user-provided paths
+   - Prevents path traversal attacks
+   - Validates against directory escape attempts
+
+3. **Input Validation**: All user inputs should be validated
+   - Project names: Use `ProcessExecutor::isValidProjectName()`
+   - File paths: Check against allowed directories only
+   - Command arguments: Validate before processing
+
+4. **Security Testing**: Run security tests regularly
+   - `python3 tests/test_command_injection_simple.py` - Command injection test
+   - `python3 tests/test_security_cli.py` - CLI security test
+
+### Recent Security Fixes
+
+- **2025-06-15**: Fixed critical command injection vulnerability in `project.run` command
+  - Replaced `std::system()` with `ProcessExecutor::execute()`
+  - Added security test to prevent regression

@@ -61,40 +61,47 @@ Created `test_command_injection_simple.py` which confirms the vulnerability is f
 
 ---
 
-## 🔴 Critical Bugs Requiring Immediate Attention
+## 🔴 Critical Bugs ~~Requiring Immediate Attention~~ [UPDATED: 2025-06-16]
 
-### 1. Race Condition in AsyncBuildSystem Thread Management
+### 1. Race Condition in AsyncBuildSystem Thread Management [FIXED]
 **Location:** `/src/build/async_build_system.cpp:24-33, 68-77`  
-**Impact:** Crashes, deadlocks, undefined behavior
-```cpp
-if (buildThread && buildThread->joinable()) {
-    BuildStatus currentStatus = buildProgress.status.load();
-    // RACE: status could change here before join()
-    if (currentStatus == BuildStatus::Success || currentStatus == BuildStatus::Failed) {
-        buildThread->join();
-```
+**Impact:** Crashes, deadlocks, undefined behavior  
+**Status:** ✅ FIXED (Commit: 360525e)  
+**Fix Details:**
+- Added `buildThreadMutex` for thread-safe access to `buildThread` pointer
+- Implemented atomic `compare_exchange_strong` for race-free status changes
+- Added `currentStepMutex` for protecting shared string access
+- Comprehensive thread safety tests added
 
-### 2. Missing Null Check in RenderSystem
+### 2. Missing Null Check in RenderSystem [FIXED]
 **Location:** `/src/systems/render_system.cpp:23`  
-**Impact:** Crash when accessing deleted entities
-```cpp
-const auto& transform = view.get<TransformComponent>(entity);
-const auto& sprite = view.get<Sprite>(entity);
-if (sprite.texture == nullptr) {  // Check happens too late
-```
+**Impact:** Crash when accessing deleted entities  
+**Status:** ✅ FIXED (Commit: 24b419a)  
+**Fix Details:**
+- Added entity validity check with `registry.valid(entity)`
+- Replaced unsafe `get` with safe `try_get` for components
+- Added null checks for both transform and sprite components
+- Early exit pattern prevents any null dereference
 
-### 3. Exception in Critical Section
+### 3. Exception in Critical Section [FIXED]
 **Location:** `/src/resources/resource_manager.cpp:135-138`  
-**Impact:** Deadlock if exception thrown while holding mutex
-```cpp
-if (!defaultTexture) {
-    throw std::runtime_error("[ResourceManager] Default texture initialization failed");
-}
-```
+**Impact:** Deadlock if exception thrown while holding mutex  
+**Status:** ✅ FIXED (Commit: 8ab1ca2)  
+**Fix Details:**
+- Wrapped initialization in try-catch block
+- Exception logged but not thrown inside critical section
+- Added `defaultTextureInitAttempted` flag to prevent loops
+- Mutex released before any exception propagation
 
-### 4. Directory Not Restored on Exception
+### 4. Directory Not Restored on Exception [FIXED]
 **Location:** `/src/build/async_build_system.cpp:191-213`  
-**Impact:** Subsequent operations fail in wrong directory
+**Impact:** Subsequent operations fail in wrong directory  
+**Status:** ✅ FIXED  
+**Fix Details:**
+- All directory changes wrapped in try-catch blocks
+- Directory restored in catch blocks before re-throwing
+- Nested try-catch ensures restoration even if first attempt fails
+- RAII-style pattern guarantees cleanup
 
 ### 5. Unprotected Registry Access During Play Mode
 **Location:** `/src/engine/play_mode.cpp:133-137`  
@@ -188,16 +195,16 @@ if (!defaultTexture) {
 
 ## 📊 Metrics
 
-### Analysis Statistics:
-- **Critical Security Issues:** 1
-- **Critical Bugs:** 10
-- **Performance Issues:** 15+
-- **Code Smells:** Multiple
+### Analysis Statistics (Updated 2025-06-16):
+- **Critical Security Issues:** 1 → 0 (✅ FIXED)
+- **Critical Bugs:** 10 → 6 (✅ 4 FIXED)
+- **Performance Issues:** 15+ (unchanged)
+- **Code Smells:** Multiple (unchanged)
 
-### Risk Assessment:
-- **Security Risk:** CRITICAL (exploitable RCE)
-- **Stability Risk:** HIGH (multiple crash bugs)
-- **Performance Risk:** MEDIUM (poor scaling)
+### Risk Assessment (Updated):
+- **Security Risk:** ~~CRITICAL~~ → LOW (RCE fixed)
+- **Stability Risk:** ~~HIGH~~ → MEDIUM (4 critical crash bugs fixed)
+- **Performance Risk:** MEDIUM (poor scaling - unchanged)
 
 ---
 
@@ -219,3 +226,18 @@ if (!defaultTexture) {
   - Тест подтвердил устранение уязвимости
 
 **Заключение:** Критическая уязвимость Command Injection успешно устранена. Следующая приоритетная задача - исправление Race Condition в AsyncBuildSystem.
+
+### Исправление критических багов (Сессия 3)
+* **Время на задачу:** 45 минут
+* **Количество промптов:** 2
+* **Результат:** ✓ Успешно выполнено
+* **Исправлено:**
+  1. ✅ Race Condition in AsyncBuildSystem - добавлены мьютексы и атомарные операции
+  2. ✅ Missing Null Check in RenderSystem - добавлены безопасные проверки
+  3. ✅ Exception in Critical Section - обернуто в try-catch блоки
+  4. ✅ Directory Not Restored on Exception - гарантировано восстановление через RAII паттерн
+* **Добавлены тесты:**
+  - test_async_build_thread_safety.cpp
+  - Тесты подтвердили корректность исправлений
+
+**Итог:** Из 10 критических багов исправлено 4. Стабильность системы значительно улучшена. Риск снижен с HIGH до MEDIUM.

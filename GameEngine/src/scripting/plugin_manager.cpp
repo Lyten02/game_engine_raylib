@@ -8,7 +8,7 @@
 
 namespace GameEngine {
 
-PluginManager::PluginManager() {
+GameLogicPluginManager::GameLogicPluginManager() {
     // Add allowed plugin paths for security
     std::string engineRoot = EnginePaths::getEngineRoot();
     allowedPaths.insert(engineRoot + "/packages");
@@ -19,16 +19,16 @@ PluginManager::PluginManager() {
     allowedPaths.insert("./build/packages");
 }
 
-PluginManager::~PluginManager() {
+GameLogicPluginManager::~GameLogicPluginManager() {
     clearAll();
 }
 
-void PluginManager::registerGameLogicFactory(const std::string& name, std::function<std::unique_ptr<IGameLogic>()> factory) {
+void GameLogicPluginManager::registerGameLogicFactory(const std::string& name, std::function<std::unique_ptr<IGameLogic>()> factory) {
     gameLogicFactories[name] = factory;
     spdlog::info("PluginManager: Registered game logic factory: {}", name);
 }
 
-bool PluginManager::loadPlugin(const std::string& path, const std::string& name) {
+bool GameLogicPluginManager::loadPlugin(const std::string& path, const std::string& name) {
     // Security check: validate plugin path
     if (securityEnabled && !isPathAllowed(path)) {
         spdlog::error("PluginManager: Plugin path not allowed: {}", path);
@@ -76,7 +76,7 @@ bool PluginManager::loadPlugin(const std::string& path, const std::string& name)
     }
 }
 
-bool PluginManager::unloadPlugin(const std::string& name) {
+bool GameLogicPluginManager::unloadPlugin(const std::string& name) {
     auto it = loadedLibraries.find(name);
     if (it != loadedLibraries.end()) {
         dlclose(it->second);
@@ -94,7 +94,7 @@ bool PluginManager::unloadPlugin(const std::string& name) {
     return false;
 }
 
-bool PluginManager::loadProjectPlugins(const std::string& projectPath) {
+bool GameLogicPluginManager::loadProjectPlugins(const std::string& projectPath) {
     try {
         // Load project.json to get dependencies
         std::string projectFile = projectPath + "/project.json";
@@ -125,7 +125,7 @@ bool PluginManager::loadProjectPlugins(const std::string& projectPath) {
     }
 }
 
-bool PluginManager::loadPackageFromProject(const std::string& projectPath, const std::string& packageName) {
+bool GameLogicPluginManager::loadPackageFromProject(const std::string& projectPath, const std::string& packageName) {
     // Get engine root path
     std::string engineRoot = EnginePaths::getEngineRoot();
     
@@ -178,7 +178,7 @@ bool PluginManager::loadPackageFromProject(const std::string& projectPath, const
     return false;
 }
 
-std::unique_ptr<IGameLogic> PluginManager::createGameLogic(const std::string& name) {
+std::unique_ptr<IGameLogic> GameLogicPluginManager::createGameLogic(const std::string& name) {
     auto it = gameLogicFactories.find(name);
     if (it != gameLogicFactories.end()) {
         return it->second();
@@ -186,12 +186,12 @@ std::unique_ptr<IGameLogic> PluginManager::createGameLogic(const std::string& na
     return nullptr;
 }
 
-void PluginManager::disableSecurity() {
+void GameLogicPluginManager::disableSecurity() {
     securityEnabled = false;
     spdlog::warn("PluginManager: Plugin security disabled - use only for development!");
 }
 
-std::vector<std::string> PluginManager::getLoadedPlugins() const {
+std::vector<std::string> GameLogicPluginManager::getLoadedPlugins() const {
     std::vector<std::string> plugins;
     for (const auto& [name, handle] : loadedLibraries) {
         plugins.push_back(name);
@@ -199,7 +199,7 @@ std::vector<std::string> PluginManager::getLoadedPlugins() const {
     return plugins;
 }
 
-void PluginManager::clearAll() {
+void GameLogicPluginManager::clearAll() {
     // Unload all libraries
     for (auto& [name, handle] : loadedLibraries) {
         if (handle) {
@@ -210,7 +210,7 @@ void PluginManager::clearAll() {
     gameLogicFactories.clear();
 }
 
-bool PluginManager::isPathAllowed(const std::string& path) {
+bool GameLogicPluginManager::isPathAllowed(const std::string& path) {
     try {
         std::filesystem::path pluginPath(path);
         std::filesystem::path parentPath = pluginPath.parent_path();

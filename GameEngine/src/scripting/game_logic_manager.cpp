@@ -37,7 +37,7 @@ bool GameLogicManager::initialize() {
     spdlog::info("Initializing GameLogicManager");
     
     // Initialize plugin manager
-    pluginManager = std::make_unique<GameEngine::PluginManager>();
+    pluginManager = std::make_unique<GameEngine::GameLogicPluginManager>();
     
     // Register built-in game logic factories (without holding the lock)
     registerBuiltinLogics();

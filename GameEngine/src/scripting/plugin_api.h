@@ -17,20 +17,20 @@ public:
 // Plugin initialization function type
 using PluginInitFunction = void(*)(IPluginManager* manager);
 
-// Plugin info structure
-struct PluginInfo {
+// Game logic plugin info structure  
+struct GameLogicPluginInfo {
     std::string name;
     std::string version;
     std::string description;
 };
 
-// Plugin interface
-class IPlugin {
+// Game logic plugin interface
+class IGameLogicPlugin {
 public:
-    virtual ~IPlugin() = default;
+    virtual ~IGameLogicPlugin() = default;
     virtual void initialize(IPluginManager* manager) = 0;
     virtual void shutdown() = 0;
-    virtual PluginInfo getInfo() const = 0;
+    virtual GameLogicPluginInfo getInfo() const = 0;
 };
 
 } // namespace GameEngine

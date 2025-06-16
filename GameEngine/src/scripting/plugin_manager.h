@@ -11,7 +11,7 @@
 
 namespace GameEngine {
 
-class PluginManager : public IPluginManager {
+class GameLogicPluginManager : public IPluginManager {
 private:
     std::unordered_map<std::string, void*> loadedLibraries;
     std::unordered_map<std::string, std::function<std::unique_ptr<IGameLogic>()>> gameLogicFactories;
@@ -19,8 +19,8 @@ private:
     bool securityEnabled = true;
 
 public:
-    PluginManager();
-    ~PluginManager();
+    GameLogicPluginManager();
+    ~GameLogicPluginManager();
 
     // IPluginManager implementation
     void registerGameLogicFactory(const std::string& name, std::function<std::unique_ptr<IGameLogic>()> factory) override;

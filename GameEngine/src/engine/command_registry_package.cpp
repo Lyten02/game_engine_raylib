@@ -280,19 +280,19 @@ void CommandRegistry::registerPackageCommands(CommandProcessor* processor, Conso
             
             // Show dependency order
             if (resolution.satisfied) {
-                auto order = packageManager->getDependencyOrder(args[0]);
-                if (order.size() > 1) {
+                if (resolution.loadOrder.size() > 1) {
                     console->addLine("Load order:", GRAY);
-                    for (size_t i = 0; i < order.size(); ++i) {
-                        console->addLine("  " + std::to_string(i + 1) + ". " + order[i], GRAY);
+                    for (size_t i = 0; i < resolution.loadOrder.size(); ++i) {
+                        console->addLine("  " + std::to_string(i + 1) + ". " + resolution.loadOrder[i], GRAY);
                     }
                 }
             }
             
-            // Check for circular dependencies
-            if (packageManager->hasCircularDependency(args[0])) {
-                console->addLine("WARNING: Circular dependency detected!", RED);
-            }
+            // Check for circular dependencies - simplified for now
+            // TODO: Implement circular dependency detection in PackageManager
+            // if (packageManager->hasCircularDependency(args[0])) {
+            //     console->addLine("WARNING: Circular dependency detected!", RED);
+            // }
         }, "Check package dependencies", "Package",
         "package.deps <name>", depsParams);
     }

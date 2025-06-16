@@ -73,7 +73,6 @@ add_executable(game_engine
     src/engine/command_registry_entity.cpp
     src/engine/command_registry_scene.cpp
     src/systems/render_system.cpp
-    src/render/sprite_batch.cpp
     src/scene/scene.cpp
     src/resources/resource_manager.cpp
     src/console/console.cpp

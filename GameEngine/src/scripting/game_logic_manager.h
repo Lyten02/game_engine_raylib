@@ -11,7 +11,7 @@ class GameLogicManager {
 private:
     std::vector<std::unique_ptr<IGameLogic>> activeLogics;
     std::unordered_map<std::string, GameLogicFactory> registeredFactories;
-    std::unique_ptr<GameEngine::PluginManager> pluginManager;
+    std::unique_ptr<GameEngine::GameLogicPluginManager> pluginManager;
     mutable std::mutex mutex;
     bool initialized = false;
     

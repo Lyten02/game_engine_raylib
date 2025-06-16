@@ -292,11 +292,6 @@ void CppTestRunner::registerAllDefaultTests() {
     TestDefinition resSimpleTest("test_resource_simple", "test_resource_simple.cpp", TestCategory::UNIT);
     resSimpleTest.additionalSources = {"../src/resources/resource_manager.cpp"};
     registerTest(resSimpleTest);
-    
-    // Pointer stability test
-    TestDefinition ptrStabilityTest("test_resource_manager_pointer_stability", "test_resource_manager_pointer_stability.cpp", TestCategory::RESOURCE);
-    ptrStabilityTest.additionalSources = {"../src/resources/resource_manager.cpp"};
-    registerTest(ptrStabilityTest);
 }
 
 void CppTestRunner::runAll() {

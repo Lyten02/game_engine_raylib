@@ -14,11 +14,11 @@ def find_executable():
     
     # Check common paths relative to script location
     paths = [
-        './game',  # If we're in build directory
-        os.path.join(script_dir, '../build/game'),  # From tests directory
-        os.path.join(script_dir, './build/game'),  # Alternative
-        '../build/game',  # Relative to current dir
-        './build/game'   # Another alternative
+        './game_engine',  # If we're in build directory
+        os.path.join(script_dir, '../build/game_engine'),  # From tests directory
+        os.path.join(script_dir, './build/game_engine'),  # Alternative
+        '../build/game_engine',  # Relative to current dir
+        './build/game_engine'   # Another alternative
     ]
     
     for path in paths:

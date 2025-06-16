@@ -92,7 +92,7 @@ quit
             ]
         
         result = subprocess.run(
-            ["./game", "--json", "--batch"] + commands,
+            ["./game_engine", "--json", "--batch"] + commands,
             capture_output=True,
             text=True,
             timeout=120  # Increase timeout for CMake operations
@@ -186,7 +186,7 @@ quit
             # Run full build - use fast build if deps exist
             full_build_cmd = "project.build.fast" if has_cached_deps else "project.build"
             result = subprocess.run(
-                ["./game", "--json", "--batch", "project.open EditorTest", full_build_cmd],
+                ["./game_engine", "--json", "--batch", "project.open EditorTest", full_build_cmd],
                 capture_output=True,
                 text=True,
                 timeout=180  # 3 minutes for compilation with heavy parallel load
@@ -274,8 +274,8 @@ def main():
     """Run all editor tests"""
     
     # Check if we're in the right directory
-    if not os.path.exists("./game"):
-        print("ERROR: ./game not found. Run from build directory.")
+    if not os.path.exists("./game_engine"):
+        print("ERROR: ./game_engine not found. Run from build directory.")
         return 1
     
     # Set environment variable to help with path resolution

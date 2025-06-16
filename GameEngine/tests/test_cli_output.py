@@ -9,9 +9,9 @@ import os
 def run_engine_command(command, project=None):
     """Execute engine command and return JSON result"""
     # Build path to executable
-    exe_path = "./game"
+    exe_path = "./game_engine"
     if not os.path.exists(exe_path):
-        exe_path = "./build/game"
+        exe_path = "./build/game_engine"
     
     cmd = [exe_path, "--json", "--headless"]
     
@@ -140,7 +140,7 @@ def main():
     
     try:
         # Change to build directory if needed
-        if os.path.exists("build/game"):
+        if os.path.exists("build/game_engine"):
             os.chdir("build")
         
         tests = [

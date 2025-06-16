@@ -23,7 +23,7 @@ def test_config_loading():
         print("\nTest 1: Config in build directory")
         if os.path.exists("config.json"):
             result = subprocess.run(
-                ["./game", "--json", "-c", "config.get window.width"],
+                ["./game_engine", "--json", "-c", "config.get window.width"],
                 capture_output=True,
                 text=True
             )
@@ -49,7 +49,7 @@ def test_config_loading():
             config_renamed = True
             
         result = subprocess.run(
-            ["./game", "--json", "-c", "engine.info"],
+            ["./game_engine", "--json", "-c", "engine.info"],
             capture_output=True,
             text=True
         )
@@ -71,7 +71,7 @@ def test_config_loading():
         os.chdir("test_subdir")
         
         result = subprocess.run(
-            ["../game", "--json", "-c", "help"],
+            ["../game_engine", "--json", "-c", "help"],
             capture_output=True,
             text=True
         )
@@ -142,8 +142,8 @@ def main():
     """Run configuration tests"""
     
     # Check if we're in the right directory
-    if not os.path.exists("./game"):
-        print("ERROR: ./game not found. Run from build directory.")
+    if not os.path.exists("./game_engine"):
+        print("ERROR: ./game_engine not found. Run from build directory.")
         return 1
     
     # Create test config if needed

@@ -10,7 +10,7 @@ import shutil
 def run_build_commands(project_name, build_type="fast", force_full=False):
     """Run build commands for a project"""
     # Always use paths relative to build directory since tests run from there
-    game_exe = "./game"
+    game_exe = "./game_engine"
     project_path = f"../projects/{project_name}"
     output_path = f"../output/{project_name}"
     

@@ -8,14 +8,14 @@ echo "Analyzing project state..."
 
 # Function to check if source files changed
 check_source_changes() {
-    if [ ! -f "build/game" ]; then
+    if [ ! -f "build/game_engine" ]; then
         return 1  # No executable, need rebuild
     fi
     
     # Check if any source file is newer than the executable
     # Using a more portable approach
     for file in $(find src -name "*.cpp" -o -name "*.h" -type f); do
-        if [ "$file" -nt "build/game" ]; then
+        if [ "$file" -nt "build/game_engine" ]; then
             echo "→ Changed file detected: $file"
             return 1  # Source changed, need rebuild
         fi
@@ -45,8 +45,8 @@ elif check_source_changes; then
     echo "→ No source changes detected"
     echo "→ Build is up to date!"
     echo ""
-    echo "Executable: build/game"
-    echo "Run with: cd build && ./game"
+    echo "Executable: build/game_engine"
+    echo "Run with: cd build && ./game_engine"
 else
     echo "→ Source files changed"
     echo "→ Running incremental rebuild..."

@@ -26,7 +26,7 @@ def test_config_malformed_keys():
         
         # Test get operation - should now return error
         result = subprocess.run([
-            "./game", "--json", "--headless", "--command", 
+            "./game_engine", "--json", "--headless", "--command", 
             f"config.get \"{malformed_key}\""
         ], capture_output=True, text=True, timeout=5)
         
@@ -42,7 +42,7 @@ def test_config_malformed_keys():
         
         # Test set operation - should now return error
         result = subprocess.run([
-            "./game", "--json", "--headless", "--command", 
+            "./game_engine", "--json", "--headless", "--command", 
             f"config.set \"{malformed_key}\" \"value\""
         ], capture_output=True, text=True, timeout=5)
         
@@ -64,7 +64,7 @@ def test_config_deep_nesting():
     print(f"Testing deeply nested key: {deep_key}")
     
     result = subprocess.run([
-        "./game", "--json", "--headless", "--command", 
+        "./game_engine", "--json", "--headless", "--command", 
         f"config.get \"{deep_key}\""
     ], capture_output=True, text=True, timeout=5)
     
@@ -88,7 +88,7 @@ def test_config_stress_keys():
         
         # Get operation
         result = subprocess.run([
-            "./game", "--json", "--headless", "--command", 
+            "./game_engine", "--json", "--headless", "--command", 
             f"config.get \"{key}\""
         ], capture_output=True, text=True, timeout=2)
         
@@ -98,7 +98,7 @@ def test_config_stress_keys():
         # Set operation (every 5th iteration)
         if i % 5 == 0:
             result = subprocess.run([
-                "./game", "--json", "--headless", "--command", 
+                "./game_engine", "--json", "--headless", "--command", 
                 f"config.set \"{key}\" {i}"
             ], capture_output=True, text=True, timeout=2)
             
@@ -126,7 +126,7 @@ def test_config_special_cases():
         print(f"Testing {description}: '{key}'")
         
         result = subprocess.run([
-            "./game", "--json", "--headless", "--command", 
+            "./game_engine", "--json", "--headless", "--command", 
             f"config.get \"{key}\""
         ], capture_output=True, text=True, timeout=5)
         
@@ -156,7 +156,7 @@ def test_config_boundary_values():
     
     # Test valid maximum length
     result = subprocess.run([
-        "./game", "--json", "--headless", "--command", 
+        "./game_engine", "--json", "--headless", "--command", 
         f"config.get \"{max_length_key}\""
     ], capture_output=True, text=True, timeout=5)
     
@@ -168,7 +168,7 @@ def test_config_boundary_values():
     
     # Test too long key
     result = subprocess.run([
-        "./game", "--json", "--headless", "--command", 
+        "./game_engine", "--json", "--headless", "--command", 
         f"config.get \"{too_long_key}\""
     ], capture_output=True, text=True, timeout=5)
     
@@ -186,7 +186,7 @@ def test_config_boundary_values():
     
     # Test valid maximum depth
     result = subprocess.run([
-        "./game", "--json", "--headless", "--command", 
+        "./game_engine", "--json", "--headless", "--command", 
         f"config.get \"{max_depth_key}\""
     ], capture_output=True, text=True, timeout=5)
     
@@ -198,7 +198,7 @@ def test_config_boundary_values():
     
     # Test too deep key
     result = subprocess.run([
-        "./game", "--json", "--headless", "--command", 
+        "./game_engine", "--json", "--headless", "--command", 
         f"config.get \"{too_deep_key}\""
     ], capture_output=True, text=True, timeout=5)
     

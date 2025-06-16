@@ -43,11 +43,11 @@ class TestRunner:
         
         # Find game executable - look in correct relative paths
         if os.path.exists("game"):
-            self.game_exe = "./game"
-        elif os.path.exists("../build/game"):
-            self.game_exe = "../build/game"
-        elif os.path.exists("build/game"):
-            self.game_exe = "./build/game"
+            self.game_exe = "./game_engine"
+        elif os.path.exists("../build/game_engine"):
+            self.game_exe = "../build/game_engine"
+        elif os.path.exists("build/game_engine"):
+            self.game_exe = "./build/game_engine"
         else:
             print("❌ Error: game executable not found!")
             print("   Run this script from tests directory or build directory")
@@ -692,15 +692,15 @@ def main():
         
         # Run parallel tests
         test_dir = Path(__file__).parent
-        game_exe = runner.game_exe if 'runner' in locals() else "./game"
+        game_exe = runner.game_exe if 'runner' in locals() else "./game_engine"
         
         # Find game executable
         if os.path.exists("game"):
-            game_exe = "./game"
-        elif os.path.exists("../build/game"):
-            game_exe = "../build/game"
-        elif os.path.exists("build/game"):
-            game_exe = "./build/game"
+            game_exe = "./game_engine"
+        elif os.path.exists("../build/game_engine"):
+            game_exe = "../build/game_engine"
+        elif os.path.exists("build/game_engine"):
+            game_exe = "./build/game_engine"
         
         parallel_runner = ParallelTestRunner(
             test_dir,
@@ -828,7 +828,7 @@ def main():
         # We're in the tests directory
         test_dir = "."
         build_dir = "../build"
-    elif os.path.exists("tests") and os.path.exists("build/game"):
+    elif os.path.exists("tests") and os.path.exists("build/game_engine"):
         # We're in the GameEngine root directory
         test_dir = "tests"
         build_dir = "build"

@@ -24,8 +24,8 @@ time make -j8
 if [ $? -eq 0 ]; then
     echo ""
     echo "Build complete!"
-    echo "Executable: build/game"
-    echo "Run with: cd build && ./game"
+    echo "Executable: build/game_engine"
+    echo "Run with: cd build && ./game_engine"
     echo ""
     echo "TIP: Next time use ./rebuild_incremental.sh for faster builds!"
 else

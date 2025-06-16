@@ -10,7 +10,7 @@ import sys
 def run_config_command():
     """Run a single config command"""
     subprocess.run(
-        ["./game", "--json", "--headless", "--command", "config.get window.width"],
+        ["./game_engine", "--json", "--headless", "--command", "config.get window.width"],
         capture_output=True, text=True, timeout=3
     )
 
@@ -26,7 +26,7 @@ def stress_test_config():
     # Warm up - single command
     print("Warm up test...")
     result = subprocess.run(
-        ["./game", "--json", "--headless", "--command", "config.get window.width"],
+        ["./game_engine", "--json", "--headless", "--command", "config.get window.width"],
         capture_output=True, text=True, timeout=5
     )
     if result.returncode != 0:
@@ -55,7 +55,7 @@ def stress_test_config():
     
     def run_varied_commands(key):
         subprocess.run(
-            ["./game", "--json", "--headless", "--command", f"config.get {key}"],
+            ["./game_engine", "--json", "--headless", "--command", f"config.get {key}"],
             capture_output=True, text=True, timeout=3
         )
     
@@ -89,7 +89,7 @@ def stress_test_config():
     
     for i in range(50):
         result = subprocess.run(
-            ["./game", "--json", "--headless", "--command", "config.get window.width"],
+            ["./game_engine", "--json", "--headless", "--command", "config.get window.width"],
             capture_output=True, text=True, timeout=2
         )
     

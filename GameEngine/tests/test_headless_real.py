@@ -12,9 +12,9 @@ import time
 
 def run_engine_command(command, timeout=10):
     """Execute engine command and return JSON result with timing"""
-    exe_path = "./game"
+    exe_path = "./game_engine"
     if not os.path.exists(exe_path):
-        exe_path = "./build/game"
+        exe_path = "./build/game_engine"
     
     cmd = [exe_path, "--json", "--headless"]
     cmd.extend(["--command", command])
@@ -94,9 +94,9 @@ def test_headless_interactive_mode():
     print("\nTesting headless interactive mode...")
     
     # Test headless mode without --command flag to trigger game loop
-    exe_path = "./game"
+    exe_path = "./game_engine"
     if not os.path.exists(exe_path):
-        exe_path = "./build/game"
+        exe_path = "./build/game_engine"
     
     # Run in headless mode with timeout to see if game loop runs
     start_time = time.time()

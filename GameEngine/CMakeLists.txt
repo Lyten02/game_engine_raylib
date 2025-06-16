@@ -61,7 +61,7 @@ FetchContent_MakeAvailable(raylib spdlog EnTT glm json)
 # Lua removed - using C++ game logic system instead
 
 # Add executable
-add_executable(game 
+add_executable(game_engine 
     src/main.cpp
     src/engine.cpp
     src/engine/engine_core.cpp
@@ -107,12 +107,12 @@ add_executable(game
 )
 
 # Include directories
-target_include_directories(game PRIVATE 
+target_include_directories(game_engine PRIVATE 
     src
 )
 
 # Link libraries
-target_link_libraries(game 
+target_link_libraries(game_engine 
     raylib
     spdlog::spdlog
     EnTT::EnTT
@@ -139,7 +139,7 @@ add_custom_target(test
     COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests - including full builds..."
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    DEPENDS game
+    DEPENDS game_engine
     COMMENT "Running all tests including full builds"
 )
 
@@ -148,7 +148,7 @@ add_custom_target(test-fast
     COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests - skipping full builds..."
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py --skip-full-build
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    DEPENDS game
+    DEPENDS game_engine
     COMMENT "Running tests without full builds"
 )
 
@@ -157,7 +157,7 @@ add_custom_target(test-parallel
     COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests in parallel mode..."
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py --parallel --skip-full-build
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    DEPENDS game
+    DEPENDS game_engine
     COMMENT "Running tests in parallel"
 )
 
@@ -166,7 +166,7 @@ add_custom_target(test-parallel-2
     COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests in parallel mode - 2 workers..."
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py --parallel --skip-full-build --workers 2
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    DEPENDS game
+    DEPENDS game_engine
     COMMENT "Running tests in parallel with 2 workers"
 )
 
@@ -174,7 +174,7 @@ add_custom_target(test-parallel-4
     COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests in parallel mode - 4 workers..."
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py --parallel --skip-full-build --workers 4
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    DEPENDS game
+    DEPENDS game_engine
     COMMENT "Running tests in parallel with 4 workers"
 )
 
@@ -182,7 +182,7 @@ add_custom_target(test-parallel-8
     COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests in parallel mode - 8 workers..."
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py --parallel --skip-full-build --workers 8
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    DEPENDS game
+    DEPENDS game_engine
     COMMENT "Running tests in parallel with 8 workers"
 )
 

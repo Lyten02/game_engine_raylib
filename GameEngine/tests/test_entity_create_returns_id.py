@@ -14,7 +14,7 @@ def test_entity_create_returns_id():
     
     # Execute command
     result = subprocess.run(
-        ["./game", "--json", "--headless", "--command", "entity.create"],
+        ["./game_engine", "--json", "--headless", "--command", "entity.create"],
         capture_output=True,
         text=True
     )
@@ -46,7 +46,7 @@ def test_entity_create_with_position():
     os.chdir(os.path.join(os.path.dirname(__file__), '../build'))
     
     result = subprocess.run(
-        ["./game", "--json", "--headless", "--command", "entity.create 10 20 30"],
+        ["./game_engine", "--json", "--headless", "--command", "entity.create 10 20 30"],
         capture_output=True,
         text=True
     )
@@ -71,7 +71,7 @@ def test_entity_create_output_format():
     os.chdir(os.path.join(os.path.dirname(__file__), '../build'))
     
     result = subprocess.run(
-        ["./game", "--json", "--headless", "--command", "entity.create"],
+        ["./game_engine", "--json", "--headless", "--command", "entity.create"],
         capture_output=True,
         text=True
     )

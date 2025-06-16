@@ -27,7 +27,7 @@ def test_single_run():
     print("Testing single entity creation...")
     
     result = subprocess.run([
-        "./game", "--headless", "--command", "entity.create"
+        "./game_engine", "--headless", "--command", "entity.create"
     ], capture_output=True, text=True, cwd="../build")
     
     counts = count_log_patterns(result.stderr)
@@ -43,7 +43,7 @@ def test_multiple_entities():
     commands = "\n".join(["entity.create"] * 20)
     
     result = subprocess.run([
-        "./game", "--headless", "--batch"
+        "./game_engine", "--headless", "--batch"
     ], input=commands, capture_output=True, text=True, cwd="../build")
     
     counts = count_log_patterns(result.stderr)
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     print("=" * 60)
     
     # Check if we're in the right directory
-    if not os.path.exists("../build/game"):
+    if not os.path.exists("../build/game_engine"):
         print("ERROR: Build directory not found. Please build the project first.")
         sys.exit(1)
     

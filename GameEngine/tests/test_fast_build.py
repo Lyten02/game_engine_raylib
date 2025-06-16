@@ -22,7 +22,7 @@ def test_fast_build_performance():
     print("Testing fast build performance...")
     
     # Tests are always run from build directory
-    game_exe = "./game"
+    game_exe = "./game_engine"
     projects_dir = "../projects"
     output_dir = "../output"
     test_project = "FastBuildTest"

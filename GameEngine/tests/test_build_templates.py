@@ -21,10 +21,10 @@ class BuildSystemTest:
         self.game_engine_dir = Path(__file__).parent.parent
         # Tests are always run from build directory
         # Find game executable
-        if Path("./game").exists():
-            self.game_executable = Path("./game").absolute()
-        elif Path("../build/game").exists():
-            self.game_executable = Path("../build/game").absolute()
+        if Path("./game_engine").exists():
+            self.game_executable = Path("./game_engine").absolute()
+        elif Path("../build/game_engine").exists():
+            self.game_executable = Path("../build/game_engine").absolute()
         elif Path(self.game_engine_dir / "build" / "game").exists():
             self.game_executable = Path(self.game_engine_dir / "build" / "game").absolute()
         else:

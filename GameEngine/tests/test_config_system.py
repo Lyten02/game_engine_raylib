@@ -18,7 +18,7 @@ def test_config_commands():
     # Test 1: Normal config access
     print("Test 1: Normal config access...")
     result = subprocess.run(
-        ["./game", "--json", "--headless", "--command", "config.get window.width"],
+        ["./game_engine", "--json", "--headless", "--command", "config.get window.width"],
         capture_output=True, text=True, timeout=5
     )
     if result.returncode != 0:
@@ -40,7 +40,7 @@ def test_config_commands():
     for key in invalid_keys:
         try:
             result = subprocess.run(
-                ["./game", "--json", "--headless", "--command", f"config.get {key}"],
+                ["./game_engine", "--json", "--headless", "--command", f"config.get {key}"],
                 capture_output=True, text=True, timeout=5
             )
             # Should not timeout, regardless of success/failure
@@ -60,7 +60,7 @@ def test_config_commands():
     
     for key in valid_keys:
         result = subprocess.run(
-            ["./game", "--json", "--headless", "--command", f"config.get {key}"],
+            ["./game_engine", "--json", "--headless", "--command", f"config.get {key}"],
             capture_output=True, text=True, timeout=5
         )
         print(f"✓ Key '{key}' accessed successfully")
@@ -69,7 +69,7 @@ def test_config_commands():
     print("\nTest 4: Config set with invalid keys...")
     for key in ["test..invalid", "..test", "test.."]:
         result = subprocess.run(
-            ["./game", "--json", "--headless", "--command", f"config.set {key} 123"],
+            ["./game_engine", "--json", "--headless", "--command", f"config.set {key} 123"],
             capture_output=True, text=True, timeout=5
         )
         print(f"✓ Set with key '{key}' handled without timeout")

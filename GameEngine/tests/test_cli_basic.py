@@ -12,9 +12,9 @@ import os
 def run_engine_command(command, project=None):
     """Execute engine command and return JSON result"""
     # Build path to executable
-    exe_path = "./game"
+    exe_path = "./game_engine"
     if not os.path.exists(exe_path):
-        exe_path = "./build/game"
+        exe_path = "./build/game_engine"
     
     cmd = [exe_path, "--json", "--headless"]
     
@@ -77,9 +77,9 @@ def test_batch_commands():
     """Test batch command execution"""
     print("\nTesting batch commands...")
     
-    exe_path = "./game"
+    exe_path = "./game_engine"
     if not os.path.exists(exe_path):
-        exe_path = "./build/game"
+        exe_path = "./build/game_engine"
     
     import time
     batch_proj_name = f"batch_test_{int(time.time())}"
@@ -147,7 +147,7 @@ def test_resource_manager_headless():
 if __name__ == "__main__":
     try:
         # Change to build directory if we're in the project root
-        if os.path.exists("build/game"):
+        if os.path.exists("build/game_engine"):
             os.chdir("build")
         
         success = test_basic_commands()

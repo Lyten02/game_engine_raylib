@@ -10,7 +10,7 @@ def test_headless_resource_loading():
     """Test that resource manager works in headless mode"""
     print("Testing headless resource manager...")
     
-    exe_path = "./game" if os.path.exists("./game") else "./build/game"
+    exe_path = "./game_engine" if os.path.exists("./game_engine") else "./build/game_engine"
     
     # Test basic headless operation
     result = subprocess.run(
@@ -33,7 +33,7 @@ def test_entity_creation_headless():
     """Test entity creation (which uses ResourceManager) in headless"""
     print("Testing entity creation in headless mode...")
     
-    exe_path = "./game" if os.path.exists("./game") else "./build/game"
+    exe_path = "./game_engine" if os.path.exists("./game_engine") else "./build/game_engine"
     
     # Use a unique project name to avoid conflicts
     import time
@@ -80,13 +80,13 @@ def test_entity_creation_headless():
 if __name__ == "__main__":
     try:
         # Find the game executable
-        if os.path.exists("./game"):
+        if os.path.exists("./game_engine"):
             # Already in build directory
             pass
-        elif os.path.exists("./build/game"):
+        elif os.path.exists("./build/game_engine"):
             # In project root
             os.chdir("build")
-        elif os.path.exists("../build/game"):
+        elif os.path.exists("../build/game_engine"):
             # In tests directory
             os.chdir("../build")
         else:

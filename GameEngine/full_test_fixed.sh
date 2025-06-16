@@ -340,13 +340,13 @@ main() {
     echo "📄 Full log: $LOG_FILE"
     echo "🕒 Finished: $(date '+%Y-%m-%d %H:%M:%S')"
     
-    if [ -f "$PROJECT_ROOT/build/game" ]; then
-        echo "🎮 Game ready: $PROJECT_ROOT/build/game"
+    if [ -f "$PROJECT_ROOT/build/game_engine" ]; then
+        echo "🎮 Game ready: $PROJECT_ROOT/build/game_engine"
         echo ""
         echo "💡 Quick commands:"
-        echo "   cd build && ./game                    # Run the engine"
-        echo "   cd build && ./game --help            # Show help"
-        echo "   cd build && ./game --json -c help    # JSON output"
+        echo "   cd build && ./game_engine                    # Run the engine"
+        echo "   cd build && ./game_engine --help            # Show help"
+        echo "   cd build && ./game_engine --json -c help    # JSON output"
     fi
     
     return $failed_tests
@@ -356,12 +356,12 @@ main() {
 if [[ "$1" == "--help" || "$1" == "-h" ]]; then
     echo "Usage: $0 [options]"
     echo ""
-    echo "Smart test runner that skips rebuild if 'game' executable is up-to-date."
+    echo "Smart test runner that skips rebuild if 'game_engine' executable is up-to-date."
     echo ""
     echo "This script:"
     echo "1. Collects Git repository information and status"
-    echo "2. Checks if build/game exists and is newer than sources"
-    echo "3. Skips rebuild if game is up-to-date (saves time!)"
+    echo "2. Checks if build/game_engine exists and is newer than sources"
+    echo "3. Skips rebuild if game_engine is up-to-date (saves time!)"
     echo "4. Runs Python tests (make test or direct)"
     echo "5. Runs C++ tests (make test-cpp or direct)"
     echo "6. Logs all Git information for debugging"
@@ -371,7 +371,7 @@ if [[ "$1" == "--help" || "$1" == "-h" ]]; then
     echo "  --force-rebuild, -f  Force rebuild even if game exists"
     echo ""
     echo "Smart features:"
-    echo "  ⚡ Skips rebuild if build/game is newer than sources"
+    echo "  ⚡ Skips rebuild if build/game_engine is newer than sources"
     echo "  🔍 Checks file timestamps to determine if rebuild needed"
     echo "  📋 Falls back to direct test execution if make targets missing"
     echo "  📄 Detailed logging with absolute paths"

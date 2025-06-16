@@ -44,7 +44,7 @@ def generate_unique_project_name_local(base_name):
 
 def run_command(command):
     """Execute engine command and return JSON result"""
-    exe_path = "./game" if os.path.exists("./game") else "./build/game"
+    exe_path = "./game_engine" if os.path.exists("./game_engine") else "./build/game_engine"
     
     result = subprocess.run(
         [exe_path, "--json", "--headless", "--command", command],
@@ -147,7 +147,7 @@ def test_project_persistence():
 if __name__ == "__main__":
     try:
         # Change to build directory if needed
-        if os.path.exists("build/game"):
+        if os.path.exists("build/game_engine"):
             os.chdir("build")
         
         print("🧪 Project Management Tests")

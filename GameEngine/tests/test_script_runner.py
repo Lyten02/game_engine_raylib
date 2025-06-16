@@ -23,7 +23,7 @@ def run_script_test(script_file):
     
     try:
         result = subprocess.run([
-            "./game", "--json", "--headless", "--script", script_path
+            "./game_engine", "--json", "--headless", "--script", script_path
         ], capture_output=True, text=True, timeout=30)
         
         if result.returncode == 0:

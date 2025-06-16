@@ -13,6 +13,11 @@
 #include "../components/transform.h"
 #include "../components/sprite.h"
 #include "../utils/config.h"
+#include "../utils/engine_paths.h"
+#include "../packages/package_manager.h"
+#include "../packages/package_loader.h"
+#include "../plugins/plugin_manager.h"
+#include "../plugins/plugin_api.h"
 #include <raylib.h>
 #include <spdlog/spdlog.h>
 
@@ -47,6 +52,11 @@ bool SystemsManager::initialize(bool headless) {
     
     if (!headlessMode) {
         initializePlayMode();
+    }
+    
+    // Initialize package management system
+    if (!initializePackageManager()) {
+        return false;
     }
     
     // Register components for serialization
@@ -162,6 +172,31 @@ bool SystemsManager::initializeGameLogicManager() {
     }
 }
 
+bool SystemsManager::initializePackageManager() {
+    // Initialize package loader first
+    packageLoader = std::make_unique<PackageLoader>();
+    spdlog::info("SystemsManager::initialize - Package loader initialized");
+    
+    // Initialize plugin system with package loader
+    pluginManager = std::make_unique<PluginManager>(packageLoader.get());
+    packageLoader->setPluginManager(pluginManager.get());
+    spdlog::info("SystemsManager::initialize - Plugin manager initialized");
+    
+    // Initialize package manager with correct path
+    std::filesystem::path packagesDir = EnginePaths::getPackagesDir();
+    packageManager = std::make_unique<PackageManager>(packagesDir);
+    packageManager->setPackageLoader(packageLoader.get());
+    packageManager->setPluginManager(pluginManager.get());
+    
+    // Scan for available packages
+    packageManager->scanPackages();
+    auto availablePackages = packageManager->getAvailablePackages();
+    spdlog::info("SystemsManager::initialize - Package manager initialized with {} available packages", 
+                availablePackages.size());
+    
+    return true;
+}
+
 void SystemsManager::registerComponents() {
     ComponentRegistry::getInstance().registerComponent<TransformComponent>("Transform");
     ComponentRegistry::getInstance().registerComponent<Sprite>("Sprite");
@@ -170,6 +205,22 @@ void SystemsManager::registerComponents() {
 
 void SystemsManager::shutdown() {
     spdlog::info("SystemsManager::shutdown - Shutting down all systems");
+    
+    // Shutdown package systems first (they may have dependencies on other systems)
+    if (packageManager) {
+        packageManager.reset();
+        spdlog::info("SystemsManager::shutdown - Package manager shut down");
+    }
+    
+    if (packageLoader) {
+        packageLoader.reset();
+        spdlog::info("SystemsManager::shutdown - Package loader shut down");
+    }
+    
+    if (pluginManager) {
+        pluginManager.reset();
+        spdlog::info("SystemsManager::shutdown - Plugin manager shut down");
+    }
     
     // Shutdown in reverse order of initialization
     if (playMode) {

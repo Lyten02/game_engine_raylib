@@ -18,6 +18,9 @@ namespace GameEngine {
     class PlayMode;
     class SceneSerializer;
     class ComponentRegistry;
+    class PackageManager;
+    class PackageLoader;
+    class PluginManager;
 }
 
 namespace GameEngine {
@@ -44,6 +47,9 @@ public:
     BuildSystem* getBuildSystem() const { return buildSystem.get(); }
     AsyncBuildSystem* getAsyncBuildSystem() const { return asyncBuildSystem.get(); }
     PlayMode* getPlayMode() const { return playMode.get(); }
+    PackageManager* getPackageManager() const { return packageManager.get(); }
+    PackageLoader* getPackageLoader() const { return packageLoader.get(); }
+    PluginManager* getPluginManager() const { return pluginManager.get(); }
     
     // Special initialization for components
     void registerComponents();
@@ -58,6 +64,7 @@ private:
     bool initializeProjectManager();
     bool initializeBuildSystems();
     bool initializePlayMode();
+    bool initializePackageManager();
     
     // System instances
     std::unique_ptr<RenderSystem> renderSystem;
@@ -70,6 +77,9 @@ private:
     std::unique_ptr<BuildSystem> buildSystem;
     std::unique_ptr<AsyncBuildSystem> asyncBuildSystem;
     std::unique_ptr<PlayMode> playMode;
+    std::unique_ptr<PackageManager> packageManager;
+    std::unique_ptr<PackageLoader> packageLoader;
+    std::unique_ptr<PluginManager> pluginManager;
     
     bool headlessMode = false;
 };

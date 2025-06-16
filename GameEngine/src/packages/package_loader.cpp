@@ -1,7 +1,56 @@
 #include "package_loader.h"
+#include "../plugins/plugin_manager.h"
 #include <spdlog/spdlog.h>
 
 namespace GameEngine {
+
+bool PackageLoader::loadPackageResources(const Package& package, const std::filesystem::path& packagePath) {
+    spdlog::info("[PackageLoader] Loading resources for package: {}", package.getName());
+    
+    // Load plugin if package has one
+    if (package.hasPluginInfo() && pluginManager) {
+        const auto& pluginInfo = package.getPluginInfo();
+        
+        if (pluginInfo.autoload) {
+            // Build plugin path
+            auto pluginPath = packagePath / pluginInfo.library;
+            
+            spdlog::debug("[PackageLoader] Loading plugin: {}", pluginPath.string());
+            
+            if (!pluginManager->loadPlugin(pluginPath)) {
+                lastError = "Failed to load plugin: " + pluginManager->getLastError();
+                spdlog::error("[PackageLoader] {}", lastError);
+                return false;
+            }
+            
+            spdlog::info("[PackageLoader] Successfully loaded plugin from: {}", pluginPath.string());
+        } else {
+            spdlog::debug("[PackageLoader] Plugin autoload disabled for: {}", pluginInfo.library);
+        }
+    }
+    
+    // Process components from package.json
+    for (const auto& componentInfo : package.getComponents()) {
+        // Check if component is already registered (might have been registered by plugin)
+        if (!hasComponent(componentInfo.name)) {
+            spdlog::warn("[PackageLoader] Component {} not registered by plugin, skipping", componentInfo.name);
+        } else {
+            spdlog::debug("[PackageLoader] Component {} available", componentInfo.name);
+        }
+    }
+    
+    // Process systems from package.json
+    for (const auto& systemInfo : package.getSystems()) {
+        // Check if system is already registered (might have been registered by plugin)
+        if (!hasSystem(systemInfo.name)) {
+            spdlog::warn("[PackageLoader] System {} not registered by plugin, skipping", systemInfo.name);
+        } else {
+            spdlog::debug("[PackageLoader] System {} available", systemInfo.name);
+        }
+    }
+    
+    return true;
+}
 
 void PackageLoader::registerComponent(const std::string& name, ComponentFactory factory) {
     if (componentFactories.find(name) != componentFactories.end()) {

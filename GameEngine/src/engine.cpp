@@ -75,6 +75,7 @@ bool Engine::initialize() {
             systemsManager->getBuildSystem(),
             systemsManager->getAsyncBuildSystem(),
             systemsManager->getPlayMode(),
+            systemsManager->getPackageManager(),
             this
         );
         

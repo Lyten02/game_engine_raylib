@@ -29,7 +29,7 @@ mkdir -p build
 cd build
 cmake ..
 make -j8
-./game
+./game_engine
 
 # CMake targets
 make test              # Run all tests (sequential)
@@ -61,8 +61,8 @@ python3 ../tests/test_cli_basic.py             # Specific test
 ./tests/compile_and_run_tests.sh               # C++ ResourceManager tests
 
 # CLI testing
-./game --json --script ../tests/basic_cli_test.txt
-./game --headless --batch "project.create test" "project.build"
+./game_engine --json --script ../tests/basic_cli_test.txt
+./game_engine --headless --batch "project.create test" "project.build"
 
 # Test logging and debugging
 # After running tests, check the generated log files:
@@ -137,7 +137,7 @@ export FETCHCONTENT_FULLY_DISCONNECTED=TRUE
 make test
 
 # Or use fast build command directly
-./game --headless -c "project.build.fast"
+./game_engine --headless -c "project.build.fast"
 ```
 
 ### How caching works:
@@ -201,26 +201,26 @@ rm -rf ../output/YourTest/build/_deps/
 
 ```bash
 # Interactive console (F1 in-game or ` key)
-./game
+./game_engine
 
 # Single command
-./game --command "project.list"
-./game --json -c "entity.list"
+./game_engine --command "project.list"
+./game_engine --json -c "entity.list"
 
 # Batch commands
-./game --batch "project.create MyGame" "scene.create main" "project.build"
+./game_engine --batch "project.create MyGame" "scene.create main" "project.build"
 
 # Script execution
-./game --script build_commands.txt
-./game --headless --script ../tests/test_script.txt
+./game_engine --script build_commands.txt
+./game_engine --headless --script ../tests/test_script.txt
 
 # Project workflow
-./game -c "project.create MyGame"
-./game -c "project.open MyGame"
-./game -c "scene.create main"
-./game -c "entity.create Player"
-./game -c "project.build"     # Creates release build
-./game -c "project.run"       # Runs built executable
+./game_engine -c "project.create MyGame"
+./game_engine -c "project.open MyGame"
+./game_engine -c "scene.create main"
+./game_engine -c "entity.create Player"
+./game_engine -c "project.build"     # Creates release build
+./game_engine -c "project.run"       # Runs built executable
 ```
 
 ## Architecture Overview

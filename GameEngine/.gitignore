@@ -113,6 +113,8 @@ tests/test_*
 build/test_*
 !build/test_*.cpp
 !build/test_*.py
+test_plugin_*
+!test_plugin_*.cpp
 
 # Test generated directories
 projects/

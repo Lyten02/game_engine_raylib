@@ -2,7 +2,33 @@
 
 #include <string>
 #include <memory>
+#include <unordered_map>
 #include <entt/entity/registry.hpp>
+
+// Input state structure to pass keyboard/mouse state to game logic
+struct InputState {
+    std::unordered_map<int, bool> keys;
+    std::unordered_map<int, bool> keysPressed;
+    std::unordered_map<int, bool> keysReleased;
+    float mouseX = 0.0f;
+    float mouseY = 0.0f;
+    std::unordered_map<int, bool> mouseButtons;
+    
+    bool isKeyDown(int key) const {
+        auto it = keys.find(key);
+        return it != keys.end() && it->second;
+    }
+    
+    bool isKeyPressed(int key) const {
+        auto it = keysPressed.find(key);
+        return it != keysPressed.end() && it->second;
+    }
+    
+    bool isKeyReleased(int key) const {
+        auto it = keysReleased.find(key);
+        return it != keysReleased.end() && it->second;
+    }
+};
 
 // Base interface for game logic implementations
 class IGameLogic {
@@ -11,9 +37,9 @@ public:
     
     // Lifecycle methods
     virtual void initialize(entt::registry& registry) = 0;
-    virtual void update(entt::registry& registry, float deltaTime) = 0;
-    virtual void fixedUpdate(entt::registry& registry, float fixedDeltaTime) {}
-    virtual void lateUpdate(entt::registry& registry, float deltaTime) {}
+    virtual void update(entt::registry& registry, float deltaTime, const InputState& input) = 0;
+    virtual void fixedUpdate(entt::registry& registry, float fixedDeltaTime, const InputState& input) {}
+    virtual void lateUpdate(entt::registry& registry, float deltaTime, const InputState& input) {}
     virtual void shutdown() = 0;
     
     // Event handling

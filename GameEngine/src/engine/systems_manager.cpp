@@ -10,8 +10,7 @@
 #include "../build/async_build_system.h"
 #include "../engine/play_mode.h"
 #include "../serialization/component_registry.h"
-#include "../components/transform.h"
-#include "../components/sprite.h"
+// Component headers removed - components are now optional via plugins
 #include "../utils/config.h"
 #include <raylib.h>
 #include <spdlog/spdlog.h>
@@ -163,9 +162,8 @@ bool SystemsManager::initializeGameLogicManager() {
 }
 
 void SystemsManager::registerComponents() {
-    ComponentRegistry::getInstance().registerComponent<TransformComponent>("Transform");
-    ComponentRegistry::getInstance().registerComponent<Sprite>("Sprite");
-    spdlog::info("SystemsManager::initialize - Components registered for serialization");
+    // Components are now registered by plugins, not by the engine
+    spdlog::info("SystemsManager::initialize - Component registration delegated to plugins");
 }
 
 void SystemsManager::shutdown() {

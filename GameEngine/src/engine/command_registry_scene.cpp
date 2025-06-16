@@ -3,8 +3,7 @@
 #include "../console/command_processor.h"
 #include "../scene/scene.h"
 #include "../serialization/scene_serializer.h"
-#include "../components/transform.h"
-#include "../components/sprite.h"
+// Component headers removed - components are now optional
 #include "play_mode.h"
 #include "../project/project_manager.h"
 #include "../project/project.h"
@@ -133,13 +132,8 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
             std::stringstream ss;
             ss << "Scene Information:\n";
             ss << "  Total entities: " << entityCount << "\n";
-            ss << "  Components:\n";
-            
-            auto transformView = registry.view<TransformComponent>();
-            ss << "    Transform: " << transformView.size() << "\n";
-            
-            auto spriteView = registry.view<Sprite>();
-            ss << "    Sprite: " << spriteView.size() << "\n";
+            // Component counting removed - components are now plugin-based
+            // TODO: Add dynamic component statistics via plugin API
             
             console->addLine(ss.str(), YELLOW);
         }, "Display current scene information", "Scene");
@@ -230,13 +224,9 @@ void CommandRegistry::registerPlayModeCommands(CommandProcessor* processor, Cons
 class ExampleGameLogic : public IGameLogic {
 public:
     void initialize(entt::registry& registry) override {}
-    void update(entt::registry& registry, float deltaTime) override {
-        // Simple rotation logic
-        auto view = registry.view<TransformComponent>();
-        for (auto entity : view) {
-            auto& transform = view.get<TransformComponent>(entity);
-            transform.rotation.y += 45.0f * deltaTime;
-        }
+    void update(entt::registry& registry, float deltaTime, const InputState& input) override {
+        // Example logic - components are now plugin-based
+        // Plugins should register their own components and update logic
     }
     void shutdown() override {}
     std::string getName() const override { return "ExampleGameLogic"; }

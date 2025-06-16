@@ -13,6 +13,7 @@ private:
 
 protected:
     bool testMode = false;
+    bool enabled = true;
 
 public:
     RenderSystem();
@@ -30,4 +31,15 @@ public:
     
     // Get sprite batch for external use
     SpriteBatch* getSpriteBatch() const { return spriteBatch.get(); }
+    
+    // Camera control methods
+    void setCameraTarget(float x, float y);
+    void setCameraOffset(float x, float y);
+    void setCameraRotation(float rotation);
+    void setCameraZoom(float zoom);
+    Camera2D getCamera() const;
+    
+    // Enable/disable methods
+    bool isEnabled() const;
+    void setEnabled(bool value);
 };

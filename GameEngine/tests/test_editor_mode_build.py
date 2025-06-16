@@ -239,7 +239,7 @@ def test_path_resolution():
         print(f"Testing from: {os.getcwd()}")
         
         result = subprocess.run(
-            [os.path.join(original_cwd, "game"), "--json", "-c", "help"],
+            [os.path.join(original_cwd, "game_engine"), "--json", "-c", "help"],
             capture_output=True,
             text=True
         )
@@ -254,7 +254,7 @@ def test_path_resolution():
         print(f"Testing from: {os.getcwd()}")
         
         result = subprocess.run(
-            [os.path.join(original_cwd, "game"), "--json", "-c", "help"],
+            [os.path.join(original_cwd, "game_engine"), "--json", "-c", "help"],
             capture_output=True,
             text=True
         )

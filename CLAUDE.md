@@ -4,15 +4,102 @@ This file provides guidance to Claude Code when working with this ECS GameEngine
 
 ## Quick Reference Commands
 
-```bash
 # 🚀 Most used commands (copy-paste ready)
 cd GameEngine && ./rebuild_smart.sh        # Smart rebuild
 make test                                   # Run all tests (~7s)
 make test-parallel                         # Parallel tests (~6.5s) 
 sh full_test_fixed.sh                      # Full project test suite
-./game --json -c "project.list"           # List projects with JSON output
-./game --headless --script test.txt       # Run test script
+./game_engine --json -c "project.list"    # List projects with JSON output
+./game_engine --headless --script test.txt # Run test script
+
+# Rebuild options (from fastest to slowest)
+cd GameEngine
+
+# Smart rebuild - automatically chooses best strategy
+./rebuild_smart.sh
+
+# Incremental rebuild - only recompiles changed files (fastest)
+./rebuild_incremental.sh  
+
+# Fast rebuild - preserves cached dependencies
+./rebuild_fast.sh
+
+# Full clean rebuild - removes everything including deps
+./rebuild.sh
+
+# Manual build
+mkdir -p build
+cd build
+cmake ..
+make -j8
+./game_engine
+
+# CMake targets
+make test              # Run all tests (sequential)
+make test-fast         # Run tests without full builds
+make test-parallel     # Run tests in parallel (automatic worker count)
+make test-parallel-2   # Run tests with 2 workers
+make test-parallel-4   # Run tests with 4 workers  
+make test-parallel-8   # Run tests with 8 workers
+make test-cpp          # Run C++ tests only
+make clean-tests       # Clean test projects
+make clean-logs        # Remove log files
+make clean-all         # Full clean
 ```
+
+## Testing Commands
+
+```bash
+# Run all tests from build directory
+make test              # Sequential execution (~7s)
+make test-parallel     # Parallel execution (~6.5s, 13% faster)
+make test-parallel-4   # Force 4 workers
+
+# Run specific test suites
+python3 ../tests/run_all_tests.py              # All Python tests
+python3 ../tests/run_all_tests.py --parallel   # Parallel mode
+python3 ../tests/run_all_tests.py --parallel --workers 2
+python3 ../tests/run_all_tests.py --verbose    # Show real-time errors
+python3 ../tests/test_cli_basic.py             # Specific test
+./tests/compile_and_run_tests.sh               # C++ ResourceManager tests
+
+# CLI testing
+./game_engine --json --script ../tests/basic_cli_test.txt
+./game_engine --headless --batch "project.create test" "project.build"
+
+# Test logging and debugging
+# After running tests, check the generated log files:
+# - test_log_YYYYMMDD_HHMMSS.log - Detailed execution log with full error output
+# - test_results.json - Structured test results
+# - parallel_test_results.json - Results from parallel execution
+
+# Finding test failures in logs:
+grep "TEST FAILED" test_log_*.log
+grep -A 50 "TEST FAILED: test_name.py" test_log_*.log
+```
+
+## Parallel Testing System
+
+The test suite now supports parallel execution for improved performance:
+
+### How it works:
+- Tests are categorized by resource usage and execution characteristics
+- Lightweight tests run with high parallelism (4 workers)
+- Build tests run with moderate parallelism (2 workers)
+- Heavy tests run sequentially to avoid resource contention
+- Command tests run in parallel for quick validation
+
+### Performance:
+- Sequential: ~7.0 seconds
+- Parallel: ~6.5 seconds (13% improvement)
+- Greater improvements expected on systems with more cores
+
+### Test Categories:
+1. **LIGHTWEIGHT**: Fast unit tests, minimal resources
+2. **BUILD**: Build system tests, moderate resources
+3. **HEAVY**: Resource-intensive tests (memory, config stress)
+4. **COMMAND**: CLI command tests, very fast
+5. **SCRIPT**: Script execution tests
 
 ## Development Workflow
 
@@ -78,11 +165,14 @@ std::shared_ptr<Texture> loadTexture(); // YES
 ### 📝 JSON/CLI Standards
 ```bash
 # ✅ GOOD: Always provide JSON output for automation
-./game --json -c "command"
+./game_engine --json -c "command"
 
 # ✅ GOOD: Use structured error handling
 CLIResult result = command.execute();
 if (!result.success) { /* handle error */ }
+
+# Or use fast build command directly
+./game_engine --headless -c "project.build.fast"
 ```
 
 ### 🔒 Security Requirements (CRITICAL)
@@ -146,15 +236,30 @@ rm -rf ../output/TestProject/{bin,CMakeFiles}
 
 ### 🎮 Game Development Cycle
 ```bash
+# Interactive console (F1 in-game or ` key)
+./game_engine
+
+# Single command
+./game_engine --command "project.list"
+./game_engine --json -c "entity.list"
+
+# Batch commands
+./game_engine --batch "project.create MyGame" "scene.create main" "project.build"
+
+# Script execution
+./game_engine --script build_commands.txt
+./game_engine --headless --script ../tests/test_script.txt
+
 # Standard project workflow
-./game -c "project.create MyGame"     # Create new game
-./game -c "scene.create main"         # Create main scene  
-./game -c "entity.create Player"      # Add entities
-./game -c "project.build"             # Build release
-./game -c "project.run"               # Test the game
+./game_engine -c "project.create MyGame"     # Create new game
+./game_engine -c "project.open MyGame"       # Open existing project
+./game_engine -c "scene.create main"         # Create main scene  
+./game_engine -c "entity.create Player"      # Add entities
+./game_engine -c "project.build"             # Build release
+./game_engine -c "project.run"               # Test the game
 
 # Development mode with hot-reload
-./game                                # Interactive mode
+./game_engine                                # Interactive mode
 # Press F5 (play), F6 (pause), ` (console)
 ```
 

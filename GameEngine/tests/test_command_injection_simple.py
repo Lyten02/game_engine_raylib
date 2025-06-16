@@ -35,7 +35,7 @@ def test_command_injection():
     # Create a malicious executable name that includes shell commands
     # This simulates what would happen if project name wasn't sanitized
     malicious_path = bin_dir / 'game"; echo INJECTED > /tmp/INJECTION_TEST.txt; echo "game'
-    normal_path = bin_dir / "game"
+    normal_path = bin_dir / "game_engine"
     
     # Create normal executable
     with open(normal_path, "w") as f:

@@ -42,14 +42,14 @@ class TestRunner:
             f.write("="*80 + "\n\n")
         
         # Find game executable - look in correct relative paths
-        if os.path.exists("game"):
+        if os.path.exists("game_engine"):
             self.game_exe = "./game_engine"
         elif os.path.exists("../build/game_engine"):
             self.game_exe = "../build/game_engine"
         elif os.path.exists("build/game_engine"):
             self.game_exe = "./build/game_engine"
         else:
-            print("❌ Error: game executable not found!")
+            print("❌ Error: game_engine executable not found!")
             print("   Run this script from tests directory or build directory")
             sys.exit(1)
     
@@ -695,7 +695,7 @@ def main():
         game_exe = runner.game_exe if 'runner' in locals() else "./game_engine"
         
         # Find game executable
-        if os.path.exists("game"):
+        if os.path.exists("game_engine"):
             game_exe = "./game_engine"
         elif os.path.exists("../build/game_engine"):
             game_exe = "../build/game_engine"
@@ -833,7 +833,7 @@ def main():
         test_dir = "tests"
         build_dir = "build"
         os.chdir("build")
-    elif os.path.exists("../tests") and os.path.exists("game"):
+    elif os.path.exists("../tests") and os.path.exists("game_engine"):
         # We're in the build directory
         test_dir = "../tests"
         build_dir = "."

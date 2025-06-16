@@ -15,7 +15,7 @@ def test_build_output():
     original_dir = os.getcwd()
     if os.path.basename(os.getcwd()) == "tests":
         os.chdir("../build")
-    elif not os.path.exists("game"):
+    elif not os.path.exists("game_engine"):
         if os.path.exists("build/game_engine"):
             os.chdir("build")
     

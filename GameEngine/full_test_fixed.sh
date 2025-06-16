@@ -128,12 +128,12 @@ check_build_status() {
     
     cd "$PROJECT_ROOT/build"
     
-    # Проверить наличие исполняемого файла game
-    if [ -f "game" ] && [ -x "game" ]; then
-        log "✅ Executable 'game' found and is executable"
+    # Проверить наличие исполняемого файла game_engine
+    if [ -f "game_engine" ] && [ -x "game_engine" ]; then
+        log "✅ Executable 'game_engine' found and is executable"
         
-        # Проверить когда был собран game
-        local game_time=$(stat -f "%m" "game" 2>/dev/null || stat -c "%Y" "game" 2>/dev/null || echo "0")
+        # Проверить когда был собран game_engine
+        local game_time=$(stat -f "%m" "game_engine" 2>/dev/null || stat -c "%Y" "game_engine" 2>/dev/null || echo "0")
         local cmake_time=0
         local src_time=0
         
@@ -150,19 +150,19 @@ check_build_status() {
             fi
         fi
         
-        # Если game новее чем исходники и CMakeLists.txt, то пересборка не нужна
+        # Если game_engine новее чем исходники и CMakeLists.txt, то пересборка не нужна
         if [ "$game_time" -gt "$cmake_time" ] && [ "$game_time" -gt "$src_time" ]; then
-            log "✅ Executable 'game' is up-to-date"
+            log "✅ Executable 'game_engine' is up-to-date"
             return 0
         else
-            log "⚠️  Executable 'game' exists but may be outdated"
+            log "⚠️  Executable 'game_engine' exists but may be outdated"
             log "   game time: $(date -r $game_time 2>/dev/null || echo 'unknown')"
             log "   cmake time: $(date -r $cmake_time 2>/dev/null || echo 'unknown')"
             log "   source time: $(date -r $src_time 2>/dev/null || echo 'unknown')"
             return 2  # Нужна пересборка
         fi
     else
-        log "❌ Executable 'game' not found or not executable"
+        log "❌ Executable 'game_engine' not found or not executable"
         return 1
     fi
 }
@@ -234,16 +234,16 @@ main() {
         fi
     fi
     
-    # Проверить что game действительно создался/существует
-    if [ ! -f "game" ] || [ ! -x "game" ]; then
-        log "❌ ERROR: Executable 'game' still not found after build!"
+    # Проверить что game_engine действительно создался/существует
+    if [ ! -f "game_engine" ] || [ ! -x "game_engine" ]; then
+        log "❌ ERROR: Executable 'game_engine' still not found after build!"
         log "Build directory contents:"
         ls -la >> "$LOG_FILE"
         ((failed_tests++))
     else
-        log "✅ Executable 'game' confirmed present and executable"
-        log "   Size: $(ls -lh game | awk '{print $5}')"
-        log "   Modified: $(ls -l game | awk '{print $6, $7, $8}')"
+        log "✅ Executable 'game_engine' confirmed present and executable"
+        log "   Size: $(ls -lh game_engine | awk '{print $5}')"
+        log "   Modified: $(ls -l game_engine | awk '{print $6, $7, $8}')"
     fi
     
     # 2. Python tests
@@ -302,13 +302,13 @@ main() {
         log "⚡ Build was skipped (executable up-to-date)"
     fi
     
-    # Показать информацию о game
-    if [ -f "game" ]; then
-        log "🎮 Game executable info:"
-        log "   Path: $(pwd)/game"
-        log "   Size: $(ls -lh game | awk '{print $5}')"
-        log "   Last modified: $(ls -l game | awk '{print $6, $7, $8}')"
-        log "   Permissions: $(ls -l game | awk '{print $1}')"
+    # Показать информацию о game_engine
+    if [ -f "game_engine" ]; then
+        log "🎮 Game engine executable info:"
+        log "   Path: $(pwd)/game_engine"
+        log "   Size: $(ls -lh game_engine | awk '{print $5}')"
+        log "   Last modified: $(ls -l game_engine | awk '{print $6, $7, $8}')"
+        log "   Permissions: $(ls -l game_engine | awk '{print $1}')"
     fi
     
     # Финальная git информация (если что-то изменилось)
@@ -340,8 +340,8 @@ main() {
     echo "📄 Full log: $LOG_FILE"
     echo "🕒 Finished: $(date '+%Y-%m-%d %H:%M:%S')"
     
-    if [ -f "$PROJECT_ROOT/build/game" ]; then
-        echo "🎮 Game ready: $PROJECT_ROOT/build/game"
+    if [ -f "$PROJECT_ROOT/build/game_engine" ]; then
+        echo "🎮 Game engine ready: $PROJECT_ROOT/build/game_engine"
         echo ""
         echo "💡 Quick commands:"
         echo "   cd build && ./game_engine                    # Run the engine"
@@ -356,12 +356,12 @@ main() {
 if [[ "$1" == "--help" || "$1" == "-h" ]]; then
     echo "Usage: $0 [options]"
     echo ""
-    echo "Smart test runner that skips rebuild if 'game' executable is up-to-date."
+    echo "Smart test runner that skips rebuild if 'game_engine' executable is up-to-date."
     echo ""
     echo "This script:"
     echo "1. Collects Git repository information and status"
-    echo "2. Checks if build/game exists and is newer than sources"
-    echo "3. Skips rebuild if game is up-to-date (saves time!)"
+    echo "2. Checks if build/game_engine exists and is newer than sources"
+    echo "3. Skips rebuild if game_engine is up-to-date (saves time!)"
     echo "4. Runs Python tests (make test or direct)"
     echo "5. Runs C++ tests (make test-cpp or direct)"
     echo "6. Logs all Git information for debugging"
@@ -371,7 +371,7 @@ if [[ "$1" == "--help" || "$1" == "-h" ]]; then
     echo "  --force-rebuild, -f  Force rebuild even if game exists"
     echo ""
     echo "Smart features:"
-    echo "  ⚡ Skips rebuild if build/game is newer than sources"
+    echo "  ⚡ Skips rebuild if build/game_engine is newer than sources"
     echo "  🔍 Checks file timestamps to determine if rebuild needed"
     echo "  📋 Falls back to direct test execution if make targets missing"
     echo "  📄 Detailed logging with absolute paths"

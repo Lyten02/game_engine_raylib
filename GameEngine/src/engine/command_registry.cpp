@@ -11,6 +11,7 @@
 #include "../build/async_build_system.h"
 #include "../engine/play_mode.h"
 #include "../utils/config.h"
+#include "../utils/engine_paths.h"
 #include <filesystem>
 
 namespace GameEngine {
@@ -80,11 +81,11 @@ std::vector<std::string> CommandRegistry::getSceneList(ProjectManager* projectMa
 std::vector<std::string> CommandRegistry::getProjectList() const {
     std::vector<std::string> projects;
     
-    std::string projectsDir = "projects";
+    std::filesystem::path projectsDir = EnginePaths::getProjectsDir();
     if (std::filesystem::exists(projectsDir)) {
         for (const auto& entry : std::filesystem::directory_iterator(projectsDir)) {
             if (entry.is_directory()) {
-                std::string projectFile = entry.path().string() + "/project.json";
+                std::filesystem::path projectFile = entry.path() / "project.json";
                 if (std::filesystem::exists(projectFile)) {
                     projects.push_back(entry.path().filename().string());
                 }

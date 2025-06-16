@@ -114,15 +114,22 @@ Texture2D& ResourceManager::getDefaultTexture() {
         // Take the mutex to ensure only one thread initializes
         std::lock_guard<std::mutex> lock(defaultTextureMutex);
         
-        // Double-check with relaxed ordering since we're already synchronized by the mutex
-        // This prevents redundant initialization if another thread initialized while we waited
-        if (!defaultTextureInitialized.load(std::memory_order_relaxed)) {
-            createDefaultTextureThreadSafe();
+        // Double-check if initialization was attempted to prevent repeated exceptions
+        if (!defaultTextureInitAttempted.load(std::memory_order_relaxed)) {
+            // Mark that we've attempted initialization
+            defaultTextureInitAttempted.store(true, std::memory_order_relaxed);
             
-            // Store with release semantics - ensures all initialization writes are visible
-            // before other threads see defaultTextureInitialized as true
-            // This creates a happens-before relationship with the acquire load above
-            defaultTextureInitialized.store(true, std::memory_order_release);
+            try {
+                createDefaultTextureThreadSafe();
+                
+                // Only mark as initialized if successful
+                // Store with release semantics - ensures all initialization writes are visible
+                // before other threads see defaultTextureInitialized as true
+                defaultTextureInitialized.store(true, std::memory_order_release);
+            } catch (const std::exception& e) {
+                // Log the error but don't rethrow - we'll handle it below
+                spdlog::error("[ResourceManager] Failed to initialize default texture: {}", e.what());
+            }
         }
     }
     

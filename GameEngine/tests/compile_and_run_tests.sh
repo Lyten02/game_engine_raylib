@@ -48,6 +48,7 @@ declare -a tests=(
     "test_resource_simple"
     "test_build_system_basic"
     "test_render_system_null_pointer"
+    "test_resource_manager_exception_deadlock"
 )
 
 # Track test results
@@ -238,6 +239,18 @@ run_test() {
         # Render system null pointer test
         if g++ $FLAGS ${test_name}.cpp \
             ../src/systems/render_system.cpp \
+            ../src/resources/resource_manager.cpp \
+            $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>&1; then
+            echo "  ✅ Compiled successfully"
+        else
+            echo "  ❌ Compilation failed!"
+            ((failed_tests++))
+            failed_test_names+=("$test_name (compilation)")
+            return
+        fi
+    elif [[ "$test_name" == "test_resource_manager_exception_deadlock" ]]; then
+        # Resource manager exception safety test
+        if g++ $FLAGS ${test_name}.cpp \
             ../src/resources/resource_manager.cpp \
             $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>&1; then
             echo "  ✅ Compiled successfully"

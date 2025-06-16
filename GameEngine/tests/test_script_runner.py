@@ -10,7 +10,7 @@ def run_script_test(script_file):
     
     # Change to build directory
     build_dir = os.path.join(os.path.dirname(__file__), '../build')
-    if not os.path.exists(os.path.join(build_dir, 'game')):
+    if not os.path.exists(os.path.join(build_dir, 'game_engine')):
         print(f"❌ Game executable not found in {build_dir}")
         return False
     

@@ -7,15 +7,20 @@ class RenderSystem {
 private:
     Camera2D camera;
 
+protected:
+    bool testMode = false;
+
 public:
     RenderSystem() = default;
-    ~RenderSystem() = default;
+    virtual ~RenderSystem() = default;
     
     void initialize();
     void update(entt::registry& registry);
     void shutdown();
     
     void setCamera2D(Camera2D& camera);
-    void beginCamera();
-    void endCamera();
+    virtual void beginCamera();
+    virtual void endCamera();
+    
+    void setTestMode(bool enabled) { testMode = enabled; }
 };

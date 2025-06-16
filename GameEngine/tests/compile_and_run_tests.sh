@@ -47,6 +47,7 @@ declare -a tests=(
     "test_resource_pointer_consistency"
     "test_resource_simple"
     "test_build_system_basic"
+    "test_render_system_null_pointer"
 )
 
 # Track test results
@@ -224,6 +225,19 @@ run_test() {
     elif [[ "$test_name" == "test_call_once_retry_behavior" ]]; then
         # Thread-safe initialization test
         if g++ $FLAGS ${test_name}.cpp \
+            ../src/resources/resource_manager.cpp \
+            $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>&1; then
+            echo "  ✅ Compiled successfully"
+        else
+            echo "  ❌ Compilation failed!"
+            ((failed_tests++))
+            failed_test_names+=("$test_name (compilation)")
+            return
+        fi
+    elif [[ "$test_name" == "test_render_system_null_pointer" ]]; then
+        # Render system null pointer test
+        if g++ $FLAGS ${test_name}.cpp \
+            ../src/systems/render_system.cpp \
             ../src/resources/resource_manager.cpp \
             $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>&1; then
             echo "  ✅ Compiled successfully"

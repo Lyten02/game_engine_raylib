@@ -1,0 +1,166 @@
+#include "game_logic_interface.h"
+#include "../components/transform.h"
+#include "../components/sprite.h"
+#include "../components/camera.h"
+#include <spdlog/spdlog.h>
+#include <raylib.h>
+#include <algorithm>
+
+// Simple physics component for platformer
+struct SimplePhysics {
+    Vector2 velocity = {0, 0};
+    bool isGrounded = false;
+};
+
+// Example game logic implementation
+class ExampleGameLogic : public IGameLogic {
+private:
+    float timeElapsed = 0.0f;
+    entt::entity playerEntity = entt::null;
+    entt::entity cameraEntity = entt::null;
+    SimplePhysics playerPhysics;
+    const float gravity = 1000.0f;
+    const float jumpForce = -500.0f;
+    const float moveSpeed = 300.0f;
+    bool hasLoggedMovement = false;  // To avoid spam
+
+public:
+    void initialize(entt::registry& registry) override {
+        spdlog::info("ExampleGameLogic initialized - Platformer physics mode");
+        
+        // Find the player (GREEN colored entity)
+        auto view = registry.view<TransformComponent, Sprite>();
+        for (auto entity : view) {
+            auto& sprite = view.get<Sprite>(entity);
+            // Check if this is the player (green colored)
+            // Be more lenient with color matching to avoid issues
+            if (sprite.tint.g > 200 && sprite.tint.r < 50 && sprite.tint.b < 50) {
+                playerEntity = entity;
+                spdlog::info("Player entity found (green sprite)");
+                break;
+            }
+        }
+        
+        if (playerEntity == entt::null) {
+            spdlog::warn("Player entity not found (looking for green sprite)");
+        }
+        
+        // Create camera entity
+        cameraEntity = registry.create();
+        registry.emplace<CameraComponent>(cameraEntity);
+        spdlog::info("Camera entity created");
+    }
+    
+    void update(entt::registry& registry, float deltaTime) override {
+        if (playerEntity == entt::null || !registry.valid(playerEntity)) {
+            return;
+        }
+        
+        auto* transform = registry.try_get<TransformComponent>(playerEntity);
+        if (!transform) return;
+        
+        // Input handling
+        bool isMoving = false;
+        if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
+            playerPhysics.velocity.x = -moveSpeed;
+            isMoving = true;
+        } else if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
+            playerPhysics.velocity.x = moveSpeed;
+            isMoving = true;
+        } else {
+            playerPhysics.velocity.x *= 0.8f; // Friction
+        }
+        
+        // Log movement once to avoid spam
+        if (isMoving && !hasLoggedMovement) {
+            spdlog::info("Player entity {} is moving", static_cast<uint32_t>(playerEntity));
+            hasLoggedMovement = true;
+        } else if (!isMoving) {
+            hasLoggedMovement = false;
+        }
+        
+        // Jumping
+        if ((IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_UP)) && playerPhysics.isGrounded) {
+            playerPhysics.velocity.y = jumpForce;
+            playerPhysics.isGrounded = false;
+        }
+        
+        // Apply gravity
+        playerPhysics.velocity.y += gravity * deltaTime;
+        
+        // Update position
+        transform->position.x += playerPhysics.velocity.x * deltaTime;
+        transform->position.y += playerPhysics.velocity.y * deltaTime;
+        
+        // Simple ground collision (check all other entities)
+        playerPhysics.isGrounded = false;
+        auto allEntities = registry.view<TransformComponent, Sprite>();
+        
+        for (auto entity : allEntities) {
+            if (entity == playerEntity) continue;
+            
+            auto& otherTransform = allEntities.get<TransformComponent>(entity);
+            
+            // Simple AABB collision
+            float playerLeft = transform->position.x - transform->scale.x/2;
+            float playerRight = transform->position.x + transform->scale.x/2;
+            float playerTop = transform->position.y - transform->scale.y/2;
+            float playerBottom = transform->position.y + transform->scale.y/2;
+            
+            float otherLeft = otherTransform.position.x - otherTransform.scale.x/2;
+            float otherRight = otherTransform.position.x + otherTransform.scale.x/2;
+            float otherTop = otherTransform.position.y - otherTransform.scale.y/2;
+            float otherBottom = otherTransform.position.y + otherTransform.scale.y/2;
+            
+            // Check collision
+            if (playerRight > otherLeft && playerLeft < otherRight &&
+                playerBottom > otherTop && playerTop < otherBottom) {
+                
+                // Landing on top
+                if (playerPhysics.velocity.y > 0 && playerBottom - otherTop < 20 && 
+                    transform->position.y < otherTransform.position.y) {
+                    transform->position.y = otherTop - transform->scale.y/2;
+                    playerPhysics.velocity.y = 0;
+                    playerPhysics.isGrounded = true;
+                }
+            }
+        }
+        
+        // Keep player on screen
+        transform->position.x = std::max(transform->scale.x/2, std::min(1280.0f - transform->scale.x/2, transform->position.x));
+        
+        // Reset if fallen too far
+        if (transform->position.y > 800) {
+            transform->position.x = 640;
+            transform->position.y = 100;
+            playerPhysics.velocity = {0, 0};
+        }
+        
+        // Update camera to follow player
+        if (cameraEntity != entt::null && registry.valid(cameraEntity)) {
+            auto* camera = registry.try_get<CameraComponent>(cameraEntity);
+            if (camera) {
+                camera->target = Vector2{transform->position.x, transform->position.y};
+            }
+        }
+    }
+    
+    void onEntityCreated(entt::registry& registry, entt::entity entity) override {
+        spdlog::debug("Entity created: {}", static_cast<uint32_t>(entity));
+    }
+    
+    void onEntityDestroyed(entt::registry& registry, entt::entity entity) override {
+        spdlog::debug("Entity destroyed: {}", static_cast<uint32_t>(entity));
+    }
+    
+    void shutdown() override {
+        spdlog::info("ExampleGameLogic shutdown");
+    }
+    
+    std::string getName() const override {
+        return "ExampleGameLogic";
+    }
+};
+
+// Register this game logic
+REGISTER_GAME_LOGIC(ExampleGameLogic)

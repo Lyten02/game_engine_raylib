@@ -5,14 +5,16 @@
 #include "../serialization/scene_serializer.h"
 #include "../components/transform.h"
 #include "../components/sprite.h"
+#include "../scripting/game_logic_manager.h"
 #include <raylib.h>
 #include <spdlog/spdlog.h>
 #include <sstream>
 #include <iomanip>
+#include <filesystem>
 
 namespace GameEngine {
 
-bool PlayMode::start(Scene* currentScene, Project* project) {
+bool PlayMode::start(Scene* currentScene, Project* project, GameLogicManager* gameLogicManager) {
     if (state != PlayModeState::Stopped || !currentScene) {
         return false;
     }
@@ -21,15 +23,54 @@ bool PlayMode::start(Scene* currentScene, Project* project) {
         // Store reference to editor scene
         editorScene = currentScene;
         
-        // Create play scene as a copy of the current scene
+        // Create play scene
         playScene = std::make_unique<Scene>();
         playScene->onCreate();
         
-        // Serialize current scene to JSON
-        nlohmann::json sceneData = SceneSerializer::sceneToJson(currentScene);
+        // Check if we should load the start scene instead
+        bool loadStartScene = false;
+        std::string startScenePath;
         
-        // Deserialize into play scene
-        SceneSerializer::jsonToScene(sceneData, playScene.get());
+        if (project && project->hasStartScene()) {
+            std::string startSceneName = project->getStartScene();
+            startScenePath = project->getPath() + "/scenes/" + startSceneName + ".json";
+            
+            if (std::filesystem::exists(startScenePath)) {
+                loadStartScene = true;
+                spdlog::info("PlayMode: Loading start scene: {}", startSceneName);
+            }
+        }
+        
+        if (loadStartScene) {
+            // Load the start scene from file
+            SceneSerializer serializer;
+            if (!serializer.loadScene(playScene.get(), startScenePath)) {
+                spdlog::error("PlayMode: Failed to load start scene, using current scene");
+                // Fall back to current scene
+                nlohmann::json sceneData = SceneSerializer::sceneToJson(currentScene);
+                SceneSerializer::jsonToScene(sceneData, playScene.get());
+            }
+        } else {
+            // Use current scene as before
+            nlohmann::json sceneData = SceneSerializer::sceneToJson(currentScene);
+            SceneSerializer::jsonToScene(sceneData, playScene.get());
+        }
+        
+        // Initialize game logic for play scene
+        if (gameLogicManager && playScene && project) {
+            // Clear any existing logics
+            gameLogicManager->clearLogics();
+            
+            // Check if project specifies a game logic
+            std::string gameLogicName = project->getGameLogic();
+            if (!gameLogicName.empty()) {
+                if (!gameLogicManager->createLogic(gameLogicName, playScene->registry)) {
+                    spdlog::warn("PlayMode: Failed to create game logic '{}', continuing without it", gameLogicName);
+                } else {
+                    spdlog::info("PlayMode: Created game logic '{}'", gameLogicName);
+                }
+            }
+        }
         
         state = PlayModeState::Playing;
         playTime = 0.0f;
@@ -76,9 +117,15 @@ void PlayMode::resume() {
     }
 }
 
-void PlayMode::update(float deltaTime) {
+void PlayMode::update(float deltaTime, GameLogicManager* gameLogicManager) {
     if (state == PlayModeState::Playing && playScene) {
         playScene->onUpdate(deltaTime);
+        
+        // Update game logic for play scene
+        if (gameLogicManager) {
+            gameLogicManager->update(playScene->registry, deltaTime);
+        }
+        
         playTime += deltaTime;
     }
 }

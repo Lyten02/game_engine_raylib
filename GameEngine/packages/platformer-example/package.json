@@ -1,0 +1,13 @@
+{
+    "name": "platformer-example",
+    "version": "1.0.0",
+    "description": "Example platformer game logic with physics",
+    "author": "GameEngine Team",
+    "engine_version": "1.0.0",
+    "plugin": {
+        "library": "libplatformer.dylib",
+        "main": "platformer_plugin_init",
+        "autoload": true
+    },
+    "dependencies": []
+}

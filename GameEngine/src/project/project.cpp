@@ -34,6 +34,12 @@ bool Project::load(const std::string& projectPath) {
             }
         }
         
+        // Load start scene
+        startScene = metadata.value("start_scene", "");
+        if (!startScene.empty()) {
+            spdlog::info("Project start scene: {}", startScene);
+        }
+        
         // Validate project structure
         std::filesystem::create_directories(path + "/scenes");
         std::filesystem::create_directories(path + "/assets");
@@ -64,6 +70,9 @@ bool Project::save() {
         metadata["name"] = name;
         metadata["version"] = version;
         metadata["scenes"] = scenes;
+        if (!startScene.empty()) {
+            metadata["start_scene"] = startScene;
+        }
         
         // Save to file
         std::string projectFile = path + "/project.json";
@@ -166,6 +175,10 @@ const std::string& Project::getName() const {
 
 const std::string& Project::getPath() const {
     return path;
+}
+
+std::string Project::getGameLogic() const {
+    return metadata.value("game_logic", "");
 }
 
 } // namespace GameEngine

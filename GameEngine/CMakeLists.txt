@@ -73,6 +73,7 @@ add_executable(game
     src/engine/command_registry_entity.cpp
     src/engine/command_registry_scene.cpp
     src/systems/render_system.cpp
+    src/render/sprite_batch.cpp
     src/scene/scene.cpp
     src/resources/resource_manager.cpp
     src/console/console.cpp
@@ -85,7 +86,6 @@ add_executable(game
     src/utils/process_executor.cpp
     src/scripting/script_manager_stub.cpp
     src/scripting/game_logic_manager.cpp
-    src/scripting/example_game_logic.cpp
     src/project/project.cpp
     src/project/project_manager.cpp
     src/project/project_validator.cpp
@@ -217,6 +217,7 @@ add_custom_target(test-cpp-parallel-4
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
     COMMENT "Running C++ tests with 4 workers"
 )
+
 
 add_custom_target(test-cpp-parallel-8
     COMMAND ${CMAKE_COMMAND} -E echo "Running C++ tests with 8 workers..."

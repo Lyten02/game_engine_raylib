@@ -11,6 +11,9 @@ private:
     std::unordered_map<std::string, GameLogicFactory> registeredFactories;
     mutable std::mutex mutex;
     bool initialized = false;
+    
+    // Register built-in game logic implementations
+    void registerBuiltinLogics();
 
 public:
     GameLogicManager() = default;

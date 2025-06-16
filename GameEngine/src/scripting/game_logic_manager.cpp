@@ -23,15 +23,22 @@ GameLogicManager::~GameLogicManager() {
 }
 
 bool GameLogicManager::initialize() {
-    std::lock_guard<std::mutex> lock(mutex);
-    
-    if (initialized) {
-        spdlog::warn("GameLogicManager already initialized");
-        return true;
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        
+        if (initialized) {
+            spdlog::warn("GameLogicManager already initialized");
+            return true;
+        }
+        
+        initialized = true;
     }
     
     spdlog::info("Initializing GameLogicManager");
-    initialized = true;
+    
+    // Register built-in game logic factories (without holding the lock)
+    registerBuiltinLogics();
+    
     return true;
 }
 
@@ -235,4 +242,10 @@ void GameLogicManager::clearLogics() {
     
     activeLogics.clear();
     spdlog::info("Cleared all game logics");
+}
+
+void GameLogicManager::registerBuiltinLogics() {
+    // No built-in game logics in the engine
+    // Game logic should come from project plugins
+    spdlog::info("GameLogicManager: No built-in game logics registered");
 }

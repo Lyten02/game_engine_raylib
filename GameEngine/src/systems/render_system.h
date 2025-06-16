@@ -2,17 +2,21 @@
 
 #include <entt/fwd.hpp>
 #include <raylib.h>
+#include <memory>
+
+class SpriteBatch;
 
 class RenderSystem {
 private:
     Camera2D camera;
+    std::unique_ptr<SpriteBatch> spriteBatch;
 
 protected:
     bool testMode = false;
 
 public:
-    RenderSystem() = default;
-    virtual ~RenderSystem() = default;
+    RenderSystem();
+    virtual ~RenderSystem();
     
     void initialize();
     void update(entt::registry& registry);
@@ -23,4 +27,7 @@ public:
     virtual void endCamera();
     
     void setTestMode(bool enabled) { testMode = enabled; }
+    
+    // Get sprite batch for external use
+    SpriteBatch* getSpriteBatch() const { return spriteBatch.get(); }
 };

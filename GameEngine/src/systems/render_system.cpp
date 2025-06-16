@@ -1,9 +1,15 @@
 #include "systems/render_system.h"
 #include "components/transform.h"
 #include "components/sprite.h"
+#include "render/sprite_batch.h"
 #include <entt/entt.hpp>
 #include <spdlog/spdlog.h>
 #include <raylib.h>
+
+RenderSystem::RenderSystem() : spriteBatch(std::make_unique<SpriteBatch>()) {
+}
+
+RenderSystem::~RenderSystem() = default;
 
 void RenderSystem::initialize() {
     spdlog::info("RenderSystem::initialize - Render system initialized");
@@ -15,6 +21,9 @@ void RenderSystem::update(entt::registry& registry) {
     size_t spriteCount = 0;
     
     beginCamera();
+    
+    // Begin sprite batching
+    spriteBatch->begin();
     
     for (auto entity : view) {
         // Check if entity is still valid before accessing components
@@ -38,11 +47,20 @@ void RenderSystem::update(entt::registry& registry) {
         Vector2 position = { transform->position.x, transform->position.y };
         
         if (!testMode) {
-            DrawTextureRec(*sprite->texture, sprite->sourceRect, position, sprite->tint);
+            // Add sprite to batch instead of immediate drawing
+            spriteBatch->addSprite(sprite->texture, sprite->sourceRect, position, sprite->tint);
         }
         
         spriteCount++;
     }
+    
+    if (!testMode) {
+        // Render all sprites in batches
+        spriteBatch->render();
+    }
+    
+    // End sprite batching
+    spriteBatch->end();
     
     endCamera();
     

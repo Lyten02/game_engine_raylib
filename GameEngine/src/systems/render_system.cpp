@@ -1,85 +1,63 @@
 #include "systems/render_system.h"
-#include "components/transform.h"
-#include "components/sprite.h"
 #include "render/sprite_batch.h"
 #include <entt/entt.hpp>
 #include <spdlog/spdlog.h>
 #include <raylib.h>
 
 RenderSystem::RenderSystem() : spriteBatch(std::make_unique<SpriteBatch>()) {
+    // Initialize camera with default values
+    camera.target = {640.0f, 360.0f};
+    camera.offset = {640.0f, 360.0f};  // Center of screen
+    camera.rotation = 0.0f;
+    camera.zoom = 1.0f;
+    spdlog::info("[RenderSystem] Camera initialized with default values");
 }
 
 RenderSystem::~RenderSystem() = default;
 
 void RenderSystem::initialize() {
-    spdlog::info("RenderSystem::initialize - Render system initialized");
+    spdlog::info("RenderSystem::initialize - Render system initialized (no built-in components)");
 }
 
 void RenderSystem::update(entt::registry& registry) {
-    auto view = registry.view<TransformComponent, Sprite>();
+    // RenderSystem is now just a placeholder
+    // All rendering is handled by plugins that register their own components
+    // This maintains compatibility but does nothing
     
-    size_t spriteCount = 0;
-    
-    beginCamera();
-    
-    // Begin sprite batching
-    spriteBatch->begin();
-    
-    for (auto entity : view) {
-        // Check if entity is still valid before accessing components
-        if (!registry.valid(entity)) {
-            continue;
-        }
-        
-        // Use try_get to safely access components
-        const auto* transform = registry.try_get<TransformComponent>(entity);
-        const auto* sprite = registry.try_get<Sprite>(entity);
-        
-        // Check if both components exist
-        if (!transform || !sprite) {
-            continue;
-        }
-        
-        if (sprite->texture == nullptr) {
-            continue;
-        }
-        
-        Vector2 position = { transform->position.x, transform->position.y };
-        
-        if (!testMode) {
-            // Add sprite to batch instead of immediate drawing
-            spriteBatch->addSprite(sprite->texture, sprite->sourceRect, position, sprite->tint);
-        }
-        
-        spriteCount++;
-    }
-    
-    if (!testMode) {
-        // Render all sprites in batches
-        spriteBatch->render();
-    }
-    
-    // End sprite batching
-    spriteBatch->end();
-    
-    endCamera();
-    
-    // Remove all logging from render loop to prevent FPS drops
-    // Use console commands to get render statistics instead
+    BeginMode2D(camera);
+    // Plugins will handle actual rendering via their own systems
+    EndMode2D();
 }
 
 void RenderSystem::shutdown() {
     spdlog::info("RenderSystem::shutdown - Render system shut down");
 }
 
-void RenderSystem::setCamera2D(Camera2D& cam) {
-    camera = cam;
+bool RenderSystem::isEnabled() const {
+    return enabled;
 }
 
-void RenderSystem::beginCamera() {
-    BeginMode2D(camera);
+void RenderSystem::setEnabled(bool value) {
+    enabled = value;
+    spdlog::info("RenderSystem::setEnabled - Render system {}", value ? "enabled" : "disabled");
 }
 
-void RenderSystem::endCamera() {
-    EndMode2D();
+void RenderSystem::setCameraTarget(float x, float y) {
+    camera.target = {x, y};
+}
+
+void RenderSystem::setCameraOffset(float x, float y) {
+    camera.offset = {x, y};
+}
+
+void RenderSystem::setCameraRotation(float rotation) {
+    camera.rotation = rotation;
+}
+
+void RenderSystem::setCameraZoom(float zoom) {
+    camera.zoom = zoom;
+}
+
+Camera2D RenderSystem::getCamera() const {
+    return camera;
 }

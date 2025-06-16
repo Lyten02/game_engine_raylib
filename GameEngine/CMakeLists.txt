@@ -86,11 +86,15 @@ add_executable(game
     src/utils/process_executor.cpp
     src/scripting/script_manager_stub.cpp
     src/scripting/game_logic_manager.cpp
+    src/scripting/plugin_manager.cpp
     src/project/project.cpp
     src/project/project_manager.cpp
     src/project/project_validator.cpp
     src/serialization/scene_serializer.cpp
     src/serialization/component_registry.cpp
+    src/serialization/dynamic_component_registry.cpp
+    src/systems/empty_render_system.cpp
+    src/systems/optional_render_system.cpp
     src/build/build_system.cpp
     src/build/build_config.cpp
     src/build/async_build_system.cpp
@@ -123,6 +127,21 @@ file(COPY ${CMAKE_SOURCE_DIR}/config.json DESTINATION ${CMAKE_BINARY_DIR})
 
 # Copy templates directory to build directory
 file(COPY ${CMAKE_SOURCE_DIR}/templates DESTINATION ${CMAKE_BINARY_DIR})
+
+# Copy packages directory to build directory  
+file(COPY ${CMAKE_SOURCE_DIR}/packages DESTINATION ${CMAKE_BINARY_DIR})
+
+# Build plugins if packages exist
+if(EXISTS ${CMAKE_SOURCE_DIR}/packages)
+    file(GLOB PACKAGE_DIRS "${CMAKE_SOURCE_DIR}/packages/*")
+    foreach(PACKAGE_DIR ${PACKAGE_DIRS})
+        if(IS_DIRECTORY ${PACKAGE_DIR} AND EXISTS ${PACKAGE_DIR}/CMakeLists.txt)
+            get_filename_component(PACKAGE_NAME ${PACKAGE_DIR} NAME)
+            message(STATUS "Found package: ${PACKAGE_NAME}")
+            add_subdirectory(${PACKAGE_DIR} packages/${PACKAGE_NAME})
+        endif()
+    endforeach()
+endif()
 
 # Create projects directory in build directory
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/projects)

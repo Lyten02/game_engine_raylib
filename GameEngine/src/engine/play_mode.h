@@ -3,8 +3,10 @@
 #include <memory>
 #include <string>
 #include "../scene/scene.h"
+#include "../scripting/game_logic_interface.h"
 
 class Console;
+class GameLogicManager;
 
 namespace GameEngine {
 
@@ -23,13 +25,14 @@ private:
     Scene* editorScene = nullptr;
     bool showPlayModeUI = true;
     float playTime = 0.0f;
+    ::GameLogicManager* gameLogicManager = nullptr;
     
 public:
     PlayMode() = default;
     ~PlayMode() = default;
     
     // Start playing the current scene
-    bool start(Scene* currentScene, Project* project);
+    bool start(Scene* currentScene, Project* project, ::GameLogicManager* gameLogicManager = nullptr);
     
     // Stop playing and restore editor scene
     void stop();
@@ -39,7 +42,7 @@ public:
     void resume();
     
     // Update play mode
-    void update(float deltaTime);
+    void update(float deltaTime, ::GameLogicManager* gameLogicManager = nullptr);
     
     // Render play mode UI
     void renderUI(Console* console);
@@ -51,6 +54,10 @@ public:
     PlayModeState getState() const { return state; }
     
     Scene* getPlayScene() { return playScene.get(); }
+    
+private:
+    // Create input state from current keyboard state
+    InputState createInputState() const;
     float getPlayTime() const { return playTime; }
     
     void setShowUI(bool show) { showPlayModeUI = show; }

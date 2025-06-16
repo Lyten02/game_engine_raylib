@@ -133,16 +133,13 @@ void Engine::run() {
         
         // Update play mode if active
         if (playMode && playMode->isPlaying()) {
-            playMode->update(deltaTime);
+            playMode->update(deltaTime, gameLogicManager);
         }
         // Otherwise update the current scene only if a project is loaded
         else if (currentScene && !console->isOpen() && projectManager && projectManager->getCurrentProject()) {
             currentScene->onUpdate(deltaTime);
             
-            // Update game logic manager
-            if (gameLogicManager) {
-                gameLogicManager->update(currentScene->registry, deltaTime);
-            }
+            // Game logic should NOT run in editor mode - only in play mode
         }
         
         // Handle play mode controls
@@ -151,13 +148,14 @@ void Engine::run() {
                 playMode->stop();
                 console->addLine("Play mode stopped", YELLOW);
             } else if (currentScene && projectManager && projectManager->getCurrentProject()) {
-                if (playMode->start(currentScene.get(), projectManager->getCurrentProject())) {
+                if (playMode->start(currentScene.get(), projectManager->getCurrentProject(), gameLogicManager)) {
                     console->addLine("Play mode started - Press F5 to stop, F6 to pause", GREEN);
                 } else {
                     console->addLine("Failed to start play mode", RED);
                 }
             }
         }
+        
         
         if (IsKeyPressed(KEY_F6) && playMode) {
             if (playMode->isPlaying()) {

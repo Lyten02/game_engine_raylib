@@ -5,10 +5,19 @@ project(platformer-example VERSION 1.0.0)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find packages
-find_package(raylib REQUIRED)
-find_package(EnTT REQUIRED)
-find_package(spdlog REQUIRED)
+# Find packages (assume they are available from parent build)
+if(NOT TARGET raylib)
+    find_package(raylib REQUIRED)
+endif()
+if(NOT TARGET EnTT::EnTT)
+    find_package(EnTT REQUIRED)
+endif()
+if(NOT TARGET spdlog::spdlog)
+    find_package(spdlog REQUIRED)
+endif()
+if(NOT TARGET nlohmann_json::nlohmann_json)
+    find_package(nlohmann_json REQUIRED)
+endif()
 
 # Create shared library
 add_library(platformer SHARED
@@ -22,6 +31,8 @@ target_include_directories(platformer
         ${CMAKE_CURRENT_SOURCE_DIR}/include
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src  # For engine headers
+        ${CMAKE_SOURCE_DIR}/src/scripting  # For game logic interface
+        ${CMAKE_SOURCE_DIR}/.deps_cache/json-src/include  # For nlohmann/json
 )
 
 # Link libraries
@@ -30,6 +41,7 @@ target_link_libraries(platformer
         raylib
         EnTT::EnTT
         spdlog::spdlog
+        nlohmann_json::nlohmann_json
 )
 
 # Set output name

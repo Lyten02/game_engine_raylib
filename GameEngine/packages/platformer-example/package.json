@@ -6,7 +6,7 @@
     "engine_version": "1.0.0",
     "plugin": {
         "library": "libplatformer.dylib",
-        "main": "platformer_plugin_init",
+        "main": "initializePlugin", 
         "autoload": true
     },
     "dependencies": []

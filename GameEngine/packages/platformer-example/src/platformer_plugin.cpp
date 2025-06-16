@@ -1,9 +1,9 @@
 #include "platformer_game_logic.h"
 #include <plugin_api.h>
-#include <scripting/game_logic_manager.h>
 #include <memory>
 #include <spdlog/spdlog.h>
 
+using namespace GameEngine;
 using namespace PlatformerExample;
 
 // Factory function for creating platformer game logic
@@ -14,29 +14,29 @@ std::unique_ptr<IGameLogic> createPlatformerGameLogic() {
 // Plugin initialization function
 extern "C" {
     
-bool platformer_plugin_init(PluginAPI* api) {
-    if (!api) {
-        return false;
+void initializePlugin(IPluginManager* manager) {
+    if (!manager) {
+        spdlog::error("[PlatformerPlugin] Invalid plugin manager");
+        return;
     }
     
     spdlog::info("[PlatformerPlugin] Initializing platformer example plugin");
     
-    // Get game logic manager from API
-    auto* gameLogicManager = api->getGameLogicManager();
-    if (!gameLogicManager) {
-        spdlog::error("[PlatformerPlugin] Failed to get GameLogicManager from API");
-        return false;
-    }
-    
-    // Register platformer game logic
-    gameLogicManager->registerLogicFactory("PlatformerGameLogic", createPlatformerGameLogic);
+    // Register platformer game logic factory
+    manager->registerGameLogicFactory("PlatformerGameLogic", createPlatformerGameLogic);
     spdlog::info("[PlatformerPlugin] Registered PlatformerGameLogic");
-    
-    return true;
 }
 
-void platformer_plugin_shutdown(PluginAPI* api) {
-    spdlog::info("[PlatformerPlugin] Shutting down platformer example plugin");
+const char* getPluginName() {
+    return "platformer-example";
+}
+
+const char* getPluginVersion() {
+    return "1.0.0";
+}
+
+const char* getPluginDescription() {
+    return "Example platformer game logic plugin";
 }
 
 } // extern "C"

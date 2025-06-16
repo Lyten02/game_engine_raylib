@@ -11,6 +11,7 @@
 #include <sstream>
 #include <iomanip>
 #include <filesystem>
+#include <vector>
 
 namespace GameEngine {
 
@@ -20,8 +21,9 @@ bool PlayMode::start(Scene* currentScene, Project* project, GameLogicManager* ga
     }
     
     try {
-        // Store reference to editor scene
+        // Store references
         editorScene = currentScene;
+        this->gameLogicManager = gameLogicManager;
         
         // Create play scene
         playScene = std::make_unique<Scene>();
@@ -61,6 +63,12 @@ bool PlayMode::start(Scene* currentScene, Project* project, GameLogicManager* ga
             // Clear any existing logics
             gameLogicManager->clearLogics();
             
+            // Load project plugins first
+            std::string projectPath = project->getPath();
+            if (!gameLogicManager->loadProjectPlugins(projectPath)) {
+                spdlog::warn("PlayMode: Failed to load project plugins");
+            }
+            
             // Check if project specifies a game logic
             std::string gameLogicName = project->getGameLogic();
             if (!gameLogicName.empty()) {
@@ -90,6 +98,12 @@ void PlayMode::stop() {
         return;
     }
     
+    // Clear game logics and unload plugins
+    if (gameLogicManager) {
+        gameLogicManager->clearLogics();
+        gameLogicManager->unloadAllPlugins();
+    }
+    
     // Clean up play scene
     if (playScene) {
         playScene->onDestroy();
@@ -99,6 +113,7 @@ void PlayMode::stop() {
     state = PlayModeState::Stopped;
     playTime = 0.0f;
     editorScene = nullptr;
+    gameLogicManager = nullptr;
     
     spdlog::info("PlayMode: Stopped");
 }
@@ -121,9 +136,12 @@ void PlayMode::update(float deltaTime, GameLogicManager* gameLogicManager) {
     if (state == PlayModeState::Playing && playScene) {
         playScene->onUpdate(deltaTime);
         
-        // Update game logic for play scene
+        // Update game logic for play scene with input state
         if (gameLogicManager) {
-            gameLogicManager->update(playScene->registry, deltaTime);
+            InputState inputState = createInputState();
+            
+            
+            gameLogicManager->update(playScene->registry, deltaTime, inputState);
         }
         
         playTime += deltaTime;
@@ -186,6 +204,37 @@ void PlayMode::renderUI(Console* console) {
         std::string entityText = "Entities: " + std::to_string(entityCount);
         DrawText(entityText.c_str(), 300, 10, 20, WHITE);
     }
+}
+
+InputState PlayMode::createInputState() const {
+    InputState inputState;
+    
+    // Common game keys
+    std::vector<int> keysToCheck = {
+        KEY_A, KEY_S, KEY_D, KEY_W,
+        KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN,
+        KEY_SPACE, KEY_ENTER, KEY_ESCAPE,
+        KEY_LEFT_SHIFT, KEY_LEFT_CONTROL, KEY_LEFT_ALT,
+        KEY_ONE, KEY_TWO, KEY_THREE, KEY_FOUR, KEY_FIVE,
+        KEY_SIX, KEY_SEVEN, KEY_EIGHT, KEY_NINE, KEY_ZERO
+    };
+    
+    for (int key : keysToCheck) {
+        inputState.keys[key] = IsKeyDown(key);
+        inputState.keysPressed[key] = IsKeyPressed(key);
+        inputState.keysReleased[key] = IsKeyReleased(key);
+    }
+    
+    // Mouse position
+    inputState.mouseX = GetMouseX();
+    inputState.mouseY = GetMouseY();
+    
+    // Mouse buttons
+    inputState.mouseButtons[MOUSE_LEFT_BUTTON] = IsMouseButtonDown(MOUSE_LEFT_BUTTON);
+    inputState.mouseButtons[MOUSE_RIGHT_BUTTON] = IsMouseButtonDown(MOUSE_RIGHT_BUTTON);
+    inputState.mouseButtons[MOUSE_MIDDLE_BUTTON] = IsMouseButtonDown(MOUSE_MIDDLE_BUTTON);
+    
+    return inputState;
 }
 
 } // namespace GameEngine

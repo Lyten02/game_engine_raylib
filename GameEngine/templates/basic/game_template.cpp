@@ -6,6 +6,10 @@
 #include <string>
 #include <memory>
 #include <filesystem>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include <dlfcn.h>  // For dynamic library loading
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -16,6 +20,50 @@
 #ifdef __linux__
 #include <unistd.h>
 #endif
+
+// Input state structure to pass keyboard/mouse state to game logic
+struct InputState {
+    std::unordered_map<int, bool> keys;
+    std::unordered_map<int, bool> keysPressed;
+    std::unordered_map<int, bool> keysReleased;
+    float mouseX = 0.0f;
+    float mouseY = 0.0f;
+    std::unordered_map<int, bool> mouseButtons;
+    
+    bool isKeyDown(int key) const {
+        auto it = keys.find(key);
+        return it != keys.end() && it->second;
+    }
+    
+    bool isKeyPressed(int key) const {
+        auto it = keysPressed.find(key);
+        return it != keysPressed.end() && it->second;
+    }
+    
+    bool isKeyReleased(int key) const {
+        auto it = keysReleased.find(key);
+        return it != keysReleased.end() && it->second;
+    }
+};
+
+// Game logic interface
+class IGameLogic {
+public:
+    virtual ~IGameLogic() = default;
+    virtual void initialize(entt::registry& registry) = 0;
+    virtual void update(entt::registry& registry, float deltaTime, const InputState& input) = 0;
+    virtual void shutdown() = 0;
+    virtual std::string getName() const = 0;
+};
+
+// Camera component
+struct CameraComponent {
+    Vector2 target = {0.0f, 0.0f};
+    Vector2 offset = {640.0f, 360.0f};
+    float rotation = 0.0f;
+    float zoom = 1.0f;
+    bool active = true;
+};
 
 // Component definitions
 struct TransformComponent {
@@ -130,11 +178,140 @@ public:
     }
 };
 
+// Plugin manager for loading game logic
+class PluginManager {
+private:
+    std::unordered_map<std::string, void*> loadedLibraries;
+    std::unordered_map<std::string, std::function<std::unique_ptr<IGameLogic>()>> gameLogicFactories;
+    std::unordered_set<std::string> allowedPaths;
+    bool securityEnabled = true;
+
+public:
+    PluginManager() {
+        // Add allowed plugin paths for security
+        allowedPaths.insert("packages");
+        allowedPaths.insert("./packages");
+    }
+
+    ~PluginManager() {
+        // Unload all libraries
+        for (auto& [name, handle] : loadedLibraries) {
+            if (handle) {
+                dlclose(handle);
+            }
+        }
+    }
+    
+    bool loadPlugin(const std::string& path, const std::string& name) {
+        // Security check: validate plugin path
+        if (securityEnabled && !isPathAllowed(path)) {
+            spdlog::error("Plugin path not allowed: {}", path);
+            return false;
+        }
+        
+        // Check if already loaded
+        if (loadedLibraries.find(name) != loadedLibraries.end()) {
+            spdlog::warn("Plugin already loaded: {}", name);
+            return true;
+        }
+        
+        // Check if file exists
+        if (!std::filesystem::exists(path)) {
+            spdlog::error("Plugin file not found: {}", path);
+            return false;
+        }
+        
+        void* handle = dlopen(path.c_str(), RTLD_LAZY);
+        if (!handle) {
+            spdlog::error("Failed to load plugin {}: {}", path, dlerror());
+            return false;
+        }
+        
+        // Verify plugin has required exports
+        void* initFunc = dlsym(handle, "initializePlugin");
+        if (!initFunc) {
+            spdlog::error("Plugin {} missing required export: initializePlugin", name);
+            dlclose(handle);
+            return false;
+        }
+        
+        loadedLibraries[name] = handle;
+        spdlog::info("Loaded plugin: {}", name);
+        return true;
+    }
+    
+private:
+    bool isPathAllowed(const std::string& path) {
+        std::filesystem::path pluginPath(path);
+        std::filesystem::path canonicalPath = std::filesystem::canonical(pluginPath.parent_path());
+        
+        for (const auto& allowedPath : allowedPaths) {
+            std::filesystem::path allowedCanonical = std::filesystem::canonical(allowedPath);
+            
+            // Check if plugin path is within allowed directory
+            auto relative = std::filesystem::relative(canonicalPath, allowedCanonical);
+            if (!relative.empty() && relative.native()[0] != '.') {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+public:
+    
+    void registerGameLogicFactory(const std::string& name, std::function<std::unique_ptr<IGameLogic>()> factory) {
+        gameLogicFactories[name] = factory;
+        spdlog::info("Registered game logic factory: {}", name);
+    }
+    
+    std::unique_ptr<IGameLogic> createGameLogic(const std::string& name) {
+        auto it = gameLogicFactories.find(name);
+        if (it != gameLogicFactories.end()) {
+            return it->second();
+        }
+        return nullptr;
+    }
+    
+    bool unloadPlugin(const std::string& name) {
+        auto it = loadedLibraries.find(name);
+        if (it != loadedLibraries.end()) {
+            dlclose(it->second);
+            loadedLibraries.erase(it);
+            spdlog::info("Unloaded plugin: {}", name);
+            
+            // Remove associated game logic factories
+            auto factoryIt = gameLogicFactories.find(name);
+            if (factoryIt != gameLogicFactories.end()) {
+                gameLogicFactories.erase(factoryIt);
+            }
+            
+            return true;
+        }
+        return false;
+    }
+    
+    void disableSecurity() {
+        securityEnabled = false;
+        spdlog::warn("Plugin security disabled - use only for development!");
+    }
+    
+    std::vector<std::string> getLoadedPlugins() const {
+        std::vector<std::string> plugins;
+        for (const auto& [name, handle] : loadedLibraries) {
+            plugins.push_back(name);
+        }
+        return plugins;
+    }
+};
+
 // Simple game runtime
 class GameRuntime {
 private:
     entt::registry registry;
     std::unique_ptr<ResourceManager> resourceManager;
+    std::unique_ptr<PluginManager> pluginManager;
+    std::unique_ptr<IGameLogic> gameLogic;
     Camera2D camera;
     bool running = false;
     std::filesystem::path executablePath;
@@ -190,7 +367,64 @@ public:
         // Initialize resource manager
         resourceManager = std::make_unique<ResourceManager>();
         
+        // Initialize plugin manager
+        pluginManager = std::make_unique<PluginManager>();
+        
+        // Load project dependencies and game logic
+        if (config.contains("dependencies") && config["dependencies"].is_array()) {
+            for (const auto& dep : config["dependencies"]) {
+                std::string depName = dep.get<std::string>();
+                loadDependency(depName);
+            }
+        }
+        
+        // Initialize game logic
+        if (config.contains("game_logic")) {
+            std::string gameLogicName = config["game_logic"];
+            gameLogic = pluginManager->createGameLogic(gameLogicName);
+            if (gameLogic) {
+                spdlog::info("Created game logic: {}", gameLogicName);
+                gameLogic->initialize(registry);
+            } else {
+                spdlog::warn("Failed to create game logic: {}", gameLogicName);
+            }
+        }
+        
         running = true;
+        return true;
+    }
+    
+    bool loadDependency(const std::string& depName) {
+        // Try to load package
+        std::filesystem::path packageDir = std::filesystem::path("packages") / depName;
+        std::filesystem::path packageJson = packageDir / "package.json";
+        
+        if (!std::filesystem::exists(packageJson)) {
+            spdlog::warn("Package not found: {}", depName);
+            return false;
+        }
+        
+        // Read package.json
+        std::ifstream packageFile(packageJson);
+        nlohmann::json packageData;
+        packageFile >> packageData;
+        packageFile.close();
+        
+        // Load plugin if specified
+        if (packageData.contains("plugin")) {
+            const auto& plugin = packageData["plugin"];
+            std::string library = plugin.value("library", "");
+            
+            if (!library.empty()) {
+                std::filesystem::path libraryPath = packageDir / library;
+                if (std::filesystem::exists(libraryPath)) {
+                    return pluginManager->loadPlugin(libraryPath.string(), depName);
+                } else {
+                    spdlog::warn("Plugin library not found: {}", libraryPath.string());
+                }
+            }
+        }
+        
         return true;
     }
     
@@ -245,6 +479,50 @@ public:
             // Update
             float deltaTime = GetFrameTime();
             
+            // Update game logic
+            if (gameLogic) {
+                // Create input state
+                InputState inputState;
+                
+                // Common game keys
+                std::vector<int> keysToCheck = {
+                    KEY_A, KEY_S, KEY_D, KEY_W,
+                    KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN,
+                    KEY_SPACE, KEY_ENTER, KEY_ESCAPE,
+                    KEY_LEFT_SHIFT, KEY_LEFT_CONTROL, KEY_LEFT_ALT
+                };
+                
+                for (int key : keysToCheck) {
+                    inputState.keys[key] = IsKeyDown(key);
+                    inputState.keysPressed[key] = IsKeyPressed(key);
+                    inputState.keysReleased[key] = IsKeyReleased(key);
+                }
+                
+                // Mouse position
+                inputState.mouseX = GetMouseX();
+                inputState.mouseY = GetMouseY();
+                
+                // Mouse buttons
+                inputState.mouseButtons[MOUSE_LEFT_BUTTON] = IsMouseButtonDown(MOUSE_LEFT_BUTTON);
+                inputState.mouseButtons[MOUSE_RIGHT_BUTTON] = IsMouseButtonDown(MOUSE_RIGHT_BUTTON);
+                inputState.mouseButtons[MOUSE_MIDDLE_BUTTON] = IsMouseButtonDown(MOUSE_MIDDLE_BUTTON);
+                
+                gameLogic->update(registry, deltaTime, inputState);
+            }
+            
+            // Update camera from CameraComponent if present
+            auto cameraView = registry.view<CameraComponent>();
+            for (auto entity : cameraView) {
+                const auto& cameraComp = cameraView.get<CameraComponent>(entity);
+                if (cameraComp.active) {
+                    camera.target = cameraComp.target;
+                    camera.offset = cameraComp.offset;
+                    camera.rotation = cameraComp.rotation;
+                    camera.zoom = cameraComp.zoom;
+                    break; // Use first active camera
+                }
+            }
+            
             // Render
             BeginDrawing();
             ClearBackground(DARKGRAY);
@@ -297,8 +575,15 @@ public:
     }
     
     void shutdown() {
+        // Shutdown game logic
+        if (gameLogic) {
+            gameLogic->shutdown();
+            gameLogic.reset();
+        }
+        
         registry.clear();
         resourceManager->unloadAll();
+        pluginManager.reset();
         CloseWindow();
     }
 };

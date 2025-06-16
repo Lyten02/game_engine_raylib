@@ -1,6 +1,7 @@
 #include "component_registry.h"
 #include "../components/transform.h"
 #include "../components/sprite.h"
+#include "../components/camera.h"
 #include <spdlog/spdlog.h>
 
 namespace GameEngine {
@@ -80,6 +81,52 @@ void ComponentRegistry::registerComponent<Sprite>(const std::string& name) {
                 static_cast<unsigned char>(tint[2]),
                 static_cast<unsigned char>(tint[3])
             };
+        }
+    };
+    
+    components[name] = info;
+    spdlog::info("Registered component: {}", name);
+}
+
+template<>
+void ComponentRegistry::registerComponent<CameraComponent>(const std::string& name) {
+    ComponentInfo info;
+    info.name = name;
+    
+    info.serialize = [](entt::entity entity, entt::registry& registry) -> nlohmann::json {
+        if (!registry.all_of<CameraComponent>(entity)) {
+            return {};
+        }
+        
+        const auto& camera = registry.get<CameraComponent>(entity);
+        return {
+            {"target", {camera.target.x, camera.target.y}},
+            {"offset", {camera.offset.x, camera.offset.y}},
+            {"rotation", camera.rotation},
+            {"zoom", camera.zoom},
+            {"active", camera.active}
+        };
+    };
+    
+    info.deserialize = [](entt::entity entity, entt::registry& registry, const nlohmann::json& data) {
+        auto& camera = registry.emplace_or_replace<CameraComponent>(entity);
+        
+        if (data.contains("target")) {
+            const auto& target = data["target"];
+            camera.target = {target[0], target[1]};
+        }
+        if (data.contains("offset")) {
+            const auto& offset = data["offset"];
+            camera.offset = {offset[0], offset[1]};
+        }
+        if (data.contains("rotation")) {
+            camera.rotation = data["rotation"];
+        }
+        if (data.contains("zoom")) {
+            camera.zoom = data["zoom"];
+        }
+        if (data.contains("active")) {
+            camera.active = data["active"];
         }
     };
     

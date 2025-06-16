@@ -3,8 +3,7 @@
 #include "../console/command_processor.h"
 #include "../scene/scene.h"
 #include "../resources/resource_manager.h"
-#include "../components/transform.h"
-#include "../components/sprite.h"
+// Component headers removed - components are now optional
 #include <entt/entt.hpp>
 #include <raylib.h>
 #include <sstream>
@@ -32,17 +31,8 @@ void CommandRegistry::registerEntityCommands(CommandProcessor* processor, Consol
                 std::stringstream ss;
                 ss << "  Entity #" << (uint32_t)entity;
                 
-                // Check what components it has
-                bool hasTransform = registry.all_of<TransformComponent>(entity);
-                bool hasSprite = registry.all_of<Sprite>(entity);
-                
-                if (hasTransform || hasSprite) {
-                    ss << " [";
-                    if (hasTransform) ss << "Transform";
-                    if (hasTransform && hasSprite) ss << ", ";
-                    if (hasSprite) ss << "Sprite";
-                    ss << "]";
-                }
+                // Component listing removed - components are now plugin-based
+                // TODO: Add dynamic component enumeration via plugin API
                 
                 console->addLine(ss.str(), GRAY);
                 count++;
@@ -69,17 +59,8 @@ void CommandRegistry::registerEntityCommands(CommandProcessor* processor, Consol
             auto& registry = scene->registry;
             auto entity = registry.create();
             
-            // Add transform component
-            auto& transform = registry.emplace<TransformComponent>(entity);
-            
-            // Parse position if provided
-            try {
-                if (args.size() >= 1 && !args[0].empty()) transform.position.x = std::stof(args[0]);
-                if (args.size() >= 2 && !args[1].empty()) transform.position.y = std::stof(args[1]);
-                if (args.size() >= 3 && !args[2].empty()) transform.position.z = std::stof(args[2]);
-            } catch (const std::exception& e) {
-                // Ignore parsing errors, use default position
-            }
+            // No components are added automatically - plugins should add them
+            // Position arguments are ignored since we don't have Transform component
             
             uint32_t entityId = (uint32_t)entity;
             console->addLine("Created entity #" + std::to_string(entityId) + " with Transform component", GREEN);

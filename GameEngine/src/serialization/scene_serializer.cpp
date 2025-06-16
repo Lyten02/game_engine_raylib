@@ -1,7 +1,6 @@
 #include "scene_serializer.h"
 #include "../scene/scene.h"
-#include "../components/transform.h"
-#include "../components/sprite.h"
+#include "dynamic_component_registry.h"
 #include "../utils/file_utils.h"
 #include "component_registry.h"
 #include <fstream>
@@ -62,32 +61,8 @@ nlohmann::json SceneSerializer::entityToJson(entt::entity entity, entt::registry
     // Get entity ID
     entityJson["id"] = static_cast<uint32_t>(entity);
     
-    // Serialize components
-    nlohmann::json componentsJson;
-    
-    // Transform component
-    if (registry.all_of<TransformComponent>(entity)) {
-        const auto& transform = registry.get<TransformComponent>(entity);
-        componentsJson["Transform"] = {
-            {"position", {transform.position.x, transform.position.y, transform.position.z}},
-            {"rotation", {transform.rotation.x, transform.rotation.y, transform.rotation.z}},
-            {"scale", {transform.scale.x, transform.scale.y, transform.scale.z}}
-        };
-    }
-    
-    // Sprite component
-    if (registry.all_of<Sprite>(entity)) {
-        const auto& sprite = registry.get<Sprite>(entity);
-        componentsJson["Sprite"] = {
-            {"texture", sprite.texturePath},
-            {"source", {sprite.sourceRect.x, sprite.sourceRect.y, sprite.sourceRect.width, sprite.sourceRect.height}},
-            {"tint", {sprite.tint.r, sprite.tint.g, sprite.tint.b, sprite.tint.a}}
-        };
-    }
-    
-    // Add more components here as needed
-    
-    entityJson["components"] = componentsJson;
+    // Use dynamic component registry for serialization
+    entityJson["components"] = DynamicComponentRegistry::getInstance().serializeComponents(entity, registry);
     
     return entityJson;
 }
@@ -101,51 +76,14 @@ entt::entity SceneSerializer::jsonToEntity(const nlohmann::json& entityJson, ent
     
     const auto& components = entityJson["components"];
     
-    // Transform component
-    if (components.contains("Transform")) {
-        const auto& transformJson = components["Transform"];
-        auto& transform = registry.emplace<TransformComponent>(entity);
-        
-        if (transformJson.contains("position")) {
-            const auto& pos = transformJson["position"];
-            transform.position = {pos[0], pos[1], pos[2]};
-        }
-        if (transformJson.contains("rotation")) {
-            const auto& rot = transformJson["rotation"];
-            transform.rotation = {rot[0], rot[1], rot[2]};
-        }
-        if (transformJson.contains("scale")) {
-            const auto& scale = transformJson["scale"];
-            transform.scale = {scale[0], scale[1], scale[2]};
-        }
-    }
-    
-    // Sprite component
-    if (components.contains("Sprite")) {
-        const auto& spriteJson = components["Sprite"];
-        auto& sprite = registry.emplace<Sprite>(entity);
-        
-        if (spriteJson.contains("texture")) {
-            sprite.texturePath = spriteJson["texture"];
-            // Note: Actual texture loading would happen elsewhere
-        }
-        if (spriteJson.contains("source")) {
-            const auto& src = spriteJson["source"];
-            sprite.sourceRect = {src[0], src[1], src[2], src[3]};
-        }
-        if (spriteJson.contains("tint")) {
-            const auto& tint = spriteJson["tint"];
-            sprite.tint = {
-                static_cast<unsigned char>(tint[0]),
-                static_cast<unsigned char>(tint[1]),
-                static_cast<unsigned char>(tint[2]),
-                static_cast<unsigned char>(tint[3])
-            };
-        }
-    }
+    // Use dynamic component registry for deserialization
+    DynamicComponentRegistry::getInstance().deserializeComponents(entity, registry, components);
     
     return entity;
 }
+
+// TEMP: Keep old code commented for reference
+// Old component deserialization code removed - now handled by DynamicComponentRegistry
 
 nlohmann::json SceneSerializer::sceneToJson(Scene* scene) {
     nlohmann::json sceneJson;

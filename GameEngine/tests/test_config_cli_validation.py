@@ -12,7 +12,7 @@ def test_config_get_invalid_keys():
     
     for key in invalid_keys:
         result = subprocess.run([
-            "./game", "--json", "--headless", "--command", 
+            "./game_engine", "--json", "--headless", "--command", 
             f"config.get \"{key}\""
         ], capture_output=True, text=True, timeout=5)
         
@@ -33,7 +33,7 @@ def test_config_set_invalid_keys():
     
     for key in invalid_keys:
         result = subprocess.run([
-            "./game", "--json", "--headless", "--command", 
+            "./game_engine", "--json", "--headless", "--command", 
             f"config.set \"{key}\" \"test_value\""
         ], capture_output=True, text=True, timeout=5)
         
@@ -55,7 +55,7 @@ def test_config_valid_keys_still_work():
     for key in valid_keys:
         # Test get
         result = subprocess.run([
-            "./game", "--json", "--headless", "--command", 
+            "./game_engine", "--json", "--headless", "--command", 
             f"config.get \"{key}\""
         ], capture_output=True, text=True, timeout=5)
         
@@ -71,7 +71,7 @@ def test_helpful_error_messages():
     """Test that error messages are helpful and informative"""
     
     result = subprocess.run([
-        "./game", "--json", "--headless", "--command", 
+        "./game_engine", "--json", "--headless", "--command", 
         "config.get \"..invalid\""
     ], capture_output=True, text=True, timeout=5)
     

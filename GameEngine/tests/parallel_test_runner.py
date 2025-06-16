@@ -493,10 +493,10 @@ class ParallelTestRunner:
 def main():
     """Demo the parallel test runner"""
     test_dir = Path(__file__).parent
-    game_exe = "./game"
+    game_exe = "./game_engine"
     
     # Find game executable
-    possible_paths = ["./game", "../build/game", "build/game"]
+    possible_paths = ["./game_engine", "../build/game_engine", "build/game_engine"]
     for path in possible_paths:
         if os.path.exists(path):
             game_exe = path

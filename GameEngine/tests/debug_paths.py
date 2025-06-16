@@ -10,7 +10,7 @@ with open("debug_paths.txt", "w") as f:
 
 # Run and capture working directory
 result = subprocess.run(
-    ["../build/game", "--headless", "--script", "debug_paths.txt"],
+    ["../build/game_engine", "--headless", "--script", "debug_paths.txt"],
     capture_output=True,
     text=True,
     cwd="."

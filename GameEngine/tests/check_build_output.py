@@ -27,7 +27,7 @@ with open("check_build.txt", "w") as f:
     f.write("project.build.sync\n")
 
 print("Running build commands...")
-success, stdout, stderr = run_command("../build/game --headless --script check_build.txt")
+success, stdout, stderr = run_command("../build/game_engine --headless --script check_build.txt")
 
 print(f"Success: {success}")
 print(f"stderr: {stderr}")

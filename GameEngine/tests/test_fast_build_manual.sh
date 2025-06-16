@@ -9,7 +9,7 @@ rm -rf projects/FastBuildManual output/FastBuildManual 2>/dev/null
 
 # Create and build project (full build)
 echo "1. Creating project and doing full build..."
-time ./game --script - <<EOF
+time ./game_engine --script - <<EOF
 project.create FastBuildManual
 project.open FastBuildManual
 scene.create main
@@ -35,7 +35,7 @@ rm -f output/FastBuildManual/game
 
 # Fast rebuild
 echo "3. Running fast build..."
-time ./game --script - <<EOF
+time ./game_engine --script - <<EOF
 project.open FastBuildManual
 project.build.fast
 EOF

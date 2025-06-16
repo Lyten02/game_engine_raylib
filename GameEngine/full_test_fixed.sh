@@ -344,9 +344,9 @@ main() {
         echo "🎮 Game ready: $PROJECT_ROOT/build/game"
         echo ""
         echo "💡 Quick commands:"
-        echo "   cd build && ./game                    # Run the engine"
-        echo "   cd build && ./game --help            # Show help"
-        echo "   cd build && ./game --json -c help    # JSON output"
+        echo "   cd build && ./game_engine                    # Run the engine"
+        echo "   cd build && ./game_engine --help            # Show help"
+        echo "   cd build && ./game_engine --json -c help    # JSON output"
     fi
     
     return $failed_tests

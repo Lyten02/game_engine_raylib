@@ -17,7 +17,7 @@ if [ -d "build/_deps" ]; then
     find build -mindepth 1 -maxdepth 1 ! -name '_deps' -exec rm -rf {} +
     
     # Clean only game executable and CMake files
-    rm -f build/game
+    rm -f build/game_engine
     rm -f build/CMakeCache.txt
     rm -rf build/CMakeFiles
     rm -f build/Makefile
@@ -35,7 +35,7 @@ echo "Running CMake..."
 cmake .. -DCMAKE_BUILD_TYPE=Release
 
 echo "Building project..."
-make -j8 game
+make -j8 game_engine
 
 # If we had cached deps, restore them
 if [ -d "../.deps_cache/_deps" ]; then
@@ -44,5 +44,5 @@ fi
 
 echo "Fast rebuild complete!"
 echo ""
-echo "Executable: build/game"
-echo "Run with: cd build && ./game"
+echo "Executable: build/game_engine"
+echo "Run with: cd build && ./game_engine"

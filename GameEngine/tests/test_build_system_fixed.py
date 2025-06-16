@@ -14,7 +14,7 @@ def run_command(command):
     if os.path.basename(os.getcwd()) == "tests":
         os.chdir("../build")
     elif not os.path.exists("game"):
-        if os.path.exists("build/game"):
+        if os.path.exists("build/game_engine"):
             os.chdir("build")
     
     try:
@@ -27,7 +27,7 @@ def run_command(command):
         
         # Execute via script to maintain project state
         result = subprocess.run(
-            ["./game", "--headless", "--script", "test_command.txt"],
+            ["./game_engine", "--headless", "--script", "test_command.txt"],
             capture_output=True,
             text=True,
             timeout=30
@@ -49,7 +49,7 @@ def test_build_system():
     if os.path.basename(os.getcwd()) == "tests":
         os.chdir("../build")
     elif not os.path.exists("game"):
-        if os.path.exists("build/game"):
+        if os.path.exists("build/game_engine"):
             os.chdir("build")
     
     try:
@@ -75,7 +75,7 @@ def test_build_system():
         start_time = time.time()
         
         result = subprocess.run(
-            ["./game", "--headless", "--script", "build_test_batch.txt"],
+            ["./game_engine", "--headless", "--script", "build_test_batch.txt"],
             capture_output=True,
             text=True,
             timeout=60  # 1 minute timeout for fast build
@@ -140,7 +140,7 @@ def test_build_system():
 
 if __name__ == "__main__":
     # First check if we can find the game executable
-    paths_to_check = ["./game", "../build/game", "build/game"]
+    paths_to_check = ["./game_engine", "../build/game_engine", "build/game_engine"]
     game_found = False
     
     for path in paths_to_check:

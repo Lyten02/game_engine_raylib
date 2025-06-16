@@ -15,7 +15,7 @@ def test_full_build():
     if os.path.basename(os.getcwd()) == "tests":
         os.chdir("../build")
     elif not os.path.exists("game"):
-        if os.path.exists("build/game"):
+        if os.path.exists("build/game_engine"):
             os.chdir("build")
     
     try:
@@ -41,7 +41,7 @@ def test_full_build():
         
         print("Running full build...")
         result = subprocess.run(
-            ["./game", "--headless", "--script", script_name],
+            ["./game_engine", "--headless", "--script", script_name],
             capture_output=True,
             text=True,
             timeout=300

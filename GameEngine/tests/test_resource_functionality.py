@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def run_cli_command(command, cwd=None):
     """Run a CLI command and return the result"""
-    cmd = ["./game", "--json", "--headless", "--command", command]
+    cmd = ["./game_engine", "--json", "--headless", "--command", command]
     try:
         result = subprocess.run(
             cmd,

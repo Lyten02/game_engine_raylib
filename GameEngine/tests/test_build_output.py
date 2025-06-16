@@ -16,7 +16,7 @@ def test_build_output():
     if os.path.basename(os.getcwd()) == "tests":
         os.chdir("../build")
     elif not os.path.exists("game"):
-        if os.path.exists("build/game"):
+        if os.path.exists("build/game_engine"):
             os.chdir("build")
     
     try:
@@ -47,7 +47,7 @@ def test_build_output():
         
         print("Running build (ignoring return code)...")
         result = subprocess.run(
-            ["./game", "--headless", "--script", script_name],
+            ["./game_engine", "--headless", "--script", script_name],
             capture_output=True,
             text=True,
             timeout=120  # Increase timeout to 2 minutes for slow CMake

@@ -13,7 +13,7 @@ def run_cli_command(command, expected_to_fail=True):
     try:
         # Run the command
         result = subprocess.run(
-            ["./game", "--json", "-c", command],
+            ["./game_engine", "--json", "-c", command],
             capture_output=True,
             text=True,
             timeout=5
@@ -232,7 +232,7 @@ def main():
     print()
     
     # Check if game executable exists
-    if not os.path.exists("./game"):
+    if not os.path.exists("./game_engine"):
         print("❌ ERROR: game executable not found in current directory")
         print("Please run this test from the build directory")
         return 1

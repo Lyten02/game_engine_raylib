@@ -28,7 +28,7 @@ def test_concurrent_texture_loading():
     def run_cmd(command):
         try:
             result = subprocess.run([
-                "./game", "--json", "--headless", "--command", command
+                "./game_engine", "--json", "--headless", "--command", command
             ], capture_output=True, text=True, timeout=5, cwd="../build")
             results.append(result.returncode == 0)
         except subprocess.TimeoutExpired:
@@ -58,7 +58,7 @@ def test_resource_manager_timeout():
     
     try:
         result = subprocess.run([
-            "./game", "--json", "--headless", "--command", "entity.create"
+            "./game_engine", "--json", "--headless", "--command", "entity.create"
         ], capture_output=True, text=True, timeout=3, cwd="../build")
         
         elapsed = time.time() - start_time
@@ -99,7 +99,7 @@ def test_rapid_sequential_commands():
         start = time.time()
         try:
             result = subprocess.run([
-                "./game", "--json", "--headless", "--command", cmd
+                "./game_engine", "--json", "--headless", "--command", cmd
             ], capture_output=True, text=True, timeout=2, cwd="../build")
             
             elapsed = time.time() - start
@@ -129,7 +129,7 @@ def test_headless_mode_efficiency():
     for i in range(10):
         try:
             result = subprocess.run([
-                "./game", "--json", "--headless", "--command", "entity.create"
+                "./game_engine", "--json", "--headless", "--command", "entity.create"
             ], capture_output=True, text=True, timeout=1, cwd="../build")
             
             if result.returncode == 0:
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     print("=" * 60)
     
     # Check if we're in the right directory
-    if not os.path.exists("../build/game"):
+    if not os.path.exists("../build/game_engine"):
         print("ERROR: Build directory not found. Please build the project first.")
         print("Run: cd ../build && cmake .. && make")
         sys.exit(1)

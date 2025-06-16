@@ -16,12 +16,12 @@ def test_build_fast():
     project_name = "BuildTestFast"
     
     # Clean up any existing project
-    subprocess.run(["./game", "--headless", "--command", f"project.delete {project_name}"], 
+    subprocess.run(["./game_engine", "--headless", "--command", f"project.delete {project_name}"], 
                    capture_output=True, timeout=10)
     
     # Create project
     print("1. Creating project...")
-    result = subprocess.run(["./game", "--headless", "--command", f"project.create {project_name}"], 
+    result = subprocess.run(["./game_engine", "--headless", "--command", f"project.create {project_name}"], 
                           capture_output=True, text=True, timeout=10)
     if result.returncode != 0:
         print(f"Failed to create project: {result.stderr}")
@@ -29,7 +29,7 @@ def test_build_fast():
     
     # Open project
     print("2. Opening project...")
-    result = subprocess.run(["./game", "--headless", "--command", f"project.open {project_name}"], 
+    result = subprocess.run(["./game_engine", "--headless", "--command", f"project.open {project_name}"], 
                           capture_output=True, text=True, timeout=10)
     if result.returncode != 0:
         print(f"Failed to open project: {result.stderr}")
@@ -37,7 +37,7 @@ def test_build_fast():
     
     # Create scene
     print("3. Creating scene...")
-    result = subprocess.run(["./game", "--headless", "--command", "scene.create main"], 
+    result = subprocess.run(["./game_engine", "--headless", "--command", "scene.create main"], 
                           capture_output=True, text=True, timeout=10)
     if result.returncode != 0:
         print(f"Failed to create scene: {result.stderr}")
@@ -45,7 +45,7 @@ def test_build_fast():
     
     # Create entity
     print("4. Creating entity...")
-    result = subprocess.run(["./game", "--headless", "--command", "entity.create Player"], 
+    result = subprocess.run(["./game_engine", "--headless", "--command", "entity.create Player"], 
                           capture_output=True, text=True, timeout=10)
     if result.returncode != 0:
         print(f"Failed to create entity: {result.stderr}")
@@ -53,7 +53,7 @@ def test_build_fast():
     
     # Save scene
     print("5. Saving scene...")
-    result = subprocess.run(["./game", "--headless", "--command", "scene.save main"], 
+    result = subprocess.run(["./game_engine", "--headless", "--command", "scene.save main"], 
                           capture_output=True, text=True, timeout=10)
     if result.returncode != 0:
         print(f"Failed to save scene: {result.stderr}")
@@ -62,7 +62,7 @@ def test_build_fast():
     # Fast build
     print("6. Running fast build...")
     start_time = time.time()
-    result = subprocess.run(["./game", "--headless", "--command", "project.build-fast"], 
+    result = subprocess.run(["./game_engine", "--headless", "--command", "project.build-fast"], 
                           capture_output=True, text=True, timeout=30)
     elapsed = time.time() - start_time
     

@@ -22,7 +22,7 @@ def test_command_injection():
     # Simple valid project name first
     print("1. Creating a normal project...")
     result = subprocess.run([
-        "./game", "--headless", "-c", 
+        "./game_engine", "--headless", "-c", 
         'project.create TestProject'
     ], cwd="build", capture_output=True, text=True)
     print(f"   Result: {result.returncode}")
@@ -45,7 +45,7 @@ def test_command_injection():
     # Test 1: Normal run (should work)
     print("\n2. Running project normally...")
     result = subprocess.run([
-        "./game", "--headless", "-c", "project.run"
+        "./game_engine", "--headless", "-c", "project.run"
     ], cwd="build", capture_output=True, text=True)
     print(f"   Exit code: {result.returncode}")
     print(f"   Output: {result.stdout[:100]}...")
@@ -76,7 +76,7 @@ def test_command_injection():
     
     # Clean up
     shutil.rmtree(output_dir, ignore_errors=True)
-    subprocess.run(["./game", "--headless", "-c", "project.close"], cwd="build")
+    subprocess.run(["./game_engine", "--headless", "-c", "project.close"], cwd="build")
     
     # Now let's check the actual implementation
     print("\n5. Checking source code for std::system usage...")

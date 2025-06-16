@@ -7,7 +7,7 @@ import sys
 import os
 
 # Path to the game executable
-GAME_EXE = "../build/game"
+GAME_EXE = "../build/game_engine"
 
 def run_cli_command(args):
     """Run a CLI command and return the result"""

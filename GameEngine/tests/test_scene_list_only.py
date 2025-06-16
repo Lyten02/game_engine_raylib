@@ -17,7 +17,7 @@ def test_scene_list():
     try:
         # Create project
         result = subprocess.run([
-            "./game", "--json", "--headless", 
+            "./game_engine", "--json", "--headless", 
             "--command", f"project.create {project_name}"
         ], capture_output=True, text=True, timeout=10)
         
@@ -27,7 +27,7 @@ def test_scene_list():
         
         # Open project  
         result = subprocess.run([
-            "./game", "--json", "--headless",
+            "./game_engine", "--json", "--headless",
             "--command", f"project.open {project_name}"
         ], capture_output=True, text=True, timeout=10)
         
@@ -37,7 +37,7 @@ def test_scene_list():
         
         # Test scene.list on empty project
         result = subprocess.run([
-            "./game", "--json", "--headless",
+            "./game_engine", "--json", "--headless",
             "--command", "scene.list"
         ], capture_output=True, text=True, timeout=10)
         

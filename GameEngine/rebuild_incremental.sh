@@ -26,13 +26,13 @@ if [ "../CMakeLists.txt" -nt "CMakeCache.txt" ]; then
 fi
 
 echo "Building project (incremental)..."
-time make -j8 game
+time make -j8 game_engine
 
 if [ $? -eq 0 ]; then
     echo ""
     echo "Incremental build complete!"
-    echo "Executable: build/game"
-    echo "Run with: cd build && ./game"
+    echo "Executable: build/game_engine"
+    echo "Run with: cd build && ./game_engine"
 else
     echo ""
     echo "Build failed! Try running ./rebuild.sh for a clean build."

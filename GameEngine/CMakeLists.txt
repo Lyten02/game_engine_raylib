@@ -99,11 +99,15 @@ add_executable(game
     src/cli/cli_argument_parser.cpp
     src/packages/package.cpp
     src/packages/package_manager.cpp
+    src/packages/package_loader.cpp
+    packages/physics-2d/systems/physics_system.cpp
+    src/render/sprite_batch.cpp
 )
 
 # Include directories
 target_include_directories(game PRIVATE 
     src
+    packages
 )
 
 # Link libraries

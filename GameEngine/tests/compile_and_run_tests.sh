@@ -55,6 +55,7 @@ declare -a tests=(
     "test_package_manager"
     "test_package_metadata"
     "test_package_version_validation"
+    "test_package_loader"
 )
 
 # Track test results
@@ -297,6 +298,22 @@ run_test() {
         if g++ $FLAGS ${test_name}.cpp \
             ../src/packages/package.cpp \
             ../src/packages/package_manager.cpp \
+            $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>&1; then
+            echo "  ✅ Compiled successfully"
+        else
+            echo "  ❌ Compilation failed!"
+            ((failed_tests++))
+            failed_test_names+=("$test_name (compilation)")
+            return
+        fi
+    elif [[ "$test_name" == "test_package_loader" ]]; then
+        # Package loader test with physics system
+        if g++ $FLAGS ${test_name}.cpp \
+            ../src/packages/package.cpp \
+            ../src/packages/package_manager.cpp \
+            ../src/packages/package_loader.cpp \
+            ../packages/physics-2d/systems/physics_system.cpp \
+            -I../packages \
             $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>&1; then
             echo "  ✅ Compiled successfully"
         else

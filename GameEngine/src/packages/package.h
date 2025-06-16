@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+namespace GameEngine {
+
 struct PackageDependency {
     std::string name;
     std::string version;
@@ -54,3 +56,5 @@ private:
     std::vector<ComponentInfo> components;
     std::vector<SystemInfo> systems;
 };
+
+} // namespace GameEngine

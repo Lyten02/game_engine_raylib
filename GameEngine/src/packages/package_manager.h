@@ -6,6 +6,9 @@
 #include <vector>
 #include <optional>
 #include "package.h"
+#include "package_loader.h"
+
+namespace GameEngine {
 
 struct PackageInfo {
     std::string name;
@@ -41,15 +44,20 @@ public:
     // Getters
     const std::filesystem::path& getPackagesDirectory() const { return packagesDirectory; }
     void setEngineVersion(const std::string& version) { currentEngineVersion = version; }
+    PackageLoader& getPackageLoader() { return packageLoader; }
+    const PackageLoader& getPackageLoader() const { return packageLoader; }
     
 private:
     std::filesystem::path packagesDirectory;
     std::unordered_map<std::string, std::shared_ptr<Package>> loadedPackages;
     std::vector<std::string> availablePackages;
     std::string currentEngineVersion = "0.1.0";
+    PackageLoader packageLoader;
     
     bool loadPackageMetadata(const std::string& packageName, const std::filesystem::path& packagePath);
     bool parseVersionRequirement(const std::string& requirement, std::string& op, std::string& version) const;
     int compareVersions(const std::string& v1, const std::string& v2) const;
     std::vector<int> splitVersion(const std::string& version) const;
 };
+
+} // namespace GameEngine

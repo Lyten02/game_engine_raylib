@@ -14,10 +14,6 @@
     {
       "name": "BoxCollider",
       "file": "components/box_collider.h"
-    },
-    {
-      "name": "CircleCollider",
-      "file": "components/circle_collider.h"
     }
   ],
   "systems": [
@@ -25,11 +21,6 @@
       "name": "PhysicsSystem",
       "file": "systems/physics_system.h",
       "priority": 100
-    },
-    {
-      "name": "CollisionSystem",
-      "file": "systems/collision_system.h",
-      "priority": 95
     }
   ]
 }

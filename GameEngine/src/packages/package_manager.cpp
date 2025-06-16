@@ -5,6 +5,8 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+namespace GameEngine {
+
 PackageManager::PackageManager(const std::filesystem::path& packagesDir)
     : packagesDirectory(packagesDir) {
 }
@@ -167,6 +169,13 @@ bool PackageManager::loadPackageMetadata(const std::string& packageName, const s
         // Store the loaded package
         loadedPackages[packageName] = package;
         
+        // Load package resources (components and systems)
+        if (!packageLoader.loadPackageResources(*package, packagePath)) {
+            spdlog::error("[PackageManager] Failed to load resources for package: {}", packageName);
+            loadedPackages.erase(packageName);
+            return false;
+        }
+        
         spdlog::info("[PackageManager] Loaded package: {} v{}", name, version);
         return true;
         
@@ -327,3 +336,5 @@ std::vector<int> PackageManager::splitVersion(const std::string& version) const 
     
     return parts;
 }
+
+} // namespace GameEngine

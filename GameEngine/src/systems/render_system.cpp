@@ -61,3 +61,15 @@ void RenderSystem::setCameraZoom(float zoom) {
 Camera2D RenderSystem::getCamera() const {
     return camera;
 }
+
+void RenderSystem::setCamera2D(Camera2D& newCamera) {
+    camera = newCamera;
+}
+
+void RenderSystem::beginCamera() {
+    BeginMode2D(camera);
+}
+
+void RenderSystem::endCamera() {
+    EndMode2D();
+}

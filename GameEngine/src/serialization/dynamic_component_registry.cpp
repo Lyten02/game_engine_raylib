@@ -1,7 +1,7 @@
 #include "dynamic_component_registry.h"
 #include <spdlog/spdlog.h>
 
-namespace GameEngine {
+// Remove namespace to avoid conflicts
 
 void DynamicComponentRegistry::registerComponent(const std::string& name,
                                                SerializeFunc serialize,
@@ -73,4 +73,4 @@ void DynamicComponentRegistry::deserializeComponents(entt::entity entity,
     }
 }
 
-} // namespace GameEngine
+// namespace removed

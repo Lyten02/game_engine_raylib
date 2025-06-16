@@ -7,7 +7,7 @@
 #include <entt/entt.hpp>
 #include <nlohmann/json.hpp>
 
-namespace GameEngine {
+// Remove namespace to avoid conflicts
 
 // Dynamic component registry that doesn't know about specific component types
 class DynamicComponentRegistry {

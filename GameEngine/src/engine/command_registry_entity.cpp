@@ -139,26 +139,11 @@ void CommandRegistry::registerRenderCommands(CommandProcessor* processor, Consol
                 return;
             }
             
-            auto& registry = scene->registry;
-            auto view = registry.view<TransformComponent, Sprite>();
-            
-            int spriteCount = 0;
-            int visibleCount = 0;
-            
-            for (auto entity : view) {
-                spriteCount++;
-                auto& sprite = view.get<Sprite>(entity);
-                // All sprites are visible by default
-                visibleCount++;
-            }
-            
-            std::stringstream ss;
-            ss << "Render Statistics:\n";
-            ss << "  Total sprites: " << spriteCount << "\n";
-            ss << "  Visible sprites: " << visibleCount << "\n";
-            ss << "  FPS: " << GetFPS();
-            
-            console->addLine(ss.str(), YELLOW);
+            // Render statistics are now plugin-specific
+            console->addLine("Render statistics:", YELLOW);
+            console->addLine("  Rendering is now handled by plugins", GRAY);
+            console->addLine("  No built-in sprite components", GRAY);
+            console->addLine("  FPS: " + std::to_string(GetFPS()), GREEN);
         }, "Display rendering statistics", "Render");
 }
 

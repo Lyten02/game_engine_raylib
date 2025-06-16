@@ -225,12 +225,8 @@ class ExampleGameLogic : public IGameLogic {
 public:
     void initialize(entt::registry& registry) override {}
     void update(entt::registry& registry, float deltaTime, const InputState& input) override {
-        // Simple rotation logic
-        auto view = registry.view<TransformComponent>();
-        for (auto entity : view) {
-            auto& transform = view.get<TransformComponent>(entity);
-            transform.rotation.y += 45.0f * deltaTime;
-        }
+        // Example logic - components are now plugin-based
+        // Plugins should register their own components and update logic
     }
     void shutdown() override {}
     std::string getName() const override { return "ExampleGameLogic"; }

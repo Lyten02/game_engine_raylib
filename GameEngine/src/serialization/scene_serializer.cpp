@@ -128,8 +128,6 @@ void SceneSerializer::registerComponent(const std::string& componentName) {
     ComponentRegistry::getInstance().registerComponent<T>(componentName);
 }
 
-// Explicit instantiations
-template void SceneSerializer::registerComponent<TransformComponent>(const std::string&);
-template void SceneSerializer::registerComponent<Sprite>(const std::string&);
+// Explicit instantiations removed - components are now plugin-based
 
 } // namespace GameEngine

@@ -258,12 +258,36 @@ public:
                 const auto& sprite = view.get<Sprite>(entity);
                 
                 if (sprite.texture) {
+                    // Render textured sprite
                     DrawTextureRec(
                         *sprite.texture,
                         sprite.sourceRect,
                         {transform.position.x, transform.position.y},
                         sprite.tint
                     );
+                } else {
+                    // Render colored rectangle when no texture
+                    Rectangle rect;
+                    
+                    // Use transform scale if source rect has no size
+                    if (sprite.sourceRect.width <= 0 || sprite.sourceRect.height <= 0) {
+                        rect = {
+                            transform.position.x - transform.scale.x / 2,
+                            transform.position.y - transform.scale.y / 2,
+                            transform.scale.x,
+                            transform.scale.y
+                        };
+                    } else {
+                        // Use source rect dimensions
+                        rect = {
+                            transform.position.x - sprite.sourceRect.width / 2,
+                            transform.position.y - sprite.sourceRect.height / 2,
+                            sprite.sourceRect.width,
+                            sprite.sourceRect.height
+                        };
+                    }
+                    
+                    DrawRectangleRec(rect, sprite.tint);
                 }
             }
             

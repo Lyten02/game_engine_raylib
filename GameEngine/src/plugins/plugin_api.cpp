@@ -5,15 +5,17 @@
 namespace GameEngine {
 
 void PluginAPI::registerComponent(const std::string& name, ComponentFactory factory) {
-    // For now, just log since PackageLoader is a stub
     spdlog::info("[PluginAPI] Registering component: {}", name);
-    // TODO: packageLoader->registerComponent(name, factory);
+    if (packageLoader) {
+        packageLoader->registerComponent(name, factory);
+    }
 }
 
 void PluginAPI::registerSystem(const std::string& name, SystemFactory factory) {
-    // For now, just log since PackageLoader is a stub
     spdlog::info("[PluginAPI] Registering system: {}", name);
-    // TODO: packageLoader->registerSystem(name, factory);
+    if (packageLoader) {
+        packageLoader->registerSystem(name, factory);
+    }
 }
 
 void PluginAPI::log(const std::string& message) {

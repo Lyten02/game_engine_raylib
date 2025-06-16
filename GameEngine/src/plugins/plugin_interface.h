@@ -50,10 +50,10 @@ extern "C" {
 #define PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
 
 #define IMPLEMENT_PLUGIN(PluginClass) \
-    PLUGIN_EXPORT IPlugin* createPlugin() { \
+    PLUGIN_EXPORT GameEngine::IPlugin* createPlugin() { \
         return new PluginClass(); \
     } \
-    PLUGIN_EXPORT void destroyPlugin(IPlugin* plugin) { \
+    PLUGIN_EXPORT void destroyPlugin(GameEngine::IPlugin* plugin) { \
         delete plugin; \
     } \
     PLUGIN_EXPORT int getPluginAPIVersion() { \

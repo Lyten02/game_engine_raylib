@@ -71,7 +71,7 @@ def test_config_loading():
         os.chdir("test_subdir")
         
         result = subprocess.run(
-            ["../game", "--json", "-c", "help"],
+            ["../game_engine", "--json", "-c", "help"],
             capture_output=True,
             text=True
         )

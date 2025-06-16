@@ -16,7 +16,7 @@ from test_utils import print_test_header, print_test_result
 
 def run_engine_command(command, log_level=None, quiet=False):
     """Run engine with specific log settings"""
-    game_path = os.path.join(os.path.dirname(__file__), "..", "build", "game")
+    game_path = os.path.join(os.path.dirname(__file__), "..", "build", "game_engine")
     
     cmd = [game_path, "--headless", "--command", command]
     if log_level:
@@ -121,7 +121,7 @@ def test_batch_mode_limiting():
     
     try:
         # Run batch with default settings (should apply limiting)
-        game_path = os.path.join(os.path.dirname(__file__), "..", "build", "game")
+        game_path = os.path.join(os.path.dirname(__file__), "..", "build", "game_engine")
         cmd = [game_path, "--headless", "--script", batch_file]
         
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)

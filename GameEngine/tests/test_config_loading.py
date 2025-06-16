@@ -156,10 +156,10 @@ def find_executable():
     
     # Try different possible locations
     possible_paths = [
-        os.path.join(build_dir, 'game'),
-        os.path.join(build_dir, 'game.exe'),
-        os.path.join(build_dir, 'Debug', 'game.exe'),
-        os.path.join(build_dir, 'Release', 'game.exe'),
+        os.path.join(build_dir, 'game_engine'),
+        os.path.join(build_dir, 'game_engine.exe'),
+        os.path.join(build_dir, 'Debug', 'game_engine.exe'),
+        os.path.join(build_dir, 'Release', 'game_engine.exe'),
     ]
     
     for path in possible_paths:

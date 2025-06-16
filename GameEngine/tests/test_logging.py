@@ -27,9 +27,9 @@ def test_log_file_creation():
         os.chdir(tmpdir)
         
         # Create dummy game executable for testing
-        with open("game", "w") as f:
+        with open("game_engine", "w") as f:
             f.write("#!/bin/bash\necho test")
-        os.chmod("game", 0o755)
+        os.chmod("game_engine", 0o755)
         
         try:
             # Create test runner
@@ -62,9 +62,9 @@ def test_log_message_writing():
         os.chdir(tmpdir)
         
         # Create dummy game executable
-        with open("game", "w") as f:
+        with open("game_engine", "w") as f:
             f.write("#!/bin/bash\necho test")
-        os.chmod("game", 0o755)
+        os.chmod("game_engine", 0o755)
         
         try:
             runner = TestRunner()
@@ -111,9 +111,9 @@ def test_error_capture():
         os.chdir(tmpdir)
         
         # Create dummy game executable
-        with open("game", "w") as f:
+        with open("game_engine", "w") as f:
             f.write("#!/bin/bash\necho test")
-        os.chmod("game", 0o755)
+        os.chmod("game_engine", 0o755)
         
         try:
             runner = TestRunner()
@@ -167,9 +167,9 @@ def test_verbose_mode():
             os.chdir(tmpdir)
             
             # Create dummy game executable
-            with open("game", "w") as f:
+            with open("game_engine", "w") as f:
                 f.write("#!/bin/bash\necho test")
-            os.chmod("game", 0o755)
+            os.chmod("game_engine", 0o755)
             
             try:
                 runner = TestRunner()
@@ -189,9 +189,9 @@ def test_verbose_mode():
         os.chdir(tmpdir)
         
         # Create dummy game executable
-        with open("game", "w") as f:
+        with open("game_engine", "w") as f:
             f.write("#!/bin/bash\necho test")
-        os.chmod("game", 0o755)
+        os.chmod("game_engine", 0o755)
         
         try:
             runner = TestRunner()
@@ -210,9 +210,9 @@ def test_json_output():
         os.chdir(tmpdir)
         
         # Create dummy game executable
-        with open("game", "w") as f:
+        with open("game_engine", "w") as f:
             f.write("#!/bin/bash\necho test")
-        os.chmod("game", 0o755)
+        os.chmod("game_engine", 0o755)
         
         try:
             runner = TestRunner()
@@ -288,9 +288,9 @@ def test_failure_summary():
         os.chdir(tmpdir)
         
         # Create dummy game executable
-        with open("game", "w") as f:
+        with open("game_engine", "w") as f:
             f.write("#!/bin/bash\necho test")
-        os.chmod("game", 0o755)
+        os.chmod("game_engine", 0o755)
         
         try:
             runner = TestRunner()

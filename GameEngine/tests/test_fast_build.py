@@ -68,8 +68,8 @@ project.build
         
         # Also remove the output executable to force rebuild
         project_output_dir = f"{output_dir}/{test_project}"
-        if os.path.exists(f"{project_output_dir}/game"):
-            os.remove(f"{project_output_dir}/game")
+        if os.path.exists(f"{project_output_dir}/game_engine"):
+            os.remove(f"{project_output_dir}/game_engine")
         
         # Create test script for fast build
         fast_build_script = f"""project.open {test_project}

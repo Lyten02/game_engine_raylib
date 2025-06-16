@@ -30,6 +30,7 @@ void CommandRegistry::registerAllCommands(CommandProcessor* processor,
                                         BuildSystem* buildSystem,
                                         AsyncBuildSystem* asyncBuildSystem,
                                         PlayMode* playMode,
+                                        PackageManager* packageManager,
                                         Engine* engine) {
     // Store the showDebugInfo pointer
     static bool debugInfo = true;
@@ -57,6 +58,10 @@ void CommandRegistry::registerAllCommands(CommandProcessor* processor,
     registerBuildCommands(processor, console, projectManager, buildSystem, asyncBuildSystem);
     registerPlayModeCommands(processor, console, getScene, projectManager, playMode);
     registerLogCommands(processor, console);
+    
+    if (packageManager) {
+        registerPackageCommands(processor, console, packageManager);
+    }
 }
 
 // Helper methods

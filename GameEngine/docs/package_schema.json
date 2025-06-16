@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GameEngine Package Manifest",
+  "type": "object",
+  "required": ["name", "version"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Package name",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Package version (semver)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Package description"
+    },
+    "author": {
+      "type": "string",
+      "description": "Package author"
+    },
+    "license": {
+      "type": "string",
+      "description": "Package license"
+    },
+    "engineVersion": {
+      "type": "string",
+      "description": "Required engine version"
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "Package dependencies",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "components": {
+      "type": "array",
+      "description": "Components provided by the package",
+      "items": {
+        "type": "object",
+        "required": ["name", "file"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "systems": {
+      "type": "array",
+      "description": "Systems provided by the package",
+      "items": {
+        "type": "object",
+        "required": ["name", "file"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "plugin": {
+      "type": "object",
+      "description": "Plugin information for dynamic loading",
+      "required": ["library"],
+      "properties": {
+        "library": {
+          "type": "string",
+          "description": "Plugin library filename (e.g., 'myplugin.so', 'myplugin.dll')"
+        },
+        "main": {
+          "type": "string",
+          "description": "Main plugin class name (optional)"
+        },
+        "autoload": {
+          "type": "boolean",
+          "description": "Whether to automatically load the plugin",
+          "default": true
+        }
+      }
+    }
+  }
+}

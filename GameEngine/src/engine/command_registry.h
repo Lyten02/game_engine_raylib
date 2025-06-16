@@ -19,6 +19,7 @@ namespace GameEngine {
     class AsyncBuildSystem;
     class PlayMode;
     class EngineCore;
+    class PackageManager;
 }
 
 namespace GameEngine {
@@ -40,6 +41,7 @@ public:
                            BuildSystem* buildSystem,
                            AsyncBuildSystem* asyncBuildSystem,
                            PlayMode* playMode,
+                           PackageManager* packageManager,
                            Engine* engine);
 
 private:
@@ -60,6 +62,7 @@ private:
     void registerPlayModeCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene,
                                 ProjectManager* projectManager, PlayMode* playMode);
     void registerLogCommands(CommandProcessor* processor, Console* console);
+    void registerPackageCommands(CommandProcessor* processor, Console* console, PackageManager* packageManager);
 
     // Helper methods for suggestion providers
     std::vector<std::string> getSceneList(ProjectManager* projectManager) const;

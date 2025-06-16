@@ -27,6 +27,7 @@ public:
     static std::filesystem::path getTemplatesDir();
     static std::filesystem::path getLogsDir();
     static std::filesystem::path getConfigFile();
+    static std::filesystem::path getPackagesDir();
     
     // Get project-specific paths
     static std::filesystem::path getProjectDir(const std::string& projectName);

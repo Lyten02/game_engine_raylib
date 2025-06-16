@@ -4,7 +4,7 @@ import time
 import json
 
 def find_executable():
-    """Find the game executable in the build directory"""
+    """Find the game_engine executable in the build directory"""
     build_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'build'))
     
     # Try different possible locations

@@ -1,0 +1,10 @@
+{
+  "name": "input",
+  "version": "1.0.0",
+  "description": "Input handling components and systems",
+  "author": "GameEngine Team",
+  "license": "MIT",
+  "engineVersion": ">=0.1.0",
+  "components": [],
+  "systems": []
+}

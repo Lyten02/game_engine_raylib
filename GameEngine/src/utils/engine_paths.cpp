@@ -115,6 +115,11 @@ std::filesystem::path EnginePaths::getConfigFile() {
     return engineRoot / "config.json";
 }
 
+std::filesystem::path EnginePaths::getPackagesDir() {
+    ensureInitialized();
+    return engineRoot / "packages";
+}
+
 std::filesystem::path EnginePaths::getProjectDir(const std::string& projectName) {
     ensureInitialized();
     return engineRoot / "projects" / projectName;

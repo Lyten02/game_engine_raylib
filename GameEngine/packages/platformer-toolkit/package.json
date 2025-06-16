@@ -1,0 +1,15 @@
+{
+  "name": "platformer-toolkit",
+  "version": "1.0.0",
+  "description": "Essential components and systems for 2D platformer games",
+  "author": "GameEngine Team",
+  "license": "MIT",
+  "engineVersion": ">=0.1.0",
+  "dependencies": {
+    "physics-2d": ">=1.0.0"
+  },
+  "components": [
+  ],
+  "systems": [
+  ]
+}

@@ -10,7 +10,7 @@ os.chdir('build')
 # Test 1: entity.create without parameters
 print("=== Test 1: entity.create without parameters ===")
 result = subprocess.run(
-    ["./game", "--json", "--headless", "--command", "entity.create"],
+    ["./game_engine", "--json", "--headless", "--command", "entity.create"],
     capture_output=True,
     text=True
 )
@@ -33,7 +33,7 @@ except Exception as e:
 # Test 2: entity.create with position parameters
 print("\n=== Test 2: entity.create with position parameters ===")
 result = subprocess.run(
-    ["./game", "--json", "--headless", "--command", "entity.create 100 200 300"],
+    ["./game_engine", "--json", "--headless", "--command", "entity.create 100 200 300"],
     capture_output=True,
     text=True
 )

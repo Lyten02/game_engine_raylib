@@ -16,7 +16,7 @@ if [ -d "build/_deps" ]; then
     # Clean everything except deps
     find build -mindepth 1 -maxdepth 1 ! -name '_deps' -exec rm -rf {} +
     
-    # Clean only game executable and CMake files
+    # Clean only game_engine executable and CMake files
     rm -f build/game_engine
     rm -f build/CMakeCache.txt
     rm -rf build/CMakeFiles

@@ -52,6 +52,7 @@ declare -a tests=(
     "test_sprite_batch"
     "test_sprite_batch_rendering"
     "test_render_system_batching"
+    "test_package_manager"
 )
 
 # Track test results
@@ -281,6 +282,19 @@ run_test() {
             ../src/systems/render_system.cpp \
             ../src/render/sprite_batch.cpp \
             ../src/resources/resource_manager.cpp \
+            $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>&1; then
+            echo "  ✅ Compiled successfully"
+        else
+            echo "  ❌ Compilation failed!"
+            ((failed_tests++))
+            failed_test_names+=("$test_name (compilation)")
+            return
+        fi
+    elif [[ "$test_name" == "test_package_manager" ]]; then
+        # Package manager test
+        if g++ $FLAGS ${test_name}.cpp \
+            ../src/packages/package.cpp \
+            ../src/packages/package_manager.cpp \
             $INCLUDES $LIBS $FRAMEWORKS -pthread -o $test_name 2>&1; then
             echo "  ✅ Compiled successfully"
         else

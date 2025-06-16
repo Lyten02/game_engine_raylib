@@ -97,6 +97,8 @@ add_executable(game
     src/engine/play_mode.cpp
     src/cli/cli_engine.cpp
     src/cli/cli_argument_parser.cpp
+    src/packages/package.cpp
+    src/packages/package_manager.cpp
 )
 
 # Include directories

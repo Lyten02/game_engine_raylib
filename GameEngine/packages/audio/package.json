@@ -1,10 +1,26 @@
 {
   "name": "audio",
   "version": "1.0.0",
-  "description": "Audio components and systems",
+  "description": "Audio playback and management system",
   "author": "GameEngine Team",
   "license": "MIT",
   "engineVersion": ">=0.1.0",
-  "components": [],
-  "systems": []
+  "dependencies": {},
+  "components": [
+    {
+      "name": "AudioSource",
+      "file": "components/audio_source.h"
+    },
+    {
+      "name": "AudioListener",
+      "file": "components/audio_listener.h"
+    }
+  ],
+  "systems": [
+    {
+      "name": "AudioSystem",
+      "file": "systems/audio_system.h",
+      "priority": 50
+    }
+  ]
 }

@@ -2,53 +2,60 @@
 #include "../plugins/plugin_manager.h"
 #include <spdlog/spdlog.h>
 
+// Include package components and systems
+#include "../../packages/physics-2d/components/rigid_body.h"
+#include "../../packages/physics-2d/components/box_collider.h"
+#include "../../packages/physics-2d/systems/physics_system.h"
+
 namespace GameEngine {
+
+PackageLoader::PackageLoader() {
+    registerBuiltinComponents();
+    registerBuiltinSystems();
+}
+
+PackageLoader::~PackageLoader() = default;
 
 bool PackageLoader::loadPackageResources(const Package& package, const std::filesystem::path& packagePath) {
     spdlog::info("[PackageLoader] Loading resources for package: {}", package.getName());
     
-    // Load plugin if package has one
-    if (package.hasPluginInfo() && pluginManager) {
-        const auto& pluginInfo = package.getPluginInfo();
+    // Check if package has plugin
+    if (package.hasPluginInfo()) {
+        if (!pluginManager) {
+            spdlog::error("[PackageLoader] Plugin manager not set, cannot load plugins");
+            lastError = "Plugin manager not available";
+            return false;
+        }
         
-        if (pluginInfo.autoload) {
-            // Build plugin path
-            auto pluginPath = packagePath / pluginInfo.library;
-            
-            spdlog::debug("[PackageLoader] Loading plugin: {}", pluginPath.string());
-            
-            if (!pluginManager->loadPlugin(pluginPath)) {
-                lastError = "Failed to load plugin: " + pluginManager->getLastError();
-                spdlog::error("[PackageLoader] {}", lastError);
-                return false;
-            }
-            
-            spdlog::info("[PackageLoader] Successfully loaded plugin from: {}", pluginPath.string());
-        } else {
-            spdlog::debug("[PackageLoader] Plugin autoload disabled for: {}", pluginInfo.library);
+        const auto& pluginInfo = package.getPluginInfo();
+        auto pluginPath = packagePath / pluginInfo.library;
+        
+        if (!pluginManager->loadPlugin(pluginPath.string())) {
+            spdlog::error("[PackageLoader] Failed to load plugin: {}", pluginPath.string());
+            lastError = "Failed to load plugin: " + pluginPath.string();
+            return false;
+        }
+        
+        spdlog::info("[PackageLoader] Successfully loaded plugin: {}", pluginPath.string());
+    }
+    
+    // Load components (both from plugins and built-in)
+    for (const auto& component : package.getComponents()) {
+        if (!loadComponentFromFile(component, packagePath)) {
+            spdlog::error("[PackageLoader] Failed to load component: {}", component.name);
+            return false;
         }
     }
     
-    // Process components from package.json
-    for (const auto& componentInfo : package.getComponents()) {
-        // Check if component is already registered (might have been registered by plugin)
-        if (!hasComponent(componentInfo.name)) {
-            spdlog::warn("[PackageLoader] Component {} not registered by plugin, skipping", componentInfo.name);
-        } else {
-            spdlog::debug("[PackageLoader] Component {} available", componentInfo.name);
+    // Load systems (both from plugins and built-in)
+    for (const auto& system : package.getSystems()) {
+        if (!loadSystemFromFile(system, packagePath)) {
+            spdlog::error("[PackageLoader] Failed to load system: {}", system.name);
+            return false;
         }
     }
     
-    // Process systems from package.json
-    for (const auto& systemInfo : package.getSystems()) {
-        // Check if system is already registered (might have been registered by plugin)
-        if (!hasSystem(systemInfo.name)) {
-            spdlog::warn("[PackageLoader] System {} not registered by plugin, skipping", systemInfo.name);
-        } else {
-            spdlog::debug("[PackageLoader] System {} available", systemInfo.name);
-        }
-    }
-    
+    spdlog::info("[PackageLoader] Successfully loaded package resources for: {}", package.getName());
     return true;
 }
 
@@ -110,6 +117,69 @@ std::vector<std::string> PackageLoader::getRegisteredSystems() const {
         result.push_back(name);
     }
     return result;
+}
+
+void PackageLoader::registerBuiltinComponents() {
+    // Register physics components
+    registerComponent("RigidBody", [](entt::registry& registry, entt::entity entity) {
+        registry.emplace<Physics::RigidBody>(entity);
+    });
+    
+    registerComponent("BoxCollider", [](entt::registry& registry, entt::entity entity) {
+        registry.emplace<Physics::BoxCollider>(entity);
+    });
+    
+    // Register other built-in components as they are implemented
+}
+
+// Adapter to make PhysicsSystem work with ISystem interface
+class PhysicsSystemAdapter : public ISystem {
+private:
+    Physics::PhysicsSystem physicsSystem;
+    
+public:
+    void initialize() override {
+        physicsSystem.initialize();
+    }
+    
+    void update(entt::registry& registry, float deltaTime) override {
+        physicsSystem.update(registry, deltaTime);
+    }
+    
+    void shutdown() override {
+        physicsSystem.shutdown();
+    }
+};
+
+void PackageLoader::registerBuiltinSystems() {
+    // Register physics system
+    registerSystem("PhysicsSystem", []() -> std::unique_ptr<ISystem> {
+        return std::make_unique<PhysicsSystemAdapter>();
+    });
+    
+    // Register other built-in systems as they are implemented
+}
+
+bool PackageLoader::loadComponentFromFile(const ComponentInfo& component, const std::filesystem::path& basePath) {
+    // Check built-in registry first
+    if (hasComponent(component.name)) {
+        spdlog::debug("[PackageLoader] Component {} already registered", component.name);
+        return true;
+    }
+    
+    spdlog::warn("[PackageLoader] Component {} not found in registry or plugins", component.name);
+    return false;
+}
+
+bool PackageLoader::loadSystemFromFile(const SystemInfo& system, const std::filesystem::path& basePath) {
+    // Check built-in registry first
+    if (hasSystem(system.name)) {
+        spdlog::debug("[PackageLoader] System {} already registered", system.name);
+        return true;
+    }
+    
+    spdlog::warn("[PackageLoader] System {} not found in registry or plugins", system.name);
+    return false;
 }
 
 } // namespace GameEngine

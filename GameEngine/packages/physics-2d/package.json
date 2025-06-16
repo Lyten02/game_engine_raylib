@@ -1,10 +1,26 @@
 {
   "name": "physics-2d",
   "version": "1.0.0",
-  "description": "2D physics components and systems",
+  "description": "2D physics package with Box2D integration",
   "author": "GameEngine Team",
   "license": "MIT",
   "engineVersion": ">=0.1.0",
-  "components": [],
-  "systems": []
+  "dependencies": {},
+  "components": [
+    {
+      "name": "RigidBody",
+      "file": "components/rigid_body.h"
+    },
+    {
+      "name": "BoxCollider",
+      "file": "components/box_collider.h"
+    }
+  ],
+  "systems": [
+    {
+      "name": "PhysicsSystem",
+      "file": "systems/physics_system.h",
+      "priority": 100
+    }
+  ]
 }

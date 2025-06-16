@@ -18,7 +18,7 @@ struct ComponentInfo {
     std::string file;
 };
 
-// System information  
+// System information
 struct SystemInfo {
     std::string name;
     std::string file;
@@ -31,7 +31,6 @@ struct PackagePluginInfo {
     std::string main;        // Main class name (optional)
     bool autoload = true;    // Auto-load on package load
 };
-
 class Package {
 public:
     Package(const std::string& name, const std::string& version);
@@ -43,6 +42,9 @@ public:
     const std::string& getAuthor() const { return author; }
     const std::string& getLicense() const { return license; }
     const std::string& getEngineVersion() const { return engineVersion; }
+    const std::vector<PackageDependency>& getDependencies() const { return dependencies; }
+    const std::vector<ComponentInfo>& getComponents() const { return components; }
+    const std::vector<SystemInfo>& getSystems() const { return systems; }
     
     // Setters
     void setDescription(const std::string& desc) { description = desc; }
@@ -52,15 +54,12 @@ public:
     
     // Dependencies
     void addDependency(const std::string& name, const std::string& version);
-    const std::vector<PackageDependency>& getDependencies() const { return dependencies; }
     
     // Components
     void addComponent(const ComponentInfo& component);
-    const std::vector<ComponentInfo>& getComponents() const { return components; }
     
     // Systems
     void addSystem(const SystemInfo& system);
-    const std::vector<SystemInfo>& getSystems() const { return systems; }
     
     // Plugin
     void setPluginInfo(const PackagePluginInfo& info) { pluginInfo = info; hasPlugin = true; }

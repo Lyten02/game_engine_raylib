@@ -108,11 +108,13 @@ add_executable(game_engine
     src/plugins/plugin_api.cpp
     src/engine/command_registry_package.cpp
     src/systems/sprite_batch.cpp
+    packages/physics-2d/systems/physics_system.cpp
 )
 
 # Include directories
 target_include_directories(game_engine PRIVATE 
     src
+    packages
 )
 
 # Link libraries

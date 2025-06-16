@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <memory>
 #include <filesystem>
+#include <typeindex>
 #include <entt/entt.hpp>
 #include "../systems/system.h"
 #include "package.h"
@@ -13,6 +14,9 @@ namespace GameEngine {
 
 // Forward declarations
 class PluginManager;
+class Package;
+struct ComponentInfo;
+struct SystemInfo;
 
 // Component factory function type
 using ComponentFactory = std::function<void(entt::registry&, entt::entity)>;
@@ -22,8 +26,8 @@ using SystemFactory = std::function<std::unique_ptr<ISystem>()>;
 
 class PackageLoader {
 public:
-    PackageLoader() = default;
-    ~PackageLoader() = default;
+    PackageLoader();
+    ~PackageLoader();
     
     // Set plugin manager for loading plugins
     void setPluginManager(PluginManager* manager) { pluginManager = manager; }
@@ -53,6 +57,14 @@ private:
     std::unordered_map<std::string, SystemFactory> systemFactories;
     PluginManager* pluginManager = nullptr;
     std::string lastError;
+    
+    // Built-in registrations
+    void registerBuiltinComponents();
+    void registerBuiltinSystems();
+    
+    // Dynamic loading (for future use with shared libraries)
+    bool loadComponentFromFile(const ComponentInfo& component, const std::filesystem::path& basePath);
+    bool loadSystemFromFile(const SystemInfo& system, const std::filesystem::path& basePath);
 };
 
 } // namespace GameEngine

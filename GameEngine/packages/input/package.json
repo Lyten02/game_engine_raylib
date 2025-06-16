@@ -1,0 +1,26 @@
+{
+  "name": "input",
+  "version": "1.0.0",
+  "description": "Advanced input handling system",
+  "author": "GameEngine Team",
+  "license": "MIT",
+  "engineVersion": ">=0.1.0",
+  "dependencies": {},
+  "components": [
+    {
+      "name": "InputHandler",
+      "file": "components/input_handler.h"
+    },
+    {
+      "name": "PlayerController",
+      "file": "components/player_controller.h"
+    }
+  ],
+  "systems": [
+    {
+      "name": "InputSystem",
+      "file": "systems/input_system.h",
+      "priority": 120
+    }
+  ]
+}

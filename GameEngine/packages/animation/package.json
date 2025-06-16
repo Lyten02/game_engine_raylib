@@ -1,0 +1,26 @@
+{
+  "name": "animation",
+  "version": "1.0.0",
+  "description": "Sprite animation system for 2D games",
+  "author": "GameEngine Team",
+  "license": "MIT",
+  "engineVersion": ">=0.1.0",
+  "dependencies": {},
+  "components": [
+    {
+      "name": "AnimationController",
+      "file": "components/animation_controller.h"
+    },
+    {
+      "name": "SpriteSheet",
+      "file": "components/sprite_sheet.h"
+    }
+  ],
+  "systems": [
+    {
+      "name": "AnimationSystem",
+      "file": "systems/animation_system.h",
+      "priority": 80
+    }
+  ]
+}

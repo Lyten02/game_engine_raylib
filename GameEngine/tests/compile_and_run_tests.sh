@@ -53,6 +53,8 @@ declare -a tests=(
     "test_sprite_batch_rendering"
     "test_render_system_batching"
     "test_package_manager"
+    "test_package_metadata"
+    "test_package_version_validation"
 )
 
 # Track test results
@@ -290,8 +292,8 @@ run_test() {
             failed_test_names+=("$test_name (compilation)")
             return
         fi
-    elif [[ "$test_name" == "test_package_manager" ]]; then
-        # Package manager test
+    elif [[ "$test_name" == "test_package_manager" ]] || [[ "$test_name" == "test_package_metadata" ]] || [[ "$test_name" == "test_package_version_validation" ]]; then
+        # Package manager tests
         if g++ $FLAGS ${test_name}.cpp \
             ../src/packages/package.cpp \
             ../src/packages/package_manager.cpp \

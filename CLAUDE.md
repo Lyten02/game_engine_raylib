@@ -220,8 +220,8 @@ grep "TEST FAILED" test_log_*.log       # Find failures in logs
 ### 💾 Dependency Cache Management
 ```bash
 # ⚠️ NEVER delete these unless absolutely necessary:
-# build/_deps/              # Main cache (~60s rebuild if deleted)
-# output/*/build/_deps/     # Per-project cache
+# .deps_cache/              # Global dependency cache (~60s rebuild if deleted)
+# build/CMakeCache.txt      # CMake configuration cache
 
 # 🚀 Speed up slow builds:
 export FETCHCONTENT_FULLY_DISCONNECTED=TRUE
@@ -229,7 +229,12 @@ make test
 
 # 🧹 Clean specific project (keeps cache):
 rm -rf ../output/TestProject/{bin,CMakeFiles}
-# Keep: ../output/TestProject/build/_deps/
+# Keep dependency cache intact
+
+# 📊 Cache performance:
+# - First build (no cache): ~60-100s
+# - Fast rebuild (with cache): ~17s
+# - Incremental rebuild: ~3s
 ```
 
 ## Common Workflows

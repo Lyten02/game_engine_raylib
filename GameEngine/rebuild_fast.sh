@@ -5,42 +5,35 @@
 
 echo "=== Fast Rebuild with Cached Dependencies ==="
 
-# Check if dependencies exist
-if [ -d "build/_deps" ]; then
-    echo "Found cached dependencies, preserving them..."
-    
-    # Create temp directory for deps
-    mkdir -p .deps_cache
-    cp -r build/_deps .deps_cache/
-    
-    # Clean everything except deps
-    find build -mindepth 1 -maxdepth 1 ! -name '_deps' -exec rm -rf {} +
-    
-    # Clean only game_engine executable and CMake files
-    rm -f build/game_engine
-    rm -f build/CMakeCache.txt
-    rm -rf build/CMakeFiles
-    rm -f build/Makefile
-    rm -f build/cmake_install.cmake
-    
-    echo "Cleaned build directory (dependencies preserved)"
-else
-    echo "No cached dependencies found, will download them..."
-    mkdir -p build
+# Check if dependencies exist in the correct location
+if [ ! -d ".deps_cache" ]; then
+    echo "No cached dependencies found. Running full rebuild..."
+    ./rebuild.sh
+    exit 0
 fi
 
-cd build
+echo "Found cached dependencies in .deps_cache/"
 
+# If build exists and has CMakeCache, just clean game_engine artifacts
+if [ -f "build/CMakeCache.txt" ]; then
+    echo "Found existing CMake configuration"
+    cd build
+    # Remove only game_engine specific files
+    rm -f game_engine
+    find CMakeFiles/game_engine.dir -name "*.o" -delete 2>/dev/null || true
+else
+    # No CMake cache, need to configure
+    echo "No CMake cache found, configuring..."
+    mkdir -p build
+    cd build
+fi
+
+# Configure if needed (CMake will skip if already configured)
 echo "Running CMake..."
 cmake .. -DCMAKE_BUILD_TYPE=Release
 
 echo "Building project..."
 make -j8 game_engine
-
-# If we had cached deps, restore them
-if [ -d "../.deps_cache/_deps" ]; then
-    rm -rf ../deps_cache
-fi
 
 echo "Fast rebuild complete!"
 echo ""

@@ -9,8 +9,8 @@ echo "================================================"
 cd "$(dirname "$0")"
 
 # Common compile flags
-INCLUDES="-I../src -I../.deps_cache/_deps/raylib-src/src -I../.deps_cache/_deps/spdlog-src/include -I../.deps_cache/_deps/entt-src/src -I../.deps_cache/_deps/glm-src -I../.deps_cache/_deps/json-src/include"
-LIBS="-L../build -L../.deps_cache/_deps/raylib-build/raylib -L../.deps_cache/_deps/spdlog-build -lraylib -lspdlog"
+INCLUDES="-I../src -I../.deps_cache/raylib-src/src -I../.deps_cache/spdlog-src/include -I../.deps_cache/entt-src/src -I../.deps_cache/glm-src -I../.deps_cache/json-src/include"
+LIBS="-L../build -L../.deps_cache/raylib-build/raylib -L../.deps_cache/spdlog-build -lraylib -lspdlog"
 FRAMEWORKS="-framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation"
 FLAGS="-std=c++20"
 
@@ -376,6 +376,18 @@ echo ""
 # Clean up executables
 echo "🧹 Cleaning up test executables..."
 ./clean_test_executables.sh
+
+# Clean up test projects
+echo "🧹 Cleaning up old test projects..."
+cleanup_test_projects() {
+    local test_projects_dir="test_projects"
+    if [ -d "$test_projects_dir" ]; then
+        # Keep only the 5 most recent test projects
+        # macOS compatible version
+        ls -t1d "$test_projects_dir"/TestProject* 2>/dev/null | tail -n +6 | xargs -r rm -rf 2>/dev/null || true
+    fi
+}
+cleanup_test_projects
 
 echo ""
 

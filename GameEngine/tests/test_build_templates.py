@@ -25,8 +25,8 @@ class BuildSystemTest:
             self.game_executable = Path("./game_engine").absolute()
         elif Path("../build/game_engine").exists():
             self.game_executable = Path("../build/game_engine").absolute()
-        elif Path(self.game_engine_dir / "build" / "game").exists():
-            self.game_executable "game_engine").absolute()
+        elif Path(self.game_engine_dir / "build" / "game_engine").exists():
+            self.game_executable = Path(self.game_engine_dir / "build" / "game_engine").absolute()
         else:
             raise FileNotFoundError("Cannot find game executable")
         

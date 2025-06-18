@@ -21,25 +21,35 @@ class TestRunner:
         
         # Enhanced functionality
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        self.log_file = f"test_log_{timestamp}.log"
+        
+        # Create logs directory if it doesn't exist
+        logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+        os.makedirs(logs_dir, exist_ok=True)
+        
+        self.log_file = os.path.join(logs_dir, f"test_log_{timestamp}.log")
         self.verbose_mode = "--verbose" in sys.argv or "-v" in sys.argv
         self.disable_progress = "--no-progress" in sys.argv
         self.skip_full_build = "--skip-full-build" in sys.argv
+        self.dry_run = "--dry-run" in sys.argv
         self.current_test = 0
         self.total_tests = 0
         self.start_time = time.time()
         
         # Create the log file with enhanced header
-        with open(self.log_file, 'w') as f:
-            f.write(f"GameEngine Test Suite Execution Log\n")
-            f.write("="*80 + "\n")
-            f.write(f"Start Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"Python Version: {sys.version.split()[0]}\n")
-            f.write(f"Platform: {sys.platform}\n")
-            f.write(f"Working Directory: {os.getcwd()}\n")
-            f.write(f"Skip Full Build: {self.skip_full_build}\n")
-            f.write(f"Verbose Mode: {self.verbose_mode}\n")
-            f.write("="*80 + "\n\n")
+        try:
+            with open(self.log_file, 'w') as f:
+                f.write(f"GameEngine Test Suite Execution Log\n")
+                f.write("="*80 + "\n")
+                f.write(f"Start Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"Python Version: {sys.version.split()[0]}\n")
+                f.write(f"Platform: {sys.platform}\n")
+                f.write(f"Working Directory: {os.getcwd()}\n")
+                f.write(f"Skip Full Build: {self.skip_full_build}\n")
+                f.write(f"Verbose Mode: {self.verbose_mode}\n")
+                f.write("="*80 + "\n\n")
+        except Exception as e:
+            print(f"Warning: Could not create log file: {e}")
+            self.log_file = None
         
         # Find game executable - look in correct relative paths
         if os.path.exists("game_engine"):
@@ -49,17 +59,27 @@ class TestRunner:
         elif os.path.exists("build/game_engine"):
             self.game_exe = "./build/game_engine"
         else:
-            print("❌ Error: game_engine executable not found!")
-            print("   Run this script from tests directory or build directory")
-            sys.exit(1)
+            # Allow dry-run without executable
+            if self.dry_run:
+                self.game_exe = "game_engine"  # Dummy path for dry-run
+            else:
+                print("❌ Error: game_engine executable not found!")
+                print("   Run this script from tests directory or build directory")
+                sys.exit(1)
     
     def log_message(self, message, level="INFO"):
         """Write message to log file with timestamp"""
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         log_entry = f"[{timestamp}] [{level:<8}] {message}\n"
         
-        with open(self.log_file, 'a') as f:
-            f.write(log_entry)
+        if self.log_file:
+            try:
+                with open(self.log_file, 'a') as f:
+                    f.write(log_entry)
+            except Exception as e:
+                # Fallback to stdout if logging fails
+                print(f"[LOG ERROR] {e}")
+                print(log_entry.strip())
         
         if self.verbose_mode and level in ["ERROR", "WARNING"]:
             print(f"   {message}")
@@ -645,6 +665,68 @@ class TestRunner:
         
         return count
 
+def cleanup_test_projects(test_dir=".", keep_last=5):
+    """Clean up old test projects keeping only the most recent ones"""
+    test_projects_dir = os.path.join(test_dir, "test_projects")
+    if not os.path.exists(test_projects_dir):
+        return 0
+    
+    import glob
+    import shutil
+    
+    projects = glob.glob(os.path.join(test_projects_dir, "TestProject*"))
+    if len(projects) <= keep_last:
+        return 0
+    
+    # Sort by modification time
+    projects.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+    
+    # Remove old projects
+    removed = 0
+    for project in projects[keep_last:]:
+        try:
+            shutil.rmtree(project)
+            removed += 1
+        except Exception:
+            pass
+    
+    return removed
+
+def rotate_logs(logs_dir="logs", keep_days=7, max_files=10):
+    """Rotate old log files"""
+    if not os.path.exists(logs_dir):
+        return 0
+    
+    import glob
+    
+    current_time = time.time()
+    cutoff_time = current_time - (keep_days * 24 * 60 * 60)
+    
+    log_files = glob.glob(os.path.join(logs_dir, "test_log_*.log"))
+    removed = 0
+    
+    # Remove old files
+    for log_file in log_files:
+        try:
+            if os.path.getmtime(log_file) < cutoff_time:
+                os.unlink(log_file)
+                removed += 1
+        except Exception:
+            pass
+    
+    # Keep only max_files most recent
+    remaining = glob.glob(os.path.join(logs_dir, "test_log_*.log"))
+    remaining.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+    
+    for log_file in remaining[max_files:]:
+        try:
+            os.unlink(log_file)
+            removed += 1
+        except Exception:
+            pass
+    
+    return removed
+
 def main():
     print("🧪 GameEngine Test Suite with Progress & Detailed Logging")
     print("="*80)
@@ -658,6 +740,7 @@ def main():
         print("  --skip-full-build Skip full build tests (faster)")
         print("  --parallel, -p    Run tests in parallel (experimental)")
         print("  --workers N       Number of parallel workers (default: auto)")
+        print("  --dry-run         Test runner without executing tests")
         print("  --help, -h        Show this help message")
         sys.exit(0)
     
@@ -803,19 +886,19 @@ def main():
         # Exit with appropriate code
         sys.exit(0 if summary['failed'] == 0 else 1)
     
-    # Clean test data first - DISABLED to preserve cached dependencies
-    # Uncomment if you need to clean test data
-    # try:
-    #     print("\nCleaning previous test data...")
-    #     result = subprocess.run([sys.executable, 
-    #                            os.path.join(os.path.dirname(__file__), "clean_test_data.py")],
-    #                            capture_output=True, text=True)
-    #     if result.returncode == 0:
-    #         print(result.stdout.strip())
-    #     else:
-    #         print("Warning: Failed to clean test data")
-    # except Exception as e:
-    #     print(f"Warning: Could not clean test data: {e}")
+    # Clean up old test projects and logs
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Clean test projects
+    removed_projects = cleanup_test_projects(test_dir)
+    if removed_projects > 0:
+        print(f"🧹 Cleaned up {removed_projects} old test projects")
+    
+    # Rotate logs
+    logs_dir = os.path.join(test_dir, "logs")
+    removed_logs = rotate_logs(logs_dir)
+    if removed_logs > 0:
+        print(f"🧹 Rotated {removed_logs} old log files")
     
     runner = TestRunner()
     
@@ -850,6 +933,11 @@ def main():
     runner.log_message(f"Found {runner.total_tests} tests to execute")
     
     print(f"\n🚀 Running {runner.total_tests} tests...\n")
+    
+    # Exit early for dry-run
+    if runner.dry_run:
+        print("🏃 Dry-run mode: Exiting without running tests")
+        sys.exit(0)
     
     # 1. Run Python tests
     python_tests = list(Path(test_dir).glob("test_*.py"))

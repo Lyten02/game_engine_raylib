@@ -1,3 +1,13 @@
+
+# Import TDD dependency resolver
+try:
+    from test_dependency_path_fix import get_compilation_flags, validate_test_environment
+except ImportError:
+    def get_compilation_flags():
+        return {'includes': '', 'libs': '-lraylib -lspdlog', 'deps_dir': None}
+    def validate_test_environment():
+        return False, "Dependency resolver not available"
+
 #!/usr/bin/env python3
 """
 Комплексные тесты для проверки исправлений системы тестирования.

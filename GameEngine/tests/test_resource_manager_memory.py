@@ -8,6 +8,15 @@ import os
 import sys
 import subprocess
 
+# Import TDD dependency resolver
+try:
+    from test_dependency_path_fix import get_compilation_flags, validate_test_environment
+except ImportError:
+    def get_compilation_flags():
+        return {'includes': '', 'libs': '-lraylib -lspdlog', 'deps_dir': None}
+    def validate_test_environment():
+        return False, "Dependency resolver not available"
+
 def run_test():
     """Run the ResourceManager memory test by compiling and executing the C++ test"""
     print("Running ResourceManager memory efficiency test...")
@@ -27,26 +36,24 @@ def run_test():
         print(f"Error: {compile_script} not found")
         return False
     
+    # Use TDD dependency resolver for correct paths
+    valid, message = validate_test_environment()
+    if not valid:
+        print(f"Error: {message}")
+        return False
+        
+    flags = get_compilation_flags()
+    
     # Create a temporary script that only runs our test
     temp_script = os.path.join(test_dir, "temp_run_single_test.sh")
     try:
         with open(temp_script, 'w') as f:
-            f.write("""#!/bin/bash
+            f.write(f"""#!/bin/bash
 cd "$(dirname "$0")"
 
-# Common compile flags
-# Check if we have a deps cache
-if [ -d "../.deps_cache/_deps" ]; then
-    DEPS_DIR="../.deps_cache/_deps"
-elif [ -d "../build/_deps" ]; then
-    DEPS_DIR="../build/_deps"
-else
-    echo "Error: Cannot find dependencies directory"
-    exit 1
-fi
-
-INCLUDES="-I../src -I$DEPS_DIR/raylib-src/src -I$DEPS_DIR/spdlog-src/include -I$DEPS_DIR/entt-src/src -I$DEPS_DIR/glm-src -I$DEPS_DIR/json-src/include"
-LIBS="-L../build -L$DEPS_DIR/raylib-build/raylib -L$DEPS_DIR/spdlog-build -lraylib -lspdlog"
+# TDD-generated compilation flags
+INCLUDES="{flags['includes']}"
+LIBS="{flags['libs']}"
 FRAMEWORKS="-framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation"
 FLAGS="-std=c++20"
 

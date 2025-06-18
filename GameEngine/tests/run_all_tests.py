@@ -12,6 +12,18 @@ import traceback
 from pathlib import Path
 from datetime import datetime
 
+# Import TDD path resolver
+try:
+    from test_path_resolver import get_path_resolver, find_game_executable
+except ImportError:
+    # Fallback if path resolver not available
+    def find_game_executable():
+        paths = ["./game_engine", "../build/game_engine", "build/game_engine"]
+        for path in paths:
+            if os.path.exists(path) and os.access(path, os.X_OK):
+                return os.path.abspath(path)
+        return None
+
 class TestRunner:
     def __init__(self):
         self.passed = 0
@@ -51,19 +63,15 @@ class TestRunner:
             print(f"Warning: Could not create log file: {e}")
             self.log_file = None
         
-        # Find game executable - look in correct relative paths
-        if os.path.exists("game_engine"):
-            self.game_exe = "./game_engine"
-        elif os.path.exists("../build/game_engine"):
-            self.game_exe = "../build/game_engine"
-        elif os.path.exists("build/game_engine"):
-            self.game_exe = "./build/game_engine"
-        else:
+        # Find game executable using TDD path resolver
+        self.game_exe = find_game_executable()
+        if not self.game_exe:
             # Allow dry-run without executable
             if self.dry_run:
                 self.game_exe = "game_engine"  # Dummy path for dry-run
             else:
                 print("❌ Error: game_engine executable not found!")
+                print("   Searched paths: ./game_engine, ../build/game_engine, build/game_engine")
                 print("   Run this script from tests directory or build directory")
                 sys.exit(1)
     
@@ -775,15 +783,11 @@ def main():
         
         # Run parallel tests
         test_dir = Path(__file__).parent
-        game_exe = runner.game_exe if 'runner' in locals() else "./game_engine"
-        
-        # Find game executable
-        if os.path.exists("game_engine"):
-            game_exe = "./game_engine"
-        elif os.path.exists("../build/game_engine"):
-            game_exe = "../build/game_engine"
-        elif os.path.exists("build/game_engine"):
-            game_exe = "./build/game_engine"
+        # Use TDD path resolver for consistent executable discovery
+        game_exe = find_game_executable()
+        if not game_exe:
+            print("❌ Error: game_engine executable not found for parallel tests!")
+            return
         
         parallel_runner = ParallelTestRunner(
             test_dir,

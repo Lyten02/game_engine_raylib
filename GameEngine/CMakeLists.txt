@@ -172,8 +172,18 @@ set(TEST_COUNT 0)
 set(PASSED_COUNT 0)
 set(FAILED_TESTS)
 
+# Check for category filter
+set(TEST_CATEGORY \$ENV{TEST_CATEGORY})
+
 # Run Python tests
 foreach(TEST_FILE ${ALL_PYTHON_TESTS})
+    # Filter by category if specified
+    if(TEST_CATEGORY)
+        if(NOT TEST_FILE MATCHES \"/\${TEST_CATEGORY}/\")
+            continue()
+        endif()
+    endif()
+    
     math(EXPR TEST_COUNT \"\${TEST_COUNT} + 1\")
     execute_process(
         COMMAND \${PYTHON_EXECUTABLE} \${TEST_FILE}
@@ -193,6 +203,13 @@ endforeach()
 
 # Run script tests  
 foreach(TEST_FILE ${ALL_SCRIPT_TESTS})
+    # Filter by category if specified
+    if(TEST_CATEGORY)
+        if(NOT TEST_FILE MATCHES \"/\${TEST_CATEGORY}/\")
+            continue()
+        endif()
+    endif()
+    
     math(EXPR TEST_COUNT \"\${TEST_COUNT} + 1\")
     execute_process(
         COMMAND \${GAME_ENGINE} --script \${TEST_FILE}
@@ -211,7 +228,11 @@ foreach(TEST_FILE ${ALL_SCRIPT_TESTS})
 endforeach()
 
 # Summary
-message(\"\\n====== TEST SUMMARY ======\")
+if(TEST_CATEGORY)
+    message(\"\\n====== \${TEST_CATEGORY} TEST SUMMARY ======\")
+else()
+    message(\"\\n====== TEST SUMMARY ======\")
+endif()
 message(\"Total tests: \${TEST_COUNT}\")
 message(\"Passed: \${PASSED_COUNT}\")
 message(\"Failed: \${TEST_COUNT} - \${PASSED_COUNT}\")
@@ -314,6 +335,38 @@ add_custom_target(test-cpp
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/compile_cpp_tests.cmake
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Compiling and running C++ tests"
+)
+
+# Add custom target for running all tests
+add_custom_target(all-tests
+    COMMAND ${CMAKE_COMMAND} -E echo "Running all tests (Python, Script, C++)..."
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/run_tests.cmake
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/compile_cpp_tests.cmake
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    DEPENDS game_engine
+    COMMENT "Running complete test suite"
+)
+
+# Add category-specific test targets
+add_custom_target(test-unit
+    COMMAND ${CMAKE_COMMAND} -E echo "Running unit tests..."
+    COMMAND ${CMAKE_COMMAND} -E env TEST_CATEGORY=unit ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/run_tests.cmake
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running unit tests only"
+)
+
+add_custom_target(test-integration
+    COMMAND ${CMAKE_COMMAND} -E echo "Running integration tests..."
+    COMMAND ${CMAKE_COMMAND} -E env TEST_CATEGORY=integration ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/run_tests.cmake
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running integration tests only"
+)
+
+add_custom_target(test-system
+    COMMAND ${CMAKE_COMMAND} -E echo "Running system tests..."
+    COMMAND ${CMAKE_COMMAND} -E env TEST_CATEGORY=system ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/run_tests.cmake
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running system tests only"
 )
 
 # Add custom target for cleaning test data

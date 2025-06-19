@@ -243,10 +243,77 @@ add_custom_target(test-fast
 )
 
 
+# Create C++ test compilation script
+file(WRITE ${CMAKE_BINARY_DIR}/compile_cpp_tests.cmake
+"# Auto-generated C++ test compilation script
+set(CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER})
+set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -std=c++20\")
+set(INCLUDE_DIRS \"-I${CMAKE_SOURCE_DIR}/src -I${GLOBAL_DEPS_CACHE}/raylib-src/src -I${GLOBAL_DEPS_CACHE}/spdlog-src/include -I${GLOBAL_DEPS_CACHE}/entt-src/src -I${GLOBAL_DEPS_CACHE}/glm-src -I${GLOBAL_DEPS_CACHE}/json-src/include\")
+set(LIBRARIES \"-L${CMAKE_BINARY_DIR} -L${GLOBAL_DEPS_CACHE}/raylib-build/raylib -L${GLOBAL_DEPS_CACHE}/spdlog-build -lraylib -lspdlog\")
+set(FRAMEWORKS \"-framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation\")
+
+set(CPP_TESTS ${ALL_CPP_TESTS})
+set(TEST_COUNT 0)
+set(PASSED_COUNT 0)
+set(FAILED_TESTS)
+
+foreach(TEST_FILE \${CPP_TESTS})
+    get_filename_component(TEST_NAME \${TEST_FILE} NAME_WE)
+    set(TEST_EXECUTABLE ${CMAKE_BINARY_DIR}/\${TEST_NAME})
+    
+    message(\"Compiling \${TEST_NAME}...\")
+    execute_process(
+        COMMAND \${CMAKE_CXX_COMPILER} \${CMAKE_CXX_FLAGS} \${INCLUDE_DIRS} \${TEST_FILE} -o \${TEST_EXECUTABLE} \${LIBRARIES} \${FRAMEWORKS}
+        RESULT_VARIABLE COMPILE_RESULT
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+    
+    if(COMPILE_RESULT EQUAL 0)
+        math(EXPR TEST_COUNT \"\${TEST_COUNT} + 1\")
+        execute_process(
+            COMMAND \${TEST_EXECUTABLE}
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            RESULT_VARIABLE TEST_RESULT
+            OUTPUT_QUIET
+            ERROR_QUIET
+        )
+        if(TEST_RESULT EQUAL 0)
+            math(EXPR PASSED_COUNT \"\${PASSED_COUNT} + 1\")
+            message(\"✅ PASS: \${TEST_NAME}\")
+        else()
+            list(APPEND FAILED_TESTS \${TEST_NAME})
+            message(\"❌ FAIL: \${TEST_NAME}\")
+        endif()
+        # Clean up executable
+        file(REMOVE \${TEST_EXECUTABLE})
+    else()
+        message(\"❌ COMPILE FAIL: \${TEST_NAME}\")
+        list(APPEND FAILED_TESTS \"\${TEST_NAME} (compilation)\")
+    endif()
+endforeach()
+
+# Summary
+message(\"\\n====== C++ TEST SUMMARY ======\")
+message(\"Total tests: \${TEST_COUNT}\")
+message(\"Passed: \${PASSED_COUNT}\")
+message(\"Failed: \${TEST_COUNT} - \${PASSED_COUNT}\")
+
+if(FAILED_TESTS)
+    message(\"\\nFailed tests:\")
+    foreach(FAILED_TEST \${FAILED_TESTS})
+        message(\"  - \${FAILED_TEST}\")
+    endforeach()
+    message(FATAL_ERROR \"Some C++ tests failed!\")
+endif()
+")
+
 # Add custom target for running C++ tests
 add_custom_target(test-cpp
-    COMMAND ${CMAKE_COMMAND} -E echo "C++ tests temporarily disabled - pending test framework update"
-    COMMENT "C++ test execution placeholder"
+    COMMAND ${CMAKE_COMMAND} -E echo "Running C++ tests..."
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/compile_cpp_tests.cmake
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Compiling and running C++ tests"
 )
 
 # Add custom target for cleaning test data

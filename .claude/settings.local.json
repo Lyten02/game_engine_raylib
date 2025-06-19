@@ -35,8 +35,17 @@
       "Bash(whoami:*)",
       "Bash(bash:*)",
       "Bash(test:*)",
-      "Bash(./*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(./build.sh)",
+      "Bash(./deploy.sh)",
+      "Bash(./run.sh)",
+      "Bash(./test.sh)",
+      "Bash(./start.sh)",
+      "Bash(./setup.sh)",
+      "Bash(./install.sh)",
+      "Bash(./*.sh)",
+      "Bash(sh:*)",
+      "Bash(bash:*)"
     ],
     "deny": [
       "Bash(git:add:*)",

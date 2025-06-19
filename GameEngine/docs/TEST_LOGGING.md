@@ -118,39 +118,6 @@ test_resource_manager_memory.py                    python     PASSED     5.23
 ================================================================================
 ```
 
-## Parallel Test Logging
-
-When using `--parallel` mode, logs include additional information:
-
-```
-TEST RESULTS BY TYPE
-================================================================================
-
-PYTHON TESTS (35 tests)
-------------------------------------------------------------
-[2025-06-11 22:13:59.123] PASSED: test_categories.py
-  Duration: 0.02s
-  Worker ID: 3
-  Return Code: 0
-
-[2025-06-11 22:14:02.456] FAILED: test_broken.py
-  Duration: 1.23s
-  Worker ID: 2
-  Return Code: 1
-  ======================================== ERROR DETAILS ========================================
-  Error: AssertionError: Test assertion failed
-  Output: [truncated output]
-  ================================================================================
-
-SCRIPT TESTS (5 tests)
-------------------------------------------------------------
-...
-
-COMMAND TESTS (3 tests)
-------------------------------------------------------------
-...
-```
-
 ## Log Levels
 
 - **[INFO]**: Normal test flow, configuration, start/end markers
@@ -180,12 +147,7 @@ grep -E "Duration: [0-9.]+ seconds" test_log_*.log | sort -k3 -n -r | head -20
 grep "TEST TIMEOUT" test_log_*.log
 ```
 
-### 5. Finding Tests by Worker (Parallel Mode)
-```bash
-grep "Worker ID: 3" test_log_*.log
-```
-
-### 6. Extracting Failed Test Commands
+### 5. Extracting Failed Test Commands
 ```bash
 grep -B1 "TEST FAILED" test_log_*.log | grep "Command:"
 ```
@@ -236,7 +198,7 @@ stage('Test') {
 1. Archive multiple log files from different runs
 2. Compare execution order (test numbers in parentheses)
 3. Look for timing differences in Duration fields
-4. Check Worker IDs in parallel mode for patterns
+4. Check for resource contention or race conditions
 
 ### Problem: Tests timing out
 1. Search for "TEST TIMEOUT" in logs

@@ -104,8 +104,6 @@ python3 tests/clean_test_data.py          # Очистка тестовых пр
    - Время выполнения каждого теста
    - Сообщения об ошибках
 
-3. **`parallel_test_results.json`** - результаты параллельного запуска (при использовании `--parallel`)
-
 ### Опции логирования
 
 ```bash
@@ -114,9 +112,6 @@ python3 tests/run_all_tests.py
 
 # Verbose режим - показывает ошибки в реальном времени
 python3 tests/run_all_tests.py --verbose
-
-# Параллельный запуск с расширенным логированием
-python3 tests/run_all_tests.py --parallel
 
 # Быстрый режим (пропускает полные сборки)
 python3 tests/run_all_tests.py --skip-full-build

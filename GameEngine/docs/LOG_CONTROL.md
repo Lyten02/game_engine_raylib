@@ -143,7 +143,7 @@ When running tests, a timestamped log file is created (e.g., `test_log_20250611_
    - Python version
    - Platform information
    - Working directory
-   - Test configuration (skip full build, verbose mode, parallel mode)
+   - Test configuration (skip full build, verbose mode)
 
 2. **Test Execution Details**
    - Each test is clearly separated with dividers
@@ -173,9 +173,6 @@ python3 tests/run_all_tests.py
 
 # Verbose mode - shows real-time error details
 python3 tests/run_all_tests.py --verbose
-
-# Parallel mode with enhanced logging
-python3 tests/run_all_tests.py --parallel
 
 # Skip full build tests (faster)
 python3 tests/run_all_tests.py --skip-full-build
@@ -210,19 +207,11 @@ python3 tests/run_all_tests.py --skip-full-build
 AssertionError: Test assertion failed
 ```
 
-### Parallel Test Logging
-
-When using `--parallel` mode, the log file includes:
-- Worker ID for each test
-- Test results grouped by type (Python, Script, Command)
-- Performance metrics for parallel execution
-- Clear indication of which worker processed each test
 
 ### Log File Locations
 
 - **Log Files**: `test_log_YYYYMMDD_HHMMSS.log` in the current directory
 - **JSON Results**: `test_results.json` with structured test data
-- **Parallel Results**: `parallel_test_results.json` (when using --parallel)
 
 ### Best Practices
 

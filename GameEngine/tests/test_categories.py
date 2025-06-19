@@ -45,7 +45,6 @@ class TestCategorizer:
                 "test_config_cli_validation.py",
                 "test_config_loading_paths.py",
                 "test_config_system.py",
-                "test_editor_mode_build.py",
                 "test_entity_create_returns_id.py",
                 "test_headless_resource_manager.py",
                 "test_log_limiting.py",

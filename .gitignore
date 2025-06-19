@@ -81,6 +81,7 @@ CTestTestfile.cmake
 _deps/
 *.cmake
 !CMakeLists.txt
+!cmake/*.cmake
 Testing/
 
 # Assets (if large)
@@ -112,7 +113,6 @@ docs/_templates/
 # Game engine executable (only in root and build directories)
 /game_engine
 /build/game_engine
-/GameEngine
 
 # Debug symbols
 *.dSYM/

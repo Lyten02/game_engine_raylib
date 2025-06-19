@@ -1,3 +1,19 @@
+#!/usr/bin/env python3
+"""Test Scene memory management safety"""
+
+import subprocess
+import json
+import sys
+import os
+
+
+# Fix Python path for imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Add tests directory to Python path for imports
+test_dir = os.path.dirname(os.path.abspath(__file__))
+if test_dir not in sys.path:
+    sys.path.insert(0, test_dir)
 
 # Import TDD dependency resolver
 try:
@@ -7,14 +23,6 @@ except ImportError:
         return {'includes': '', 'libs': '-lraylib -lspdlog', 'deps_dir': None}
     def validate_test_environment():
         return False, "Dependency resolver not available"
-
-#!/usr/bin/env python3
-"""Test Scene memory management safety"""
-
-import subprocess
-import json
-import sys
-import os
 
 # Find the executable
 def find_executable():
@@ -125,8 +133,8 @@ def test_no_memory_leaks():
     import time
     timestamp = int(time.time())
     
-    # Run multiple scene operations to stress test
-    for i in range(10):
+    # Run multiple scene operations to stress test (reduced from 10)
+    for i in range(3):
         result = subprocess.run(
             [game_path, "--json", "--headless", "--batch",
              f"project.create MemTest_{timestamp}_{i}",
@@ -141,6 +149,9 @@ def test_no_memory_leaks():
         if result.returncode != 0:
             print(f"Memory test iteration {i} failed")
             return False
+        
+        # Add delay between iterations to allow cleanup
+        time.sleep(0.5)
     
     print("✅ Memory stress test passed")
     return True

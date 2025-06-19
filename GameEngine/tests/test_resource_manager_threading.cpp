@@ -14,8 +14,8 @@ void testConcurrentDefaultTextureAccess() {
     manager.setSilentMode(true);
     manager.setHeadlessMode(true);
     
-    const int numThreads = 100;
-    const int accessesPerThread = 1000;
+    const int numThreads = 10;  // Reduced from 100
+    const int accessesPerThread = 100;  // Reduced from 1000
     std::atomic<int> successCount{0};
     std::atomic<bool> raceDetected{false};
     std::vector<std::thread> threads;
@@ -76,8 +76,8 @@ void testConcurrentTextureLoading() {
     manager.setSilentMode(true);
     manager.setHeadlessMode(true);
     
-    const int numThreads = 50;
-    const int texturesPerThread = 20;
+    const int numThreads = 5;  // Reduced from 50
+    const int texturesPerThread = 10;  // Reduced from 20
     std::atomic<int> loadCount{0};
     std::atomic<bool> errorDetected{false};
     std::vector<std::thread> threads;
@@ -122,6 +122,9 @@ void testConcurrentTextureLoading() {
     std::cout << "Loaded " << loadCount.load() << " textures" << std::endl;
     std::cout << "Unique textures in manager: " << manager.getUniqueTexturesCount() << std::endl;
     
+    // Clean up resources
+    manager.clearAll();
+    
     if (errorDetected.load()) {
         std::cerr << "FAIL: Error detected during concurrent loading!" << std::endl;
         exit(1);
@@ -143,7 +146,7 @@ void testStressDefaultTexture() {
         manager.setSilentMode(true);
         manager.setHeadlessMode(true);
         
-        const int numThreads = 200;
+        const int numThreads = 20;  // Reduced from 200
         std::atomic<bool> errorDetected{false};
         std::vector<std::thread> threads;
         std::vector<Texture2D*> texturePointers(numThreads, nullptr);

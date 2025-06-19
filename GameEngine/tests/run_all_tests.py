@@ -47,6 +47,19 @@ class TestRunner:
         self.total_tests = 0
         self.start_time = time.time()
         
+        # Memory monitoring
+        self.memory_monitor = "--memory-monitor" in sys.argv
+        self.memory_limit_mb = None
+        for i, arg in enumerate(sys.argv):
+            if arg == "--memory-limit" and i + 1 < len(sys.argv):
+                try:
+                    self.memory_limit_mb = int(sys.argv[i + 1])
+                except ValueError:
+                    print(f"Warning: Invalid memory limit value: {sys.argv[i + 1]}")
+        
+        # Resource usage tracking
+        self.resource_stats = {}
+        
         # Create the log file with enhanced header
         try:
             with open(self.log_file, 'w') as f:
@@ -92,6 +105,152 @@ class TestRunner:
         if self.verbose_mode and level in ["ERROR", "WARNING"]:
             print(f"   {message}")
     
+    def _extract_tested_features(self, test_name, stdout):
+        """Extract what features were tested from test name and output"""
+        features = []
+        
+        # Extract from test name
+        if "cli" in test_name:
+            features.append("CLI Interface")
+        if "build" in test_name:
+            features.append("Build System")
+        if "config" in test_name:
+            features.append("Configuration")
+        if "resource" in test_name:
+            features.append("Resource Management")
+        if "scene" in test_name:
+            features.append("Scene System")
+        if "project" in test_name:
+            features.append("Project Management")
+        if "entity" in test_name:
+            features.append("Entity System")
+        if "security" in test_name:
+            features.append("Security")
+        if "logging" in test_name or "log" in test_name:
+            features.append("Logging System")
+        if "headless" in test_name:
+            features.append("Headless Mode")
+        if "script" in test_name:
+            features.append("Script Execution")
+        
+        # Extract from output if available
+        if stdout and "project." in stdout:
+            features.append("Project Commands")
+        if stdout and "scene." in stdout:
+            features.append("Scene Commands")
+        if stdout and "entity." in stdout:
+            features.append("Entity Commands")
+        
+        return features[:3]  # Limit to 3 most relevant
+    
+    def _analyze_failure(self, test_name, return_code, stderr, stdout):
+        """Analyze failure and provide detailed diagnosis"""
+        analysis = []
+        
+        # Return code analysis
+        if return_code == 1:
+            analysis.append("Test assertion failed - logic error in test")
+        elif return_code == 2:
+            analysis.append("Command line argument error")
+        elif return_code == 127:
+            analysis.append("Command not found - executable missing")
+        elif return_code == 139:
+            analysis.append("Segmentation fault - memory access violation")
+        elif return_code < 0:
+            analysis.append(f"Process killed by signal {abs(return_code)}")
+        else:
+            analysis.append(f"Unknown error with exit code {return_code}")
+        
+        # Error message analysis
+        if stderr:
+            if "ImportError" in stderr or "ModuleNotFoundError" in stderr:
+                analysis.append("Python import error - missing dependencies")
+            if "FileNotFoundError" in stderr:
+                analysis.append("File not found - check paths and file existence")
+            if "PermissionError" in stderr:
+                analysis.append("Permission denied - check file permissions")
+            if "SyntaxError" in stderr:
+                analysis.append("Python syntax error in test file")
+            if "game_engine" in stderr and "not found" in stderr:
+                analysis.append("Game engine executable not built or not in PATH")
+            if "Timeout" in stderr or "timeout" in stderr:
+                analysis.append("Test timed out - may be hanging or too slow")
+            if "CMake" in stderr:
+                analysis.append("Build system error - check CMake configuration")
+            if "JSON" in stderr or "json" in stderr:
+                analysis.append("JSON parsing error - invalid output format")
+        
+        # Test type specific analysis
+        if "build" in test_name and return_code != 0:
+            analysis.append("Build test failed - check compiler and dependencies")
+        if "cli" in test_name and return_code != 0:
+            analysis.append("CLI test failed - check command interface")
+        if "headless" in test_name and return_code != 0:
+            analysis.append("Headless test failed - check non-GUI execution")
+        
+        return analysis[:5]  # Limit to 5 most relevant points
+    
+    def _get_fix_recommendations(self, test_name, return_code, stderr):
+        """Provide specific recommendations for fixing the test"""
+        recommendations = []
+        
+        # General recommendations based on error type
+        if "game_engine" in stderr and "not found" in stderr:
+            recommendations.append("Run 'make' or './rebuild_fast.sh' to build the engine")
+            recommendations.append("Check if you're in the correct directory (build/ or GameEngine/)")
+        
+        if "ImportError" in stderr or "ModuleNotFoundError" in stderr:
+            recommendations.append("Install missing Python packages with pip")
+            recommendations.append("Check PYTHONPATH environment variable")
+        
+        if "SyntaxError" in stderr:
+            recommendations.append("Fix Python syntax errors in the test file")
+            recommendations.append("Check Python version compatibility")
+        
+        if "Timeout" in stderr or "timeout" in stderr:
+            recommendations.append("Increase timeout value in test configuration")
+            recommendations.append("Optimize test to run faster")
+            recommendations.append("Check for infinite loops or hanging processes")
+        
+        if "build" in test_name.lower():
+            recommendations.append("Ensure all build dependencies are installed")
+            recommendations.append("Clean build directory and rebuild from scratch")
+            recommendations.append("Check CMake version and configuration")
+        
+        if "CLI" in stderr or "command" in stderr:
+            recommendations.append("Verify CLI command syntax and arguments")
+            recommendations.append("Check if JSON output format is enabled")
+        
+        if return_code == 139:  # Segfault
+            recommendations.append("Run test under debugger (gdb) to find crash location")
+            recommendations.append("Check for memory leaks with valgrind")
+            recommendations.append("Review recent code changes for memory issues")
+        
+        return recommendations[:4]  # Limit to 4 most actionable recommendations
+    
+    def _extract_script_commands(self, script_file):
+        """Extract commands from script file for logging"""
+        commands = []
+        try:
+            with open(script_file, 'r') as f:
+                content = f.read()
+                # Extract common command patterns
+                lines = content.split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        if any(cmd in line for cmd in ['project.', 'scene.', 'entity.', 'help', 'info']):
+                            # Extract just the command name
+                            if '.' in line:
+                                cmd_part = line.split()[0] if ' ' in line else line
+                                commands.append(cmd_part)
+                            else:
+                                commands.append(line.split()[0] if ' ' in line else line)
+        except:
+            pass
+        
+        return list(set(commands))[:5]  # Unique commands, limit to 5
+    
     def print_progress(self, current, total, test_name="", status="", elapsed=None):
         """Display progress bar with test information"""
         if self.disable_progress:
@@ -123,6 +282,52 @@ class TestRunner:
         # Print newline if test completed
         if status in ["passed", "failed", "timeout"]:
             print()  # Move to next line
+    
+    def _get_memory_usage(self):
+        """Get current memory usage in MB"""
+        try:
+            # Try to use psutil if available
+            import psutil
+            process = psutil.Process()
+            return process.memory_info().rss / 1024 / 1024
+        except ImportError:
+            # Fallback to resource module
+            import resource
+            usage = resource.getrusage(resource.RUSAGE_CHILDREN)
+            # Different platforms report differently
+            if sys.platform == 'darwin':  # macOS
+                return usage.ru_maxrss / 1024 / 1024
+            else:  # Linux
+                return usage.ru_maxrss / 1024
+    
+    def _cleanup_test_artifacts(self):
+        """Clean up test artifacts to prevent memory/disk accumulation"""
+        try:
+            # Clean up old test projects in output directory
+            output_dir = os.path.join(os.path.dirname(self.game_exe), "../output")
+            if os.path.exists(output_dir):
+                projects = [d for d in os.listdir(output_dir) 
+                           if os.path.isdir(os.path.join(output_dir, d)) 
+                           and (d.startswith("Test") or d.startswith("MemTest") or d.startswith("SceneTest"))]
+                
+                # Keep only last 5 projects
+                if len(projects) > 5:
+                    projects.sort(key=lambda x: os.path.getmtime(os.path.join(output_dir, x)))
+                    for project in projects[:-5]:
+                        project_path = os.path.join(output_dir, project)
+                        try:
+                            import shutil
+                            shutil.rmtree(project_path)
+                            self.log_message(f"Cleaned up old project: {project}", "DEBUG")
+                        except:
+                            pass
+            
+            # Force garbage collection
+            import gc
+            gc.collect()
+            
+        except Exception as e:
+            self.log_message(f"Cleanup error: {e}", "WARNING")
     
     def capture_test_failure(self, test_name, test_type, error_info):
         """Capture detailed information about test failures"""
@@ -165,26 +370,98 @@ class TestRunner:
                 timeout = 180  # 3 minutes for full workflow test
             
             # Add --skip-full-build flag if requested
-            args = [sys.executable, test_file]
+            args = ['python3', test_file]
             if self.skip_full_build and ("test_build_system.py" in test_file or "test_build_system_both.py" in test_file):
                 args.append("--skip-full-build")
             
+            # For better error reporting, check syntax first
+            syntax_check = subprocess.run(
+                ['python3', '-m', 'py_compile', test_file],
+                capture_output=True,
+                text=True
+            )
+            
+            if syntax_check.returncode != 0:
+                # Syntax error - report it directly
+                elapsed = 0.05
+                self.print_progress(self.current_test, self.total_tests, test_name, "failed", elapsed)
+                self.failed += 1
+                
+                error_info = {
+                    "return_code": syntax_check.returncode,
+                    "stdout": syntax_check.stdout,
+                    "stderr": syntax_check.stderr,
+                    "command": " ".join(['python3', '-m', 'py_compile', test_file]),
+                    "timeout": timeout,
+                    "elapsed": elapsed,
+                    "exception": "SyntaxError",
+                    "traceback": None
+                }
+                
+                self.capture_test_failure(test_name, "python", error_info)
+                self.test_results.append({
+                    "test": test_file,
+                    "type": "python",
+                    "passed": False,
+                    "time": elapsed,
+                    "error": syntax_check.stderr
+                })
+                return
+            
+            # Set up environment with proper PYTHONPATH
+            env = os.environ.copy()
+            test_dir = os.path.dirname(os.path.abspath(test_file))
+            if 'PYTHONPATH' in env:
+                env['PYTHONPATH'] = f"{test_dir}{os.pathsep}{env['PYTHONPATH']}"
+            else:
+                env['PYTHONPATH'] = test_dir
+            
+            # Check memory before test if monitoring enabled
+            if self.memory_monitor:
+                initial_memory = self._get_memory_usage()
+                self.log_message(f"Memory before test: {initial_memory:.1f} MB", "DEBUG")
+            
+            # Run from test directory to ensure proper imports
             result = subprocess.run(
                 args,
                 capture_output=True,
                 text=True,
-                timeout=timeout
+                timeout=timeout,
+                cwd=test_dir,
+                env=env
             )
             elapsed = time.time() - start_time
             
+            # Check memory after test if monitoring enabled
+            if self.memory_monitor:
+                final_memory = self._get_memory_usage()
+                memory_increase = final_memory - initial_memory
+                self.log_message(f"Memory after test: {final_memory:.1f} MB (Δ{memory_increase:+.1f} MB)", "DEBUG")
+                
+                # Check for memory leak
+                if memory_increase > 50:  # More than 50MB increase
+                    self.log_message(f"⚠️  Potential memory leak detected in {test_name}: {memory_increase:.1f} MB increase", "WARNING")
+                
+                # Check memory limit
+                if self.memory_limit_mb and final_memory > self.memory_limit_mb:
+                    self.log_message(f"❌ Memory limit exceeded: {final_memory:.1f} MB > {self.memory_limit_mb} MB", "ERROR")
+                    raise MemoryError(f"Memory limit exceeded: {final_memory:.1f} MB")
+            
+            # Clean up test artifacts after each test
+            self._cleanup_test_artifacts()
+            
             if result.returncode == 0:
                 self.print_progress(self.current_test, self.total_tests, test_name, "passed", elapsed)
-                self.log_message(f"TEST PASSED: {test_name}", "SUCCESS")
-                self.log_message(f"Duration: {elapsed:.2f} seconds", "INFO")
-                self.log_message(f"Return Code: 0", "INFO")
-                if result.stdout.strip():
-                    self.log_message(f"Output Preview: {result.stdout[:200]}{'...' if len(result.stdout) > 200 else ''}", "INFO")
-                self.log_message(f"{'='*60}\n", "INFO")
+                
+                # ✅ SUCCESS: Краткий отчет что протестировано
+                self.log_message(f"✅ PASSED: {test_name} ({elapsed:.2f}s)", "SUCCESS")
+                
+                # Краткая информация о том, что было протестировано
+                tested_features = self._extract_tested_features(test_name, result.stdout)
+                if tested_features:
+                    self.log_message(f"   Tested: {', '.join(tested_features)}", "SUCCESS")
+                
+                self.log_message(f"{'='*60}\n", "SUCCESS")
                 self.passed += 1
                 self.test_results.append({
                     "test": test_file,
@@ -196,21 +473,46 @@ class TestRunner:
                 self.print_progress(self.current_test, self.total_tests, test_name, "failed", elapsed)
                 self.failed += 1
                 
-                # Log detailed failure information
-                self.log_message(f"TEST FAILED: {test_name}", "ERROR")
-                self.log_message(f"Duration: {elapsed:.2f} seconds", "ERROR")
-                self.log_message(f"Return Code: {result.returncode}", "ERROR")
-                self.log_message(f"Command: {' '.join(args)}", "ERROR")
+                # ❌ FAILURE: Подробные этапы + полная диагностика ошибок
+                self.log_message(f"❌ FAILED: {test_name}", "ERROR")
+                self.log_message(f"{'='*80}", "ERROR")
+                self.log_message(f"FAILURE DIAGNOSIS FOR: {test_name}", "ERROR")
+                self.log_message(f"{'='*80}", "ERROR")
                 
+                # Этап 1: Основная информация
+                self.log_message(f"📊 EXECUTION INFO:", "ERROR")
+                self.log_message(f"   Duration: {elapsed:.2f} seconds", "ERROR")
+                self.log_message(f"   Return Code: {result.returncode}", "ERROR")
+                self.log_message(f"   Command: {' '.join(args)}", "ERROR")
+                self.log_message(f"   Working Dir: {os.getcwd()}", "ERROR")
+                
+                # Этап 2: Анализ ошибки
+                error_analysis = self._analyze_failure(test_name, result.returncode, result.stderr, result.stdout)
+                self.log_message(f"\n🔍 ERROR ANALYSIS:", "ERROR")
+                for analysis_point in error_analysis:
+                    self.log_message(f"   • {analysis_point}", "ERROR")
+                
+                # Этап 3: Полный вывод для диагностики
                 if result.stdout.strip():
-                    self.log_message(f"{'='*40} STDOUT {'='*40}", "ERROR")
+                    self.log_message(f"\n📤 STDOUT (Full Output):", "ERROR")
+                    self.log_message(f"{'='*60}", "ERROR")
                     self.log_message(result.stdout, "ERROR")
+                    self.log_message(f"{'='*60}", "ERROR")
                 
                 if result.stderr.strip():
-                    self.log_message(f"{'='*40} STDERR {'='*40}", "ERROR")
+                    self.log_message(f"\n🚨 STDERR (Error Details):", "ERROR")
+                    self.log_message(f"{'='*60}", "ERROR")
                     self.log_message(result.stderr, "ERROR")
+                    self.log_message(f"{'='*60}", "ERROR")
                 
-                self.log_message(f"{'='*60}\n", "ERROR")
+                # Этап 4: Рекомендации по исправлению
+                recommendations = self._get_fix_recommendations(test_name, result.returncode, result.stderr)
+                if recommendations:
+                    self.log_message(f"\n💡 RECOMMENDED FIXES:", "ERROR")
+                    for i, rec in enumerate(recommendations, 1):
+                        self.log_message(f"   {i}. {rec}", "ERROR")
+                
+                self.log_message(f"\n{'='*80}\n", "ERROR")
                 
                 error_info = {
                     "return_code": result.returncode,
@@ -262,6 +564,37 @@ class TestRunner:
                 "passed": False,
                 "error": "Timeout"
             })
+        except MemoryError as e:
+            elapsed = time.time() - start_time
+            self.print_progress(self.current_test, self.total_tests, test_name, "failed", elapsed)
+            self.failed += 1
+            
+            # Log memory error
+            self.log_message(f"MEMORY LIMIT EXCEEDED: {test_name}", "ERROR")
+            self.log_message(f"Duration: {elapsed:.2f} seconds", "ERROR")
+            self.log_message(f"Error: {str(e)}", "ERROR")
+            self.log_message("Test aborted due to excessive memory usage", "ERROR")
+            self.log_message(f"{'='*60}\n", "ERROR")
+            
+            error_info = {
+                "return_code": -2,
+                "stdout": "",
+                "stderr": str(e),
+                "command": " ".join(args),
+                "timeout": timeout,
+                "elapsed": elapsed,
+                "exception": "MemoryError",
+                "traceback": None
+            }
+            
+            self.capture_test_failure(test_name, "python", error_info)
+            self.test_results.append({
+                "test": test_file,
+                "type": "python",
+                "passed": False,
+                "error": "Memory limit exceeded"
+            })
+            
         except Exception as e:
             elapsed = time.time() - start_time
             self.print_progress(self.current_test, self.total_tests, test_name, "failed", elapsed)
@@ -326,7 +659,14 @@ class TestRunner:
                 json_result = json.loads(result.stdout)
                 if json_result.get("success", False):
                     self.print_progress(self.current_test, self.total_tests, test_name, "passed", elapsed)
-                    self.log_message(f"Script test PASSED: {test_name} ({elapsed:.2f}s)")
+                    # ✅ SUCCESS: Краткий отчет для script теста
+                    self.log_message(f"✅ SCRIPT PASSED: {test_name} ({elapsed:.2f}s)", "SUCCESS")
+                    
+                    # Краткая информация о командах в скрипте
+                    commands = self._extract_script_commands(script_file)
+                    if commands:
+                        self.log_message(f"   Commands tested: {', '.join(commands[:3])}", "SUCCESS")
+                    
                     self.passed += 1
                     self.test_results.append({
                         "test": script_file,
@@ -462,7 +802,15 @@ class TestRunner:
                 
                 if success == expected_success:
                     self.print_progress(self.current_test, self.total_tests, f"cmd: {name}", "passed", elapsed)
-                    self.log_message(f"Command test PASSED: {name} ({elapsed:.2f}s)")
+                    # ✅ SUCCESS: Краткий отчет для command теста
+                    self.log_message(f"✅ COMMAND PASSED: {name} ({elapsed:.2f}s)", "SUCCESS")
+                    self.log_message(f"   Command: {command}", "SUCCESS")
+                    
+                    # Показать краткий результат
+                    if json_result.get('result'):
+                        result_preview = str(json_result['result'])[:100]
+                        self.log_message(f"   Result: {result_preview}{'...' if len(str(json_result['result'])) > 100 else ''}", "SUCCESS")
+                    
                     self.passed += 1
                     self.test_results.append({
                         "test": f"command: {name}",
@@ -584,9 +932,9 @@ class TestRunner:
                 print(f"     JSON Error: {error_info['json_error']}")
     
     def print_summary(self):
-        """Print test summary with enhanced failure details"""
+        """Print intelligent test summary with success highlights and failure details"""
         print("\n" + "="*80)
-        print("TEST SUMMARY")
+        print("📊 INTELLIGENT TEST EXECUTION SUMMARY")
         print("="*80)
         
         total = self.passed + self.failed
@@ -600,6 +948,29 @@ class TestRunner:
         print(f"❌ Failed: {self.failed}")
         print(f"Success rate: {(self.passed/total)*100:.1f}%")
         print(f"Total time: {total_time:.1f}s")
+        
+        # Show successful tests summary (brief)
+        if self.passed > 0:
+            print(f"\n🎆 SUCCESSFUL TESTS ({self.passed} passed):")
+            print("-" * 60)
+            successful_tests = [r for r in self.test_results if r['passed']]
+            
+            # Group by test type
+            by_type = {}
+            for test in successful_tests:
+                test_type = test['type']
+                if test_type not in by_type:
+                    by_type[test_type] = []
+                by_type[test_type].append(test)
+            
+            for test_type, tests in by_type.items():
+                print(f"\n  🟢 {test_type.upper()} Tests ({len(tests)} passed):")
+                for test in tests[:5]:  # Show first 5
+                    test_name = os.path.basename(test['test'])
+                    duration = test.get('time', 0)
+                    print(f"    ✅ {test_name:<40} ({duration:.2f}s)")
+                if len(tests) > 5:
+                    print(f"    ... and {len(tests) - 5} more {test_type} tests")
         
         # Show detailed failure analysis
         self.print_detailed_failure_summary()
@@ -634,19 +1005,37 @@ class TestRunner:
             
             f.write("="*80 + "\n")
         
-        # Save results to JSON
-        with open("test_results.json", "w") as f:
-            json.dump({
-                "total": total,
-                "passed": self.passed,
-                "failed": self.failed,
-                "total_time": total_time,
-                "results": self.test_results,
-                "detailed_failures": self.failed_tests_details
-            }, f, indent=2)
+        # Save results to JSON in the test directory, not build directory
+        results_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_results.json")
+        try:
+            with open(results_path, "w") as f:
+                json.dump({
+                    "total": total,
+                    "passed": self.passed,
+                    "failed": self.failed,
+                    "total_time": total_time,
+                    "results": self.test_results,
+                    "detailed_failures": self.failed_tests_details
+                }, f, indent=2)
+        except Exception as e:
+            print(f"⚠️  Warning: Could not save test results: {e}")
+            # Try to save in current directory as fallback
+            try:
+                with open("test_results.json", "w") as f:
+                    json.dump({
+                        "total": total,
+                        "passed": self.passed,
+                        "failed": self.failed,
+                        "total_time": total_time,
+                        "results": self.test_results,
+                        "detailed_failures": self.failed_tests_details
+                    }, f, indent=2)
+                results_path = "test_results.json"
+            except:
+                pass
         
         print(f"\n📋 Full details saved to: {self.log_file}")
-        print("📊 Detailed results saved to: test_results.json")
+        print(f"📊 Detailed results saved to: {results_path}")
     
     def count_total_tests(self, test_dir):
         """Count total number of tests to run"""
@@ -749,6 +1138,8 @@ def main():
         print("  --parallel, -p    Run tests in parallel (experimental)")
         print("  --workers N       Number of parallel workers (default: auto)")
         print("  --dry-run         Test runner without executing tests")
+        print("  --memory-monitor  Enable memory leak detection")
+        print("  --memory-limit N  Set memory limit in MB (abort if exceeded)")
         print("  --help, -h        Show this help message")
         sys.exit(0)
     
@@ -762,13 +1153,38 @@ def main():
     else:
         print("🔨 Full mode: Including all build tests (may take several minutes)")
     
+    if "--memory-monitor" in sys.argv:
+        print("🔍 Memory monitoring enabled - detecting potential leaks")
+        
+    if "--memory-limit" in sys.argv:
+        try:
+            idx = sys.argv.index("--memory-limit")
+            if idx + 1 < len(sys.argv):
+                limit = int(sys.argv[idx + 1])
+                print(f"⚠️  Memory limit set to {limit} MB")
+        except:
+            pass
+    
     # Check for parallel mode
     use_parallel = "--parallel" in sys.argv or "-p" in sys.argv
+    if use_parallel:
+        # Check current process count
+        import subprocess
+        try:
+            result = subprocess.run(['ps', 'aux'], capture_output=True, text=True)
+            python_processes = len([line for line in result.stdout.split('\n') if 'python' in line.lower()])
+            if python_processes > 10:
+                print(f"⚠️  Warning: {python_processes} Python processes detected")
+                print("⚠️  Switching to sequential mode for system stability")
+                use_parallel = False
+        except:
+            pass  # Continue with parallel if check fails
+    
     if use_parallel:
         # Import and use parallel runner
         from parallel_test_runner import ParallelTestRunner
         
-        print("🚀 Parallel execution mode enabled (experimental)")
+        print("🚀 Parallel execution mode enabled (resource controlled)")
         
         # Parse workers argument
         max_workers = None
@@ -795,10 +1211,15 @@ def main():
             skip_full_build="--skip-full-build" in sys.argv
         )
         
-        # Override worker counts if specified
+        # Override worker counts if specified, but enforce limits
         if max_workers:
-            # Need to override in the runner before execution
+            # Limit to safe values
+            max_workers = min(max_workers, 2)
             parallel_runner.max_workers_override = max_workers
+            print(f"  Worker limit: {max_workers} (safety enforced)")
+        else:
+            parallel_runner.max_workers_override = 1  # Default to sequential
+            print("  Worker limit: 1 (sequential for stability)")
         
         # Run tests
         summary = parallel_runner.run_all_tests()

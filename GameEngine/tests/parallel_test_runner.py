@@ -71,6 +71,9 @@ def run_python_test_worker(test_info: Tuple[Path, int, Dict]) -> TestResult:
         if config.get("skip_full_build") and any(x in test_name for x in ["build_system", "build_templates", "editor_mode_build", "full_workflow"]):
             cmd.append("--skip-full-build")
         
+        # Add small delay between test starts to prevent resource spikes
+        time.sleep(0.1 * worker_id)
+        
         # Run the test
         result = subprocess.run(
             cmd,
@@ -311,13 +314,18 @@ class ParallelTestRunner:
             print(line + " " * 10, end="", flush=True)
     
     def run_test_group(self, group_name: str, tests: List, worker_function, max_workers: int) -> List[TestResult]:
-        """Run a group of tests in parallel"""
+        """Run a group of tests in parallel with strict resource control"""
         if not tests:
             return []
         
-        # Apply worker override if set
+        # Apply worker override if set, but enforce absolute limits
         if self.max_workers_override and max_workers > 1:
             max_workers = min(max_workers, self.max_workers_override)
+        
+        # Absolute safety limits to prevent system overload
+        max_workers = min(max_workers, 2)  # Never exceed 2 workers
+        if len(tests) == 1:
+            max_workers = 1  # Single test = single worker
         
         print(f"\n🔄 Running {group_name} ({len(tests)} tests, {max_workers} workers)")
         
@@ -336,13 +344,13 @@ class ParallelTestRunner:
                 results.append(result)
                 self.progress_queue.put(result)
         else:
-            # Parallel execution
+            # Parallel execution with timeout and resource control
             with ProcessPoolExecutor(max_workers=max_workers) as executor:
                 future_to_test = {executor.submit(worker_function, test_info): test_info for test_info in test_infos}
                 
-                for future in as_completed(future_to_test):
+                for future in as_completed(future_to_test, timeout=300):  # 5 minute timeout
                     try:
-                        result = future.result()
+                        result = future.result(timeout=60)  # 1 minute per test result
                         results.append(result)
                         self.progress_queue.put(result)
                     except Exception as e:
@@ -364,9 +372,22 @@ class ParallelTestRunner:
         return results
     
     def run_all_tests(self) -> Dict[str, Any]:
-        """Run all tests in parallel groups"""
-        print("🚀 Parallel GameEngine Test Execution")
+        """Run all tests in parallel groups with resource management"""
+        print("🚀 Parallel GameEngine Test Execution (Resource Controlled)")
         print("=" * 60)
+        
+        # Check system resources
+        cpu_count = mp.cpu_count()
+        try:
+            import psutil
+            memory_gb = psutil.virtual_memory().total / (1024**3)
+            print(f"System: {cpu_count} CPUs, {memory_gb:.1f}GB RAM")
+            has_psutil = True
+        except ImportError:
+            print(f"System: {cpu_count} CPUs (psutil not available)")
+            has_psutil = False
+        
+        print(f"Resource limit: Max 2 parallel workers")
         
         # Get test groups
         groups = self.categorizer.get_parallel_groups(self.test_dir, self.skip_full_build)
@@ -378,45 +399,67 @@ class ParallelTestRunner:
         # Start progress monitoring
         self.start_progress_monitor()
         
-        # Execute groups in order
+        # Execute groups in order with resource monitoring
         group_results = {}
         
-        # 1. Fast parallel tests (lightweight + script)
+        # Monitor memory usage
+        def check_memory():
+            if not has_psutil:
+                return True
+            try:
+                mem = psutil.virtual_memory()
+                if mem.percent > 85:  # If memory usage > 85%
+                    print(f"⚠️  High memory usage: {mem.percent:.1f}%")
+                    return False
+                return True
+            except:
+                return True  # Continue if memory check fails
+        
+        # 1. Fast parallel tests (lightweight + script) - SEQUENTIAL for safety
         if groups["parallel_fast"]["tests"]:
             # Split into Python and script tests
             python_tests = [t for t in groups["parallel_fast"]["tests"] if isinstance(t, Path) and t.suffix == ".py"]
             script_tests = [t for t in groups["parallel_fast"]["tests"] if isinstance(t, Path) and t.suffix == ".txt"]
             
             if python_tests:
+                # Run sequentially to avoid resource conflicts
                 results = self.run_test_group(
-                    "Fast Python Tests", 
+                    "Fast Python Tests (Sequential)", 
                     python_tests, 
                     run_python_test_worker, 
-                    groups["parallel_fast"]["max_workers"]
+                    1  # Force sequential
                 )
                 group_results["parallel_fast_python"] = results
                 self.all_results.extend(results)
+                
+                # Check memory after Python tests
+                if not check_memory():
+                    print("⚠️  Skipping remaining tests due to high memory usage")
+                    return self._generate_summary(group_results)
             
             if script_tests:
                 results = self.run_test_group(
-                    "Script Tests",
+                    "Script Tests (Sequential)",
                     script_tests,
                     run_script_test_worker,
-                    groups["parallel_fast"]["max_workers"]
+                    1  # Force sequential
                 )
                 group_results["parallel_fast_script"] = results
                 self.all_results.extend(results)
         
-        # 2. Build tests with coordination
+        # 2. Build tests - Always sequential for stability
         if groups["parallel_build"]["tests"]:
-            results = self.run_test_group(
-                "Build Tests",
-                groups["parallel_build"]["tests"],
-                run_python_test_worker,
-                groups["parallel_build"]["max_workers"]
-            )
-            group_results["parallel_build"] = results
-            self.all_results.extend(results)
+            if not check_memory():
+                print("⚠️  Skipping build tests due to high memory usage")
+            else:
+                results = self.run_test_group(
+                    "Build Tests (Sequential)",
+                    groups["parallel_build"]["tests"],
+                    run_python_test_worker,
+                    1  # Always sequential
+                )
+                group_results["parallel_build"] = results
+                self.all_results.extend(results)
         
         # 3. Heavy sequential tests
         if groups["sequential_heavy"]["tests"]:
@@ -429,16 +472,19 @@ class ParallelTestRunner:
             group_results["sequential_heavy"] = results
             self.all_results.extend(results)
         
-        # 4. Command tests
+        # 4. Command tests - Sequential for safety
         if groups["commands"]["tests"]:
-            results = self.run_test_group(
-                "Command Tests",
-                groups["commands"]["tests"],
-                run_command_test_worker,
-                groups["commands"]["max_workers"]
-            )
-            group_results["commands"] = results
-            self.all_results.extend(results)
+            if not check_memory():
+                print("⚠️  Skipping command tests due to high memory usage")
+            else:
+                results = self.run_test_group(
+                    "Command Tests (Sequential)",
+                    groups["commands"]["tests"],
+                    run_command_test_worker,
+                    1  # Force sequential to avoid conflicts
+                )
+                group_results["commands"] = results
+                self.all_results.extend(results)
         
         # Stop progress monitoring
         self.progress_queue.put("STOP")

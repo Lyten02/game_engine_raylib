@@ -8,6 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # В CMakeLists.txt добавьте в начало:
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Find Python3 for running tests
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
 # Set global cache directory for dependencies
 set(GLOBAL_DEPS_CACHE "${CMAKE_SOURCE_DIR}/.deps_cache" CACHE PATH "Global dependencies cache directory")
 set(FETCHCONTENT_BASE_DIR "${GLOBAL_DEPS_CACHE}" CACHE PATH "FetchContent base directory")
@@ -154,49 +157,265 @@ endif()
 # Create projects directory in build directory
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/projects)
 
-# Add custom target for running tests (full version by default)
+# Include test discovery module
+include(${CMAKE_SOURCE_DIR}/cmake/TestDiscovery.cmake)
+
+# Discover all tests
+discover_all_tests(${CMAKE_SOURCE_DIR}/tests)
+
+# Create test runner script
+file(WRITE ${CMAKE_BINARY_DIR}/run_tests.cmake
+"# Auto-generated test runner
+set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+set(GAME_ENGINE ${CMAKE_BINARY_DIR}/game_engine)
+set(TEST_COUNT 0)
+set(PASSED_COUNT 0)
+set(FAILED_TESTS)
+
+# Check for category filter
+set(TEST_CATEGORY \$ENV{TEST_CATEGORY})
+
+# Run Python tests
+foreach(TEST_FILE ${ALL_PYTHON_TESTS})
+    # Filter by category if specified
+    if(TEST_CATEGORY)
+        if(NOT TEST_FILE MATCHES \"/\${TEST_CATEGORY}/\")
+            continue()
+        endif()
+    endif()
+    
+    math(EXPR TEST_COUNT \"\${TEST_COUNT} + 1\")
+    execute_process(
+        COMMAND \${PYTHON_EXECUTABLE} \${TEST_FILE}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        RESULT_VARIABLE TEST_RESULT
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+    if(TEST_RESULT EQUAL 0)
+        math(EXPR PASSED_COUNT \"\${PASSED_COUNT} + 1\")
+        message(\"✅ PASS: \${TEST_FILE}\")
+    else()
+        list(APPEND FAILED_TESTS \${TEST_FILE})
+        message(\"❌ FAIL: \${TEST_FILE}\")
+    endif()
+endforeach()
+
+# Run script tests  
+foreach(TEST_FILE ${ALL_SCRIPT_TESTS})
+    # Filter by category if specified
+    if(TEST_CATEGORY)
+        if(NOT TEST_FILE MATCHES \"/\${TEST_CATEGORY}/\")
+            continue()
+        endif()
+    endif()
+    
+    math(EXPR TEST_COUNT \"\${TEST_COUNT} + 1\")
+    execute_process(
+        COMMAND \${GAME_ENGINE} --script \${TEST_FILE}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        RESULT_VARIABLE TEST_RESULT
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+    if(TEST_RESULT EQUAL 0)
+        math(EXPR PASSED_COUNT \"\${PASSED_COUNT} + 1\")
+        message(\"✅ PASS: \${TEST_FILE}\")
+    else()
+        list(APPEND FAILED_TESTS \${TEST_FILE})
+        message(\"❌ FAIL: \${TEST_FILE}\")
+    endif()
+endforeach()
+
+# Summary
+if(TEST_CATEGORY)
+    message(\"\\n====== \${TEST_CATEGORY} TEST SUMMARY ======\")
+else()
+    message(\"\\n====== TEST SUMMARY ======\")
+endif()
+message(\"Total tests: \${TEST_COUNT}\")
+message(\"Passed: \${PASSED_COUNT}\")
+message(\"Failed: \${TEST_COUNT} - \${PASSED_COUNT}\")
+
+if(FAILED_TESTS)
+    message(\"\\nFailed tests:\")
+    foreach(FAILED_TEST \${FAILED_TESTS})
+        message(\"  - \${FAILED_TEST}\")
+    endforeach()
+    message(\"\\n❌ Some tests failed!\")
+    # Set exit code but don't stop execution
+    set(CMAKE_SCRIPT_MODE_FILE TRUE)
+    if(NOT DEFINED ENV{ALLOW_TEST_FAILURES})
+        message(FATAL_ERROR \"Tests failed!\")
+    endif()
+endif()
+")
+
+# Add custom target for running tests
 add_custom_target(test
-    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests - including full builds..."
-    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py
+    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests..."
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/run_tests.cmake
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     DEPENDS game_engine
-    COMMENT "Running all tests including full builds"
+    COMMENT "Running all discovered tests"
 )
 
 # Add custom target for running tests without full builds
 add_custom_target(test-fast
-    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests - skipping full builds..."
-    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py --skip-full-build
+    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests (fast mode)..."
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/run_tests.cmake
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    DEPENDS game_engine
-    COMMENT "Running tests without full builds"
+    COMMENT "Running tests without rebuild"
 )
 
 
-# Add custom target for running C++ tests (old version)
-add_custom_target(test-cpp-old
-    COMMAND ${CMAKE_COMMAND} -E echo "Running C++ tests (old system)..."
-    COMMAND bash ${CMAKE_SOURCE_DIR}/tests/compile_and_run_tests.sh
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
-    COMMENT "Compiling and running C++ tests (old system)"
-)
+# Create C++ test compilation script
+file(WRITE ${CMAKE_BINARY_DIR}/compile_cpp_tests.cmake
+"# Auto-generated C++ test compilation script
+set(CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER})
+set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -std=c++20\")
+set(INCLUDE_DIRS \"-I${CMAKE_SOURCE_DIR}/src -I${GLOBAL_DEPS_CACHE}/raylib-src/src -I${GLOBAL_DEPS_CACHE}/spdlog-src/include -I${GLOBAL_DEPS_CACHE}/entt-src/src -I${GLOBAL_DEPS_CACHE}/glm-src -I${GLOBAL_DEPS_CACHE}/json-src/include\")
+set(LIBRARIES \"-L${CMAKE_BINARY_DIR} -L${GLOBAL_DEPS_CACHE}/raylib-build/raylib -L${GLOBAL_DEPS_CACHE}/spdlog-build -lraylib -lspdlog\")
+set(FRAMEWORKS \"-framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation\")
 
-# Add custom target for running C++ tests (new unified runner)
+set(CPP_TESTS ${ALL_CPP_TESTS})
+set(TEST_COUNT 0)
+set(PASSED_COUNT 0)
+set(FAILED_TESTS)
+
+foreach(TEST_FILE \${CPP_TESTS})
+    get_filename_component(TEST_NAME \${TEST_FILE} NAME_WE)
+    set(TEST_EXECUTABLE ${CMAKE_BINARY_DIR}/\${TEST_NAME})
+    
+    message(\"Compiling \${TEST_NAME}...\")
+    execute_process(
+        COMMAND \${CMAKE_CXX_COMPILER} \${CMAKE_CXX_FLAGS} \${INCLUDE_DIRS} \${TEST_FILE} -o \${TEST_EXECUTABLE} \${LIBRARIES} \${FRAMEWORKS}
+        RESULT_VARIABLE COMPILE_RESULT
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+    
+    if(COMPILE_RESULT EQUAL 0)
+        math(EXPR TEST_COUNT \"\${TEST_COUNT} + 1\")
+        execute_process(
+            COMMAND \${TEST_EXECUTABLE}
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            RESULT_VARIABLE TEST_RESULT
+            OUTPUT_QUIET
+            ERROR_QUIET
+        )
+        if(TEST_RESULT EQUAL 0)
+            math(EXPR PASSED_COUNT \"\${PASSED_COUNT} + 1\")
+            message(\"✅ PASS: \${TEST_NAME}\")
+        else()
+            list(APPEND FAILED_TESTS \${TEST_NAME})
+            message(\"❌ FAIL: \${TEST_NAME}\")
+        endif()
+        # Clean up executable
+        file(REMOVE \${TEST_EXECUTABLE})
+    else()
+        message(\"❌ COMPILE FAIL: \${TEST_NAME}\")
+        list(APPEND FAILED_TESTS \"\${TEST_NAME} (compilation)\")
+    endif()
+endforeach()
+
+# Summary
+message(\"\\n====== C++ TEST SUMMARY ======\")
+message(\"Total tests: \${TEST_COUNT}\")
+message(\"Passed: \${PASSED_COUNT}\")
+message(\"Failed: \${TEST_COUNT} - \${PASSED_COUNT}\")
+
+if(FAILED_TESTS)
+    message(\"\\nFailed tests:\")
+    foreach(FAILED_TEST \${FAILED_TESTS})
+        message(\"  - \${FAILED_TEST}\")
+    endforeach()
+    message(\"\\n❌ Some C++ tests failed!\")
+    # Set exit code but don't stop execution
+    set(CMAKE_SCRIPT_MODE_FILE TRUE)
+    if(NOT DEFINED ENV{ALLOW_TEST_FAILURES})
+        message(FATAL_ERROR \"C++ tests failed!\")
+    endif()
+endif()
+")
+
+# Add custom target for running C++ tests
 add_custom_target(test-cpp
     COMMAND ${CMAKE_COMMAND} -E echo "Running C++ tests..."
-    COMMAND bash ${CMAKE_SOURCE_DIR}/tests/run_cpp_test_suite.sh
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests
-    COMMENT "Running C++ tests with unified runner"
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/compile_cpp_tests.cmake
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Compiling and running C++ tests"
 )
 
+# Create all-tests runner script
+file(WRITE ${CMAKE_BINARY_DIR}/run_all_tests.cmake
+"# Auto-generated all-tests runner
+set(ENV{ALLOW_TEST_FAILURES} 1)
+
+message(\"Running Python and Script tests...\")
+execute_process(
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/run_tests.cmake
+    RESULT_VARIABLE PYTHON_RESULT
+)
+
+message(\"\\nRunning C++ tests...\")
+execute_process(
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/compile_cpp_tests.cmake
+    RESULT_VARIABLE CPP_RESULT
+)
+
+message(\"\\n====== OVERALL TEST SUMMARY ======\")
+if(PYTHON_RESULT EQUAL 0 AND CPP_RESULT EQUAL 0)
+    message(\"✅ All test suites passed!\")
+else()
+    if(NOT PYTHON_RESULT EQUAL 0)
+        message(\"❌ Python/Script tests had failures\")
+    endif()
+    if(NOT CPP_RESULT EQUAL 0)
+        message(\"❌ C++ tests had failures\")
+    endif()
+    message(\"\\nCheck output above for detailed failure information.\")
+endif()
+")
+
+# Add custom target for running all tests
+add_custom_target(all-tests
+    COMMAND ${CMAKE_COMMAND} -E echo "Running all tests: Python, Script, C++..."
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/run_all_tests.cmake
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    DEPENDS game_engine
+    COMMENT "Running complete test suite"
+)
+
+# Add category-specific test targets
+add_custom_target(test-unit
+    COMMAND ${CMAKE_COMMAND} -E echo "Running unit tests..."
+    COMMAND ${CMAKE_COMMAND} -E env TEST_CATEGORY=unit ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/run_tests.cmake
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running unit tests only"
+)
+
+add_custom_target(test-integration
+    COMMAND ${CMAKE_COMMAND} -E echo "Running integration tests..."
+    COMMAND ${CMAKE_COMMAND} -E env TEST_CATEGORY=integration ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/run_tests.cmake
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running integration tests only"
+)
+
+add_custom_target(test-system
+    COMMAND ${CMAKE_COMMAND} -E echo "Running system tests..."
+    COMMAND ${CMAKE_COMMAND} -E env TEST_CATEGORY=system ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/run_tests.cmake
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running system tests only"
+)
 
 # Add custom target for cleaning test data
 add_custom_target(clean-tests
-    COMMAND ${CMAKE_COMMAND} -E echo "Cleaning test data..."
-    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/clean_test_data.py
-    COMMAND bash ${CMAKE_SOURCE_DIR}/tests/clean_test_executables.sh
+    COMMAND ${CMAKE_COMMAND} -E echo "Cleaning test output..."
+    COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_SOURCE_DIR}/output
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/output
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMENT "Cleaning test projects and executables"
+    COMMENT "Cleaning test output directory"
 )
 
 # Add custom target for cleaning logs

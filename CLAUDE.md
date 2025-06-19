@@ -6,8 +6,7 @@ This file provides guidance to Claude Code when working with this ECS GameEngine
 
 # 🚀 Most used commands (copy-paste ready)
 cd GameEngine && ./rebuild_smart.sh        # Smart rebuild
-make test                                   # Run all tests (~7s)
-make test-parallel                         # Parallel tests (~6.5s) 
+make test                                   # Run all tests (~7s) 
 sh full_test_fixed.sh                      # Full project test suite
 ./game_engine --json -c "project.list"    # List projects with JSON output
 ./game_engine --headless --script test.txt # Run test script
@@ -35,12 +34,8 @@ make -j8
 ./game_engine
 
 # CMake targets
-make test              # Run all tests (sequential)
+make test              # Run all tests
 make test-fast         # Run tests without full builds
-make test-parallel     # Run tests in parallel (automatic worker count)
-make test-parallel-2   # Run tests with 2 workers
-make test-parallel-4   # Run tests with 4 workers  
-make test-parallel-8   # Run tests with 8 workers
 make test-cpp          # Run C++ tests only
 make clean-tests       # Clean test projects
 make clean-logs        # Remove log files
@@ -51,14 +46,10 @@ make clean-all         # Full clean
 
 ```bash
 # Run all tests from build directory
-make test              # Sequential execution (~7s)
-make test-parallel     # Parallel execution (~6.5s, 13% faster)
-make test-parallel-4   # Force 4 workers
+make test              # Run all tests (~7s)
 
 # Run specific test suites
 python3 ../tests/run_all_tests.py              # All Python tests
-python3 ../tests/run_all_tests.py --parallel   # Parallel mode
-python3 ../tests/run_all_tests.py --parallel --workers 2
 python3 ../tests/run_all_tests.py --verbose    # Show real-time errors
 python3 ../tests/test_cli_basic.py             # Specific test
 ./tests/compile_and_run_tests.sh               # C++ ResourceManager tests
@@ -71,28 +62,15 @@ python3 ../tests/test_cli_basic.py             # Specific test
 # After running tests, check the generated log files:
 # - test_log_YYYYMMDD_HHMMSS.log - Detailed execution log with full error output
 # - test_results.json - Structured test results
-# - parallel_test_results.json - Results from parallel execution
 
 # Finding test failures in logs:
 grep "TEST FAILED" test_log_*.log
 grep -A 50 "TEST FAILED: test_name.py" test_log_*.log
 ```
 
-## Parallel Testing System
+## Testing System
 
-The test suite now supports parallel execution for improved performance:
-
-### How it works:
-- Tests are categorized by resource usage and execution characteristics
-- Lightweight tests run with high parallelism (4 workers)
-- Build tests run with moderate parallelism (2 workers)
-- Heavy tests run sequentially to avoid resource contention
-- Command tests run in parallel for quick validation
-
-### Performance:
-- Sequential: ~7.0 seconds
-- Parallel: ~6.5 seconds (13% improvement)
-- Greater improvements expected on systems with more cores
+The test suite runs all tests sequentially for reliability:
 
 ### Test Categories:
 1. **LIGHTWEIGHT**: Fast unit tests, minimal resources
@@ -121,7 +99,7 @@ The test suite now supports parallel execution for improved performance:
 
 3. **🔵 REFACTOR**: Improve code while keeping tests green
    ```bash
-   make test-parallel                   # Verify nothing breaks
+   make test                            # Verify nothing breaks
    ```
 
 ### 🎯 Problem-Solving Strategy
@@ -209,8 +187,8 @@ if (!ProcessExecutor::sanitizePath(userPath)) {
 
 ### ⚡ Performance Testing
 ```bash
-# Use parallel testing by default (13% faster)
-make test-parallel          # ~6.5s vs 7.0s sequential
+# Run tests
+make test                   # ~7.0s
 
 # For debugging specific tests
 python3 tests/test_name.py --verbose    # Real-time errors
@@ -344,18 +322,11 @@ ls -la build/_deps/
 grep -r "std::system" src/  # Should be empty!
 ```
 
-**Parallel tests failing randomly:**
-```bash
-# Use sequential for debugging
-make test
-# Check resource conflicts in logs
-```
 
 ### 📊 Performance Expectations
 - **First build**: ~60s (building dependencies)
 - **Cached builds**: ~3s (using cached deps)  
-- **Sequential tests**: ~7.0s
-- **Parallel tests**: ~6.5s (13% improvement)
+- **Tests**: ~7.0s
 - **Full test suite**: ~30-60s total
 
 ## Integration with Claude Code
@@ -387,14 +358,14 @@ make test
 ### 🔄 Continuous Integration
 ```bash
 # Run before every commit
-make test-parallel && sh full_test_fixed.sh
+make test && sh full_test_fixed.sh
 
 # Security verification  
 python3 tests/test_security_cli.py
 python3 tests/test_command_injection_simple.py
 
 # Performance check
-time make test-parallel  # Should be ~6.5s
+time make test  # Should be ~7.0s
 ```
 
 ---

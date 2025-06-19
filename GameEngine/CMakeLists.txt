@@ -8,6 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # В CMakeLists.txt добавьте в начало:
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Find Python3 for running tests
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
 # Set global cache directory for dependencies
 set(GLOBAL_DEPS_CACHE "${CMAKE_SOURCE_DIR}/.deps_cache" CACHE PATH "Global dependencies cache directory")
 set(FETCHCONTENT_BASE_DIR "${GLOBAL_DEPS_CACHE}" CACHE PATH "FetchContent base directory")
@@ -154,22 +157,89 @@ endif()
 # Create projects directory in build directory
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/projects)
 
-# Add custom target for running tests (full version by default)
+# Include test discovery module
+include(${CMAKE_SOURCE_DIR}/cmake/TestDiscovery.cmake)
+
+# Discover all tests
+discover_all_tests(${CMAKE_SOURCE_DIR}/tests)
+
+# Create test runner script
+file(WRITE ${CMAKE_BINARY_DIR}/run_tests.cmake
+"# Auto-generated test runner
+set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+set(GAME_ENGINE ${CMAKE_BINARY_DIR}/game_engine)
+set(TEST_COUNT 0)
+set(PASSED_COUNT 0)
+set(FAILED_TESTS)
+
+# Run Python tests
+foreach(TEST_FILE ${ALL_PYTHON_TESTS})
+    math(EXPR TEST_COUNT \"\${TEST_COUNT} + 1\")
+    execute_process(
+        COMMAND \${PYTHON_EXECUTABLE} \${TEST_FILE}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        RESULT_VARIABLE TEST_RESULT
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+    if(TEST_RESULT EQUAL 0)
+        math(EXPR PASSED_COUNT \"\${PASSED_COUNT} + 1\")
+        message(\"✅ PASS: \${TEST_FILE}\")
+    else()
+        list(APPEND FAILED_TESTS \${TEST_FILE})
+        message(\"❌ FAIL: \${TEST_FILE}\")
+    endif()
+endforeach()
+
+# Run script tests  
+foreach(TEST_FILE ${ALL_SCRIPT_TESTS})
+    math(EXPR TEST_COUNT \"\${TEST_COUNT} + 1\")
+    execute_process(
+        COMMAND \${GAME_ENGINE} --script \${TEST_FILE}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        RESULT_VARIABLE TEST_RESULT
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+    if(TEST_RESULT EQUAL 0)
+        math(EXPR PASSED_COUNT \"\${PASSED_COUNT} + 1\")
+        message(\"✅ PASS: \${TEST_FILE}\")
+    else()
+        list(APPEND FAILED_TESTS \${TEST_FILE})
+        message(\"❌ FAIL: \${TEST_FILE}\")
+    endif()
+endforeach()
+
+# Summary
+message(\"\\n====== TEST SUMMARY ======\")
+message(\"Total tests: \${TEST_COUNT}\")
+message(\"Passed: \${PASSED_COUNT}\")
+message(\"Failed: \${TEST_COUNT} - \${PASSED_COUNT}\")
+
+if(FAILED_TESTS)
+    message(\"\\nFailed tests:\")
+    foreach(FAILED_TEST \${FAILED_TESTS})
+        message(\"  - \${FAILED_TEST}\")
+    endforeach()
+    message(FATAL_ERROR \"Some tests failed!\")
+endif()
+")
+
+# Add custom target for running tests
 add_custom_target(test
-    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests - including full builds..."
-    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py
+    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests..."
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/run_tests.cmake
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     DEPENDS game_engine
-    COMMENT "Running all tests including full builds"
+    COMMENT "Running all discovered tests"
 )
 
 # Add custom target for running tests without full builds
 add_custom_target(test-fast
-    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests - skipping full builds..."
-    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/run_all_tests.py --skip-full-build
+    COMMAND ${CMAKE_COMMAND} -E echo "Running GameEngine tests (fast mode)..."
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/run_tests.cmake
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    DEPENDS game_engine
-    COMMENT "Running tests without full builds"
+    COMMENT "Running tests without rebuild"
 )
 
 

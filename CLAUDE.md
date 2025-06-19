@@ -34,10 +34,14 @@ make -j8
 ./game_engine
 
 # CMake targets
-make test              # Run all tests
-make test-fast         # Run tests without full builds
+make test              # Run all Python and script tests
+make test-fast         # Run tests without rebuild
 make test-cpp          # Run C++ tests only
-make clean-tests       # Clean test projects
+make all-tests         # Run all tests (Python + Script + C++)
+make test-unit         # Run unit tests only
+make test-integration  # Run integration tests only
+make test-system       # Run system tests only
+make clean-tests       # Clean test output
 make clean-logs        # Remove log files
 make clean-all         # Full clean
 ```
@@ -46,13 +50,14 @@ make clean-all         # Full clean
 
 ```bash
 # Run all tests from build directory
-make test              # Run all tests (~7s)
+make test              # Run Python and script tests
+make test-cpp          # Run C++ tests with auto-compilation
+make all-tests         # Run complete test suite
 
-# Run specific test suites
-python3 ../tests/run_all_tests.py              # All Python tests
-python3 ../tests/run_all_tests.py --verbose    # Show real-time errors
-python3 ../tests/test_cli_basic.py             # Specific test
-./tests/compile_and_run_tests.sh               # C++ ResourceManager tests
+# Run tests by category
+make test-unit         # Unit tests only
+make test-integration  # Integration tests only
+make test-system       # System tests only
 
 # CLI testing
 ./game_engine --json --script ../tests/basic_cli_test.txt
@@ -70,9 +75,31 @@ grep -A 50 "TEST FAILED: test_name.py" test_log_*.log
 
 ## Testing System
 
-The test suite runs all tests sequentially for reliability:
+The test suite uses automatic test discovery from organized directories:
 
-### Test Categories:
+### Test Directory Structure:
+```
+tests/
+├── unit/              # Unit tests
+├── integration/       # Integration tests  
+├── system/           # System tests
+├── fixtures/         # Test data
+├── utils/           # Test utilities
+└── tools/           # Test tools
+```
+
+### 🔗 Related Test System Files:
+When modifying the test system, these files must be updated together:
+1. **CMakeLists.txt** - Test target definitions (make test, test-cpp, etc.)
+2. **cmake/TestDiscovery.cmake** - Automatic test discovery logic
+3. **tests/README.md** - Test documentation
+
+The test runner automatically finds:
+- Python tests: `test_*.py` files
+- C++ tests: `test_*.cpp` files  
+- Script tests: `test*.txt` or `*_test.txt` files
+
+### Test Categories (old system - being phased out):
 1. **LIGHTWEIGHT**: Fast unit tests, minimal resources
 2. **BUILD**: Build system tests, moderate resources
 3. **HEAVY**: Resource-intensive tests (memory, config stress)

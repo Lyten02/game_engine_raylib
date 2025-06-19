@@ -7,34 +7,131 @@
 *.swp
 *.swo
 *~
+
+# Operating system files
 .DS_Store
-
-# Log files anywhere in the project
-*.log
-logs/
-
-# Test executables
-test_threading_fix
-test_resource_manager_*
-!test_resource_manager_*.cpp
-!test_resource_manager_*.py
-
-# Build artifacts
-*.o
-*.a
-*.so
-*.dylib
-*.exe
-
-# macOS specific
 .AppleDouble
 .LSOverride
 Icon
 ._*
 .Spotlight-V100
 .Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.directory
+.Trash-*/
+
+# Log files
+*.log
+logs/
+test_log_*.log
+engine_*.log
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.lib
+*.exe
+*.pdb
+*.dSYM/
+
+# Build directories
+build/
+/build/
+cmake-build-*/
+out/
+/out/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+*.cmake
+!CMakeLists.txt
+!cmake/*.cmake
+Testing/
+
+# Package manager directories
+vcpkg_installed/
+conan/
+
+# User-specific files
+*.user
+*.userosscache
+*.suo
+*.sublime-project
+*.sublime-workspace
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+env/
+venv/
+.env
+
+# Documentation build
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# Game engine executable
+/game_engine
+/build/game_engine
+GameEngine/build/game_engine
+
+# Test files and directories
+tests/test_*
+!tests/test_*.cpp
+!tests/test_*.py
+!tests/test_*.txt
+test_plugin_*
+!test_plugin_*.cpp
+
+# Test generated/temporary files
+projects/
+output/
+scenes/
+GameEngine/tests/scenes/
+GameEngine/tests/temp_test_*.txt
+GameEngine/tests/templates/
+GameEngine/tests/config.json
+GameEngine/tests/scripts/
+GameEngine/tests/assets/
+GameEngine/tests/game_engine
+GameEngine/tests/test_projects/
+GameEngine/tests/test_results.json
+*.disabled
+
+# C++ test runner executable
+cpp_test_runner
+test_threading_fix
+test_resource_manager_*
+!test_resource_manager_*.cpp
+!test_resource_manager_*.py
 
 # Temporary files
 *.tmp
 *.temp
 .cache/
+*.bak
+*.backup
+
+# Assets (if large)
+assets/textures/large/
+assets/models/large/
+assets/sounds/large/
+
+# Global dependencies cache
+.deps_cache/

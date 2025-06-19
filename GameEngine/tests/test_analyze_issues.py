@@ -42,12 +42,12 @@ def analyze_scene_memory_test():
     """Analyze scene memory test for issues"""
     print("\n🔍 Analyzing scene memory safety test...")
     
+    issues = []  # Initialize issues at the beginning
+    
     py_file = "test_scene_memory_safety.py"
     if os.path.exists(py_file):
         with open(py_file, 'r') as f:
             content = f.read()
-            
-        issues = []
         
         # Check for project accumulation
         if "for i in range(10):" in content and "project.create" in content:

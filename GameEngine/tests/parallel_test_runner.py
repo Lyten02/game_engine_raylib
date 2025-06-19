@@ -327,6 +327,15 @@ class ParallelTestRunner:
         if len(tests) == 1:
             max_workers = 1  # Single test = single worker
         
+        # Check system load and reduce workers if needed
+        try:
+            load_avg = os.getloadavg()[0]  # 1-minute load average
+            if load_avg > 2.0:
+                max_workers = 1  # Force sequential if system is loaded
+                print(f"⚠️  High system load ({load_avg:.1f}), forcing sequential execution")
+        except:
+            pass  # getloadavg not available on all systems
+        
         print(f"\n🔄 Running {group_name} ({len(tests)} tests, {max_workers} workers)")
         
         # Prepare test info for workers

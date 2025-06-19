@@ -3,9 +3,15 @@
 Test categorization system for parallel execution
 """
 
+import sys
+import os
 from enum import Enum
 from typing import List, Dict, Set
 from pathlib import Path
+
+
+# Fix Python path for imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 class TestCategory(Enum):
     """Test categories based on resource usage and execution characteristics"""
@@ -19,6 +25,15 @@ class TestCategorizer:
     """Categorizes tests based on their characteristics"""
     
     def __init__(self):
+        # Define worker limits for each category (conservative for stability)
+        self.category_limits = {
+            TestCategory.LIGHTWEIGHT: 2,  # Light parallel execution
+            TestCategory.BUILD: 1,        # Sequential to avoid conflicts
+            TestCategory.HEAVY: 1,        # Always sequential
+            TestCategory.COMMAND: 2,      # Light parallel
+            TestCategory.SCRIPT: 1,       # Sequential for safety
+        }
+        
         self.categories = {
             TestCategory.LIGHTWEIGHT: {
                 # Fast tests with minimal resource usage
@@ -128,16 +143,30 @@ class TestCategorizer:
         """Get tests organized into parallel execution groups"""
         categorized = self.get_tests_by_category(test_dir, skip_full_build)
         
+        # Determine CPU count but limit to safe values
+        import multiprocessing
+        cpu_count = multiprocessing.cpu_count()
+        
+        # Use category limits for resource control
+        max_fast_workers = min(self.category_limits[TestCategory.LIGHTWEIGHT], cpu_count // 4)
+        max_build_workers = self.category_limits[TestCategory.BUILD]
+        max_command_workers = min(self.category_limits[TestCategory.COMMAND], cpu_count // 4)
+        
+        # Force sequential if system has low CPU count
+        if cpu_count < 4:
+            max_fast_workers = 1
+            max_command_workers = 1
+        
         return {
             "parallel_fast": {
                 "tests": categorized[TestCategory.LIGHTWEIGHT] + categorized[TestCategory.SCRIPT],
-                "max_workers": 4,
-                "description": "Fast parallel tests"
+                "max_workers": max_fast_workers,
+                "description": f"Fast parallel tests ({max_fast_workers} workers)"
             },
             "parallel_build": {
                 "tests": categorized[TestCategory.BUILD],
-                "max_workers": 2,
-                "description": "Build tests with coordination"
+                "max_workers": max_build_workers,
+                "description": "Build tests (sequential for stability)"
             },
             "sequential_heavy": {
                 "tests": categorized[TestCategory.HEAVY],
@@ -146,8 +175,8 @@ class TestCategorizer:
             },
             "commands": {
                 "tests": self.command_tests,
-                "max_workers": 4,
-                "description": "CLI command tests"
+                "max_workers": max_command_workers,
+                "description": f"CLI command tests ({max_command_workers} workers)"
             }
         }
     

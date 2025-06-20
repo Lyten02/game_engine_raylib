@@ -3,7 +3,7 @@
 #include <thread>
 #include <vector>
 #include <atomic>
-#include "../src/resources/resource_manager.h"
+#include "resources/resource_manager.h"
 
 int main() {
     std::cout << "=== ResourceManager Exception Safety Test (Minimal) ===" << std::endl;

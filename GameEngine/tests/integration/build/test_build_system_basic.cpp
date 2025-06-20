@@ -1,10 +1,10 @@
 #include <iostream>
 #include <memory>
 #include <cassert>
-#include "../src/build/build_system.h"
-#include "../src/build/async_build_system.h"
-#include "../src/build/build_config.h"
-#include "../src/project/project.h"
+#include "build/build_system.h"
+#include "build/async_build_system.h"
+#include "build/build_config.h"
+#include "project/project.h"
 #include <filesystem>
 
 using namespace GameEngine;

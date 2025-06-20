@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cassert>
-#include "../src/scripting/game_logic_interface.h"
-#include "../src/components/transform.h"
+#include "scripting/game_logic_interface.h"
+#include "components/transform.h"
 #include <entt/entity/registry.hpp>
 
 // Simple stub for spdlog
@@ -15,7 +15,7 @@ namespace spdlog {
     inline void error(const std::string& fmt, Args... args) { std::cerr << "[ERROR] " << fmt << std::endl; }
 }
 
-#include "../src/scripting/game_logic_manager.h"
+#include "scripting/game_logic_manager.h"
 
 // Test game logic implementation
 class TestGameLogic : public IGameLogic {

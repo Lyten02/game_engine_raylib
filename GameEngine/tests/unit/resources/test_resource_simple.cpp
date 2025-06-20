@@ -1,5 +1,5 @@
 #include <iostream>
-#include "../src/resources/resource_manager.h"
+#include "resources/resource_manager.h"
 
 int main() {
     // Test in headless mode

@@ -1,10 +1,10 @@
 #include <iostream>
 #include <vector>
-#include "../src/systems/render_system.h"
-#include "../src/render/sprite_batch.h"
-#include "../src/components/transform.h"
-#include "../src/components/sprite.h"
-#include "../src/resources/resource_manager.h"
+#include "systems/render_system.h"
+#include "render/sprite_batch.h"
+#include "components/transform.h"
+#include "components/sprite.h"
+#include "resources/resource_manager.h"
 #include <entt/entt.hpp>
 #include "raylib.h"
 

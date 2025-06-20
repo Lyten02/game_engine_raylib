@@ -1,4 +1,4 @@
-#include "../src/resources/resource_manager.h"
+#include "resources/resource_manager.h"
 #include <iostream>
 #include <thread>
 #include <vector>

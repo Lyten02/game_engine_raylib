@@ -2,8 +2,8 @@
 #include <fstream>
 #include <filesystem>
 #include <algorithm>
-#include "../src/packages/package_manager.h"
-#include "../src/packages/package.h"
+#include "packages/package_manager.h"
+#include "packages/package.h"
 
 // Test helper macros
 #define TEST_ASSERT(condition, message) \

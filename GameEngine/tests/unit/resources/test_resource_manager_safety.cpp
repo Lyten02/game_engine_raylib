@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <thread>
-#include "../src/resources/resource_manager.h"
+#include "resources/resource_manager.h"
 
 // Test that default texture is always valid
 void testDefaultTextureAlwaysValid() {

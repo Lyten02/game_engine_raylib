@@ -6,10 +6,10 @@
 #include <cassert>
 #include <filesystem>
 #include <fstream>
-#include "../src/build/async_build_system.h"
-#include "../src/build/build_system.h"
-#include "../src/project/project.h"
-#include "../src/utils/path_utils.h"
+#include "build/async_build_system.h"
+#include "build/build_system.h"
+#include "project/project.h"
+#include "utils/path_utils.h"
 #include <nlohmann/json.hpp>
 
 using namespace GameEngine;

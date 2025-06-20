@@ -6,10 +6,10 @@
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <raylib.h>
-#include "../src/packages/package_manager.h"
-#include "../src/console/console.h"
-#include "../src/console/command_processor.h"
-#include "../src/engine/command_registry.h"
+#include "packages/package_manager.h"
+#include "console/console.h"
+#include "console/command_processor.h"
+#include "engine/command_registry.h"
 
 // Test helper macros
 #define TEST_ASSERT(condition, message) \

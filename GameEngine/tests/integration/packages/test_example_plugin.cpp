@@ -1,7 +1,7 @@
 #include <iostream>
 #include <memory>
-#include "../src/plugins/plugin_interface.h"
-#include "../src/plugins/plugin_api.h"
+#include "plugins/plugin_interface.h"
+#include "plugins/plugin_api.h"
 
 // Example component that plugin provides
 struct ExampleComponent {

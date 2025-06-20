@@ -1,7 +1,7 @@
 #include <iostream>
 #include <entt/entt.hpp>
-#include "../src/packages/package_manager.h"
-#include "../src/packages/package_loader.h"
+#include "packages/package_manager.h"
+#include "packages/package_loader.h"
 #include "../packages/physics-2d/components/rigid_body.h"
 #include "../packages/physics-2d/components/box_collider.h"
 

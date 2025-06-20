@@ -1,8 +1,8 @@
 #include <iostream>
 #include <vector>
-#include "../src/render/sprite_batch.h"
-#include "../src/components/sprite.h"
-#include "../src/components/transform.h"
+#include "render/sprite_batch.h"
+#include "components/sprite.h"
+#include "components/transform.h"
 #include "raylib.h"
 #include "rlgl.h"
 

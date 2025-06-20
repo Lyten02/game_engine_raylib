@@ -2,7 +2,7 @@
 #include <fstream>
 #include <filesystem>
 #include <nlohmann/json.hpp>
-#include "../src/packages/package_manager.h"
+#include "packages/package_manager.h"
 
 // Test helper macros
 #define TEST_ASSERT(condition, message) \

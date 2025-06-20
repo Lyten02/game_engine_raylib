@@ -1,5 +1,5 @@
-#include "../src/build/async_build_system.h"
-#include "../src/project/project.h"
+#include "build/async_build_system.h"
+#include "project/project.h"
 #include <thread>
 #include <vector>
 #include <chrono>

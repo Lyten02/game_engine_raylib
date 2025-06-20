@@ -17,6 +17,10 @@ public:
                   const Vector2& position, const Color& tint);
     void end();
     void render();
+    void flush(); // Force render and clear sprites
+    
+    // Diagnostic methods for testing
+    const std::vector<SpriteData>& getVertexData() const;
     
 private:
     std::vector<SpriteData> sprites;

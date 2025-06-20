@@ -56,6 +56,7 @@ public:
     Texture2D& getDefaultTexture();
     
     void unloadAll();
+    void clearAll(); // Alias for unloadAll for backwards compatibility
     void unloadTexture(const std::string& name);
     void unloadSound(const std::string& name);
     

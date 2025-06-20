@@ -29,7 +29,7 @@ public:
         std::cout << "TestGameLogic initialized" << std::endl;
     }
     
-    void update(entt::registry& registry, float deltaTime) override {
+    void update(entt::registry& registry, float deltaTime, const InputState& input) override {
         updateCount++;
     }
     
@@ -72,9 +72,10 @@ void test_game_logic_manager() {
     assert(activeLogics[0] == "TestGameLogic");
     
     // Test update
-    manager.update(registry, 0.016f);
-    manager.update(registry, 0.016f);
-    manager.update(registry, 0.016f);
+    InputState input; // Empty input state for testing
+    manager.update(registry, 0.016f, input);
+    manager.update(registry, 0.016f, input);
+    manager.update(registry, 0.016f, input);
     
     // Test shutdown
     manager.shutdown();
@@ -93,7 +94,8 @@ void test_game_logic_interface() {
     assert(logic.isInitialized());
     
     // Test update
-    logic.update(registry, 0.016f);
+    InputState input; // Empty input state for testing
+    logic.update(registry, 0.016f, input);
     assert(logic.getUpdateCount() == 1);
     
     // Test name

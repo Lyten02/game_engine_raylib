@@ -10,8 +10,7 @@ def test_build_fast():
     """Test fast build functionality"""
     print("Testing fast build system...")
     
-    # Change to build directory
-    os.chdir(os.path.join(os.path.dirname(__file__), '../build'))
+    # We are already in the build directory when tests are run
     
     project_name = "BuildTestFast"
     
@@ -62,7 +61,7 @@ def test_build_fast():
     # Fast build
     print("6. Running fast build...")
     start_time = time.time()
-    result = subprocess.run(["./game_engine", "--headless", "--command", "project.build-fast"], 
+    result = subprocess.run(["./game_engine", "--headless", "--command", "project.build"], 
                           capture_output=True, text=True, timeout=30)
     elapsed = time.time() - start_time
     

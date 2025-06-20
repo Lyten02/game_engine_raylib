@@ -12,7 +12,12 @@ def test_engine_executable_name():
     print("Testing engine executable naming...")
     
     # Check if CMakeLists.txt contains correct executable name
-    with open('CMakeLists.txt', 'r') as f:
+    cmake_path = '../CMakeLists.txt'
+    if not os.path.exists(cmake_path):
+        print(f"✗ CMakeLists.txt not found at {cmake_path}")
+        return False
+        
+    with open(cmake_path, 'r') as f:
         content = f.read()
         
     # Test 1: Check if add_executable uses game_engine instead of game

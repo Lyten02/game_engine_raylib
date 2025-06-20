@@ -24,7 +24,7 @@ def test_command_injection():
     result = subprocess.run([
         "./game_engine", "--headless", "-c", 
         'project.create TestProject'
-    ], cwd="build", capture_output=True, text=True)
+    ], capture_output=True, text=True)
     print(f"   Result: {result.returncode}")
     
     # Create output directory and dummy executable
@@ -46,7 +46,7 @@ def test_command_injection():
     print("\n2. Running project normally...")
     result = subprocess.run([
         "./game_engine", "--headless", "-c", "project.run"
-    ], cwd="build", capture_output=True, text=True)
+    ], capture_output=True, text=True)
     print(f"   Exit code: {result.returncode}")
     print(f"   Output: {result.stdout[:100]}...")
     

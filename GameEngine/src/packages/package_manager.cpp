@@ -485,11 +485,11 @@ bool PackageManager::hasCircularDependency(const std::string& packageName) const
         visited.insert(pkg);
         recursionStack.insert(pkg);
         
-        // Check package dependencies (simplified - assume we can get dependencies somehow)
-        auto packageInfo = getPackageInfo(pkg);
-        if (packageInfo) {
-            for (const auto& [depName, depVersion] : packageInfo->dependencies) {
-                if (dfs(depName)) {
+        // Check package dependencies
+        auto package = getPackage(pkg);
+        if (package) {
+            for (const auto& dep : package->getDependencies()) {
+                if (dfs(dep.name)) {
                     return true;
                 }
             }
@@ -514,10 +514,10 @@ std::vector<std::string> PackageManager::getDependencyOrder(const std::string& p
         visited.insert(pkg);
         
         // First, recursively visit all dependencies
-        auto packageInfo = getPackageInfo(pkg);
-        if (packageInfo) {
-            for (const auto& [depName, depVersion] : packageInfo->dependencies) {
-                topologicalSort(depName);
+        auto package = getPackage(pkg);
+        if (package) {
+            for (const auto& dep : package->getDependencies()) {
+                topologicalSort(dep.name);
             }
         }
         

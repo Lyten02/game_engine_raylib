@@ -114,8 +114,8 @@ int main() {
         nullptr,  // buildSystem
         nullptr,  // asyncBuildSystem
         nullptr,  // playMode
-        nullptr,  // engine
-        packageManager.get()
+        packageManager.get(),  // packageManager
+        nullptr   // engine
     );
     
     // Test 1: package.list command

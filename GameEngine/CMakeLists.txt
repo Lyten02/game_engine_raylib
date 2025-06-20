@@ -278,8 +278,8 @@ set(INCLUDE_DIRS \"-I${CMAKE_SOURCE_DIR}/src;-I${GLOBAL_DEPS_CACHE}/raylib-src/s
 file(GLOB_RECURSE ENGINE_OBJECTS \"${CMAKE_BINARY_DIR}/CMakeFiles/game_engine.dir/*.o\")
 # Remove main.cpp.o to avoid multiple main() definitions
 list(FILTER ENGINE_OBJECTS EXCLUDE REGEX \"main.cpp.o\")
-string(REPLACE \";\" \";\" ENGINE_OBJECTS_STR \"\${ENGINE_OBJECTS}\")
-set(LIBRARIES \"-L${CMAKE_BINARY_DIR};-L${GLOBAL_DEPS_CACHE}/raylib-build/raylib;-L${GLOBAL_DEPS_CACHE}/spdlog-build;-lraylib;-lspdlog;\${ENGINE_OBJECTS_STR}\")
+list(JOIN ENGINE_OBJECTS \" \" ENGINE_OBJECTS_STR)
+set(LIBRARIES \"-L${CMAKE_BINARY_DIR};-L${GLOBAL_DEPS_CACHE}/raylib-build/raylib;-L${GLOBAL_DEPS_CACHE}/spdlog-build;-lraylib;-lspdlog\")
 set(FRAMEWORKS \"-framework;OpenGL;-framework;Cocoa;-framework;IOKit;-framework;CoreVideo;-framework;CoreFoundation\")
 
 set(CPP_TESTS ${ALL_CPP_TESTS})
@@ -293,7 +293,7 @@ foreach(TEST_FILE \${CPP_TESTS})
     
     message(\"Compiling \${TEST_NAME}...\")
     execute_process(
-        COMMAND \${CMAKE_CXX_COMPILER} \${CMAKE_CXX_FLAGS} \${INCLUDE_DIRS} \${TEST_FILE} -o \${TEST_EXECUTABLE} \${LIBRARIES} \${FRAMEWORKS}
+        COMMAND \${CMAKE_CXX_COMPILER} \${CMAKE_CXX_FLAGS} \${INCLUDE_DIRS} \${TEST_FILE} ${ENGINE_OBJECTS_STR} -o \${TEST_EXECUTABLE} \${LIBRARIES} \${FRAMEWORKS}
         RESULT_VARIABLE COMPILE_RESULT
         OUTPUT_VARIABLE COMPILE_OUTPUT
         ERROR_VARIABLE COMPILE_ERROR

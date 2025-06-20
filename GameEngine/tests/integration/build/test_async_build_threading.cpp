@@ -10,6 +10,7 @@
 #include "build/build_system.h"
 #include "project/project.h"
 #include "utils/path_utils.h"
+#include "utils/engine_paths.h"
 #include <nlohmann/json.hpp>
 
 using namespace GameEngine;

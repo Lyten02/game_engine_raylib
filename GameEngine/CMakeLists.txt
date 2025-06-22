@@ -28,10 +28,6 @@ FetchContent_Declare(
     raylib
     GIT_REPOSITORY https://github.com/raysan5/raylib.git
     GIT_TAG 5.0
-    PATCH_COMMAND ${CMAKE_COMMAND} 
-                  -DPATCH_DIR=${CMAKE_CURRENT_SOURCE_DIR}/patches
-                  -DSOURCE_DIR=<SOURCE_DIR>
-                  -P ${CMAKE_CURRENT_SOURCE_DIR}/patches/apply-patches.cmake
 )
 
 # Download and configure spdlog
@@ -62,8 +58,32 @@ FetchContent_Declare(
     GIT_TAG v3.11.3
 )
 
-# Make dependencies available
-FetchContent_MakeAvailable(raylib spdlog EnTT glm json)
+# Get raylib and patch it before making it available
+FetchContent_GetProperties(raylib)
+if(NOT raylib_POPULATED)
+    FetchContent_Populate(raylib)
+    
+    # Apply patch to fix CMake version
+    execute_process(
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/patches/raylib-cmake-fix.patch
+            ${raylib_SOURCE_DIR}/
+        WORKING_DIRECTORY ${raylib_SOURCE_DIR}
+    )
+    execute_process(
+        COMMAND patch -p1 -N -i raylib-cmake-fix.patch
+        WORKING_DIRECTORY ${raylib_SOURCE_DIR}
+        RESULT_VARIABLE PATCH_RESULT
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+    
+    # Add raylib manually
+    add_subdirectory(${raylib_SOURCE_DIR} ${raylib_BINARY_DIR})
+endif()
+
+# Make other dependencies available
+FetchContent_MakeAvailable(spdlog EnTT glm json)
 
 # Lua removed - using C++ game logic system instead
 

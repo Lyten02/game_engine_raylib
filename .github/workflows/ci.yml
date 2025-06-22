@@ -167,3 +167,80 @@ jobs:
           GameEngine/build/*.exe
           GameEngine/build/*.app
         if-no-files-found: error
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install code quality tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-format clang-tidy cppcheck
+        
+        # Show tool versions
+        echo "=== Tool versions ==="
+        clang-format --version
+        clang-tidy --version
+        cppcheck --version
+    
+    - name: Run clang-format check
+      run: |
+        echo "=== Checking code formatting with clang-format ==="
+        find GameEngine/src GameEngine/include -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | \
+        xargs clang-format --dry-run --Werror 2>&1 | tee format-check.log
+        
+        if [ -s format-check.log ]; then
+          echo "❌ Code formatting issues found!"
+          exit 1
+        else
+          echo "✅ Code formatting is correct"
+        fi
+    
+    - name: Run clang-tidy
+      run: |
+        echo "=== Running clang-tidy static analysis ==="
+        cd GameEngine
+        mkdir -p build-tidy
+        cd build-tidy
+        cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        
+        find ../src ../include -name "*.cpp" | \
+        xargs clang-tidy -p . --config-file=../../.clang-tidy 2>&1 | tee ../clang-tidy.log
+        
+        # Check for errors (not just warnings)
+        if grep -E "error:|warning:" ../clang-tidy.log; then
+          echo "⚠️ clang-tidy found issues"
+        fi
+    
+    - name: Run cppcheck
+      run: |
+        echo "=== Running cppcheck static analysis ==="
+        cppcheck --enable=warning,style,performance,portability \
+                 --suppress=missingInclude \
+                 --suppress=unknownMacro \
+                 --error-exitcode=1 \
+                 --inline-suppr \
+                 --quiet \
+                 GameEngine/src GameEngine/include 2>&1 | tee cppcheck.log
+        
+        if [ ${PIPESTATUS[0]} -ne 0 ]; then
+          echo "❌ cppcheck found issues!"
+          cat cppcheck.log
+          exit 1
+        else
+          echo "✅ cppcheck passed"
+        fi
+    
+    - name: Upload code quality reports
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: code-quality-reports
+        path: |
+          format-check.log
+          GameEngine/clang-tidy.log
+          cppcheck.log
+        if-no-files-found: ignore

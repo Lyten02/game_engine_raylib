@@ -63,20 +63,25 @@ FetchContent_GetProperties(raylib)
 if(NOT raylib_POPULATED)
     FetchContent_Populate(raylib)
     
-    # Apply patch to fix CMake version
-    execute_process(
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/patches/raylib-cmake-fix.patch
-            ${raylib_SOURCE_DIR}/
-        WORKING_DIRECTORY ${raylib_SOURCE_DIR}
-    )
-    execute_process(
-        COMMAND patch -p1 -N -i raylib-cmake-fix.patch
-        WORKING_DIRECTORY ${raylib_SOURCE_DIR}
-        RESULT_VARIABLE PATCH_RESULT
-        OUTPUT_QUIET
-        ERROR_QUIET
-    )
+    # Read the CMakeLists.txt file
+    file(READ ${raylib_SOURCE_DIR}/CMakeLists.txt RAYLIB_CMAKE_CONTENT)
+    
+    # Replace the cmake_minimum_required line
+    string(REGEX REPLACE "cmake_minimum_required\\(VERSION [0-9\\.]+\\)" 
+           "cmake_minimum_required(VERSION 3.11)" 
+           RAYLIB_CMAKE_CONTENT "${RAYLIB_CMAKE_CONTENT}")
+    
+    # Write the modified content back
+    file(WRITE ${raylib_SOURCE_DIR}/CMakeLists.txt "${RAYLIB_CMAKE_CONTENT}")
+    
+    # Also fix src/CMakeLists.txt if it exists
+    if(EXISTS ${raylib_SOURCE_DIR}/src/CMakeLists.txt)
+        file(READ ${raylib_SOURCE_DIR}/src/CMakeLists.txt RAYLIB_SRC_CMAKE_CONTENT)
+        string(REGEX REPLACE "cmake_minimum_required\\(VERSION [0-9\\.]+\\)" 
+               "cmake_minimum_required(VERSION 3.11)" 
+               RAYLIB_SRC_CMAKE_CONTENT "${RAYLIB_SRC_CMAKE_CONTENT}")
+        file(WRITE ${raylib_SOURCE_DIR}/src/CMakeLists.txt "${RAYLIB_SRC_CMAKE_CONTENT}")
+    endif()
     
     # Add raylib manually
     add_subdirectory(${raylib_SOURCE_DIR} ${raylib_BINARY_DIR})

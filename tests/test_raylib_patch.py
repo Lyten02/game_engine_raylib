@@ -51,21 +51,21 @@ def run_tests():
     except AssertionError as e:
         failed_tests.append(("test_patch_content_valid", str(e)))
     
-    # Test 4: CMakeLists.txt references the patch
+    # Test 4: CMakeLists.txt handles raylib CMake version
     try:
         cmake_file = Path("GameEngine/CMakeLists.txt")
         if cmake_file.exists():
             with open(cmake_file, 'r') as f:
                 content = f.read()
                 
-                assert "PATCH_COMMAND" in content or "patch" in content.lower(), \
-                    "CMakeLists.txt should have patch command"
+                assert "string(REGEX REPLACE" in content or "PATCH_COMMAND" in content, \
+                    "CMakeLists.txt should handle raylib CMake version"
                 
-                passed_tests.append("test_cmake_uses_patch")
+                passed_tests.append("test_cmake_handles_version")
         else:
-            failed_tests.append(("test_cmake_uses_patch", "CMakeLists.txt doesn't exist"))
+            failed_tests.append(("test_cmake_handles_version", "CMakeLists.txt doesn't exist"))
     except AssertionError as e:
-        failed_tests.append(("test_cmake_uses_patch", str(e)))
+        failed_tests.append(("test_cmake_handles_version", str(e)))
     
     # Print results
     print(f"\n{'='*60}")

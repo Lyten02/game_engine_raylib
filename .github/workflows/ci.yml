@@ -204,8 +204,8 @@ jobs:
           exit 1
         fi
     
-    - name: List test artifacts for debugging
-      if: always()
+    - name: List test artifacts for debugging (Unix)
+      if: always() && matrix.os != 'windows-latest'
       run: |
         echo "=== Searching for test artifacts ==="
         echo "In build directory:"
@@ -214,6 +214,21 @@ jobs:
         find GameEngine/tests -name "test_results.json" -o -name "test_log_*.log" 2>/dev/null || true
         echo -e "\nAll log files:"
         find GameEngine -name "*.log" -type f -mtime -1 2>/dev/null | head -20 || true
+      continue-on-error: true
+    
+    - name: List test artifacts for debugging (Windows)
+      if: always() && matrix.os == 'windows-latest'
+      shell: powershell
+      run: |
+        Write-Host "=== Searching for test artifacts ==="
+        Write-Host "In build directory:"
+        Get-ChildItem -Path "GameEngine\build" -Filter "test_results.json" -ErrorAction SilentlyContinue
+        Get-ChildItem -Path "GameEngine\build" -Filter "test_log_*.log" -ErrorAction SilentlyContinue
+        Write-Host "`nIn tests directory:"
+        Get-ChildItem -Path "GameEngine\tests" -Filter "test_results.json" -ErrorAction SilentlyContinue
+        Get-ChildItem -Path "GameEngine\tests" -Filter "test_log_*.log" -ErrorAction SilentlyContinue
+        Write-Host "`nAll log files:"
+        Get-ChildItem -Path "GameEngine" -Filter "*.log" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 20
       continue-on-error: true
     
     - name: Upload test results

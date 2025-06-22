@@ -202,6 +202,9 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/projects)
 # Include test discovery module
 include(${CMAKE_SOURCE_DIR}/cmake/TestDiscovery.cmake)
 
+# Include platform-specific configuration
+include(${CMAKE_SOURCE_DIR}/cmake/PlatformConfig.cmake)
+
 # Discover all tests
 discover_all_tests(${CMAKE_SOURCE_DIR}/tests)
 
@@ -315,13 +318,13 @@ add_custom_target(test-fast
 file(WRITE ${CMAKE_BINARY_DIR}/compile_cpp_tests.cmake
 "# Auto-generated C++ test compilation script
 set(CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER})
-set(CMAKE_CXX_FLAGS \"-std=c++20 -stdlib=libc++\")
-set(INCLUDE_DIRS \"-I${CMAKE_SOURCE_DIR}/src -I${GLOBAL_DEPS_CACHE}/raylib-src/src -I${GLOBAL_DEPS_CACHE}/spdlog-src/include -I${GLOBAL_DEPS_CACHE}/entt-src/src -I${GLOBAL_DEPS_CACHE}/glm-src -I${GLOBAL_DEPS_CACHE}/json-src/include -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk\")
-file(GLOB_RECURSE ENGINE_OBJECTS \"${CMAKE_BINARY_DIR}/CMakeFiles/game_engine.dir/*.o\")
-# Remove main.cpp.o to avoid multiple main() definitions
-list(FILTER ENGINE_OBJECTS EXCLUDE REGEX \"main.cpp.o\")
+set(CMAKE_CXX_FLAGS \"${TEST_CXX_FLAGS}\")
+set(INCLUDE_DIRS \"-I${CMAKE_SOURCE_DIR}/src -I${GLOBAL_DEPS_CACHE}/raylib-src/src -I${GLOBAL_DEPS_CACHE}/spdlog-src/include -I${GLOBAL_DEPS_CACHE}/entt-src/src -I${GLOBAL_DEPS_CACHE}/glm-src -I${GLOBAL_DEPS_CACHE}/json-src/include ${TEST_PLATFORM_INCLUDES}\")
+file(GLOB_RECURSE ENGINE_OBJECTS \"${CMAKE_BINARY_DIR}/CMakeFiles/game_engine.dir/*.${TEST_OBJ_EXT}\")
+# Remove main.cpp object file to avoid multiple main() definitions
+list(FILTER ENGINE_OBJECTS EXCLUDE REGEX \"main.cpp.${TEST_OBJ_EXT}\")
 set(LIBRARIES \"-L${CMAKE_BINARY_DIR} -L${GLOBAL_DEPS_CACHE}/raylib-build/raylib -L${GLOBAL_DEPS_CACHE}/spdlog-build -lraylib -lspdlog\")
-set(FRAMEWORKS \"-framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation\")
+set(FRAMEWORKS \"${TEST_FRAMEWORKS}\")
 
 set(CPP_TESTS ${ALL_CPP_TESTS})
 set(TEST_COUNT 0)

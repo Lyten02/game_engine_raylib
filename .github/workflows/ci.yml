@@ -170,7 +170,39 @@ jobs:
     - name: Run All Tests
       run: |
         cd GameEngine/build
-        make all-tests
+        
+        # Show environment info for debugging
+        echo "=== Build Environment ==="
+        echo "OS: ${{ matrix.os }}"
+        echo "CMAKE_GENERATOR: ${{ matrix.cmake_generator }}"
+        echo "PWD: $(pwd)"
+        echo "CMake version: $(cmake --version | head -1)"
+        
+        # Check if game_engine was built
+        if [ -f "game_engine" ] || [ -f "game_engine.exe" ]; then
+          echo "✅ game_engine executable found"
+        else
+          echo "❌ game_engine executable not found!"
+          ls -la
+          exit 1
+        fi
+        
+        # Run tests with better error handling
+        if ! make all-tests; then
+          echo "❌ Tests failed with exit code: $?"
+          
+          # Try to find and show log files
+          echo "\n=== Searching for log files ==="
+          find . -name "*.log" -type f -mtime -1 | head -10
+          
+          # Show test results if available
+          if [ -f "test_results.json" ]; then
+            echo "\n=== Test Results ==="
+            cat test_results.json || true
+          fi
+          
+          exit 1
+        fi
     
     - name: Upload test results
       if: always()

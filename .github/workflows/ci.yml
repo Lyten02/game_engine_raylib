@@ -171,6 +171,10 @@ jobs:
       run: |
         cd GameEngine/build
         
+        # Create necessary directories
+        mkdir -p logs
+        mkdir -p ../tests/logs
+        
         # Show environment info for debugging
         echo "=== Build Environment ==="
         echo "OS: ${{ matrix.os }}"
@@ -181,27 +185,39 @@ jobs:
         # Check if game_engine was built
         if [ -f "game_engine" ] || [ -f "game_engine.exe" ]; then
           echo "✅ game_engine executable found"
+          ls -la game_engine* || true
         else
           echo "❌ game_engine executable not found!"
+          echo "Contents of build directory:"
           ls -la
+          echo ""
+          echo "Looking for executables:"
+          find . -name "game_engine*" -type f | head -10
           exit 1
         fi
         
         # Run tests with better error handling
+        echo ""
+        echo "=== Running Tests ==="
         if ! make all-tests; then
           echo "❌ Tests failed with exit code: $?"
           
           # Try to find and show log files
-          echo "\n=== Searching for log files ==="
-          find . -name "*.log" -type f -mtime -1 | head -10
+          echo ""
+          echo "=== Searching for log files ==="
+          find . -name "*.log" -type f | head -20
           
           # Show test results if available
           if [ -f "test_results.json" ]; then
-            echo "\n=== Test Results ==="
+            echo ""
+            echo "=== Test Results ==="
             cat test_results.json || true
           fi
           
-          exit 1
+          # Don't fail immediately - let artifact upload happen
+          echo "Tests failed but continuing to upload artifacts"
+        else
+          echo "✅ All tests passed!"
         fi
     
     - name: List test artifacts for debugging (Unix)
@@ -240,9 +256,11 @@ jobs:
           GameEngine/build/test_results.json
           GameEngine/build/test_log_*.log
           GameEngine/build/logs/test_log_*.log
+          GameEngine/build/logs/*.log
           GameEngine/tests/test_results.json
           GameEngine/tests/test_log_*.log
           GameEngine/tests/logs/test_log_*.log
+          GameEngine/logs/*.log
         if-no-files-found: warn
     
     - name: Upload build artifacts

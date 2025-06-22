@@ -242,13 +242,16 @@ set(PASSED_COUNT 0)
 set(FAILED_TESTS)
 
 # Initialize test results
-string(TIMESTAMP TEST_TIMESTAMP "%Y-%m-%d %H:%M:%S")
-file(WRITE ${CMAKE_BINARY_DIR}/test_results.json "{\n  \"timestamp\": \"\${TEST_TIMESTAMP}\",\n  \"results\": [\n")
+string(TIMESTAMP TEST_TIMESTAMP \"%Y-%m-%d %H:%M:%S\")
+file(WRITE ${CMAKE_BINARY_DIR}/test_results.json \"{\\n  \\\"timestamp\\\": \\\"\${TEST_TIMESTAMP}\\\",\\n  \\\"results\\\": [\\n\")
+
+# Create log directory if it doesn't exist
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/logs)
 
 # Create log file
-string(TIMESTAMP LOG_TIMESTAMP "%Y%m%d_%H%M%S")
-set(TEST_LOG_FILE ${CMAKE_BINARY_DIR}/test_log_\${LOG_TIMESTAMP}.log)
-file(WRITE \${TEST_LOG_FILE} "Test run started at \${TEST_TIMESTAMP}\n\n")
+string(TIMESTAMP LOG_TIMESTAMP \"%Y%m%d_%H%M%S\")
+set(TEST_LOG_FILE ${CMAKE_BINARY_DIR}/logs/test_log_\${LOG_TIMESTAMP}.log)
+file(WRITE \${TEST_LOG_FILE} \"Test run started at \${TEST_TIMESTAMP}\\n\\n\")
 
 # Check for category filter
 set(TEST_CATEGORY \$ENV{TEST_CATEGORY})

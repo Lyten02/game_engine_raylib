@@ -59,6 +59,7 @@ _deps/
 *.cmake
 !CMakeLists.txt
 !cmake/*.cmake
+!GameEngine/patches/*.cmake
 Testing/
 
 # Package manager directories

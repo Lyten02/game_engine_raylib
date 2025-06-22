@@ -45,7 +45,8 @@
       "Bash(./install.sh)",
       "Bash(./*.sh)",
       "Bash(sh:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(gh run view:*)"
     ],
     "deny": [
       "Bash(git:add:*)",

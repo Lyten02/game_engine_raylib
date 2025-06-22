@@ -35,7 +35,7 @@ jobs:
             archive_cmd: powershell Compress-Archive -Path
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
     
@@ -103,7 +103,7 @@ jobs:
         Compress-Archive -Path * -DestinationPath "../../${{ matrix.archive_name }}-${{ steps.version.outputs.VERSION }}.${{ matrix.archive_ext }}"
     
     - name: Upload release artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.archive_name }}-${{ steps.version.outputs.VERSION }}
         path: GameEngine/${{ matrix.archive_name }}-${{ steps.version.outputs.VERSION }}.${{ matrix.archive_ext }}
@@ -117,14 +117,14 @@ jobs:
       contents: write
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Get version from tag
       id: version
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
     
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: ./artifacts
     

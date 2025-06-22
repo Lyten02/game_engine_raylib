@@ -273,14 +273,13 @@ add_custom_target(test-fast
 file(WRITE ${CMAKE_BINARY_DIR}/compile_cpp_tests.cmake
 "# Auto-generated C++ test compilation script
 set(CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER})
-set(CMAKE_CXX_FLAGS \"-std=c++20;-stdlib=libc++\")
-set(INCLUDE_DIRS \"-I${CMAKE_SOURCE_DIR}/src;-I${GLOBAL_DEPS_CACHE}/raylib-src/src;-I${GLOBAL_DEPS_CACHE}/spdlog-src/include;-I${GLOBAL_DEPS_CACHE}/entt-src/src;-I${GLOBAL_DEPS_CACHE}/glm-src;-I${GLOBAL_DEPS_CACHE}/json-src/include;-isysroot;/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk\")
+set(CMAKE_CXX_FLAGS \"-std=c++20 -stdlib=libc++\")
+set(INCLUDE_DIRS \"-I${CMAKE_SOURCE_DIR}/src -I${GLOBAL_DEPS_CACHE}/raylib-src/src -I${GLOBAL_DEPS_CACHE}/spdlog-src/include -I${GLOBAL_DEPS_CACHE}/entt-src/src -I${GLOBAL_DEPS_CACHE}/glm-src -I${GLOBAL_DEPS_CACHE}/json-src/include -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk\")
 file(GLOB_RECURSE ENGINE_OBJECTS \"${CMAKE_BINARY_DIR}/CMakeFiles/game_engine.dir/*.o\")
 # Remove main.cpp.o to avoid multiple main() definitions
 list(FILTER ENGINE_OBJECTS EXCLUDE REGEX \"main.cpp.o\")
-list(JOIN ENGINE_OBJECTS \" \" ENGINE_OBJECTS_STR)
-set(LIBRARIES \"-L${CMAKE_BINARY_DIR};-L${GLOBAL_DEPS_CACHE}/raylib-build/raylib;-L${GLOBAL_DEPS_CACHE}/spdlog-build;-lraylib;-lspdlog\")
-set(FRAMEWORKS \"-framework;OpenGL;-framework;Cocoa;-framework;IOKit;-framework;CoreVideo;-framework;CoreFoundation\")
+set(LIBRARIES \"-L${CMAKE_BINARY_DIR} -L${GLOBAL_DEPS_CACHE}/raylib-build/raylib -L${GLOBAL_DEPS_CACHE}/spdlog-build -lraylib -lspdlog\")
+set(FRAMEWORKS \"-framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation\")
 
 set(CPP_TESTS ${ALL_CPP_TESTS})
 set(TEST_COUNT 0)
@@ -292,8 +291,16 @@ foreach(TEST_FILE \${CPP_TESTS})
     set(TEST_EXECUTABLE ${CMAKE_BINARY_DIR}/\${TEST_NAME})
     
     message(\"Compiling \${TEST_NAME}...\")
+    
+    # Prepare compile command as a list
+    set(COMPILE_CMD \${CMAKE_CXX_COMPILER})
+    separate_arguments(CXX_FLAGS_LIST UNIX_COMMAND \"\${CMAKE_CXX_FLAGS}\")
+    separate_arguments(INCLUDE_DIRS_LIST UNIX_COMMAND \"\${INCLUDE_DIRS}\")
+    separate_arguments(LIBRARIES_LIST UNIX_COMMAND \"\${LIBRARIES}\")
+    separate_arguments(FRAMEWORKS_LIST UNIX_COMMAND \"\${FRAMEWORKS}\")
+    
     execute_process(
-        COMMAND \${CMAKE_CXX_COMPILER} \${CMAKE_CXX_FLAGS} \${INCLUDE_DIRS} \${TEST_FILE} ${ENGINE_OBJECTS_STR} -o \${TEST_EXECUTABLE} \${LIBRARIES} \${FRAMEWORKS}
+        COMMAND \${COMPILE_CMD} \${CXX_FLAGS_LIST} \${INCLUDE_DIRS_LIST} \${TEST_FILE} \${ENGINE_OBJECTS} -o \${TEST_EXECUTABLE} \${LIBRARIES_LIST} \${FRAMEWORKS_LIST}
         RESULT_VARIABLE COMPILE_RESULT
         OUTPUT_VARIABLE COMPILE_OUTPUT
         ERROR_VARIABLE COMPILE_ERROR

@@ -5,24 +5,24 @@
 class EmptyRenderSystem : public IRenderSystem {
 private:
     bool enabled = true;
-    
+
 public:
     void initialize() override {
         spdlog::info("EmptyRenderSystem: Initialized (no rendering will occur)");
     }
-    
+
     void update(entt::registry& registry) override {
         // Do nothing - no rendering components available
     }
-    
+
     void shutdown() override {
         spdlog::info("EmptyRenderSystem: Shutting down");
     }
-    
+
     bool isEnabled() const override {
         return enabled;
     }
-    
+
     void setEnabled(bool value) override {
         enabled = value;
     }

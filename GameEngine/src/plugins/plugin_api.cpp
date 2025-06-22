@@ -3,7 +3,6 @@
 #include <spdlog/spdlog.h>
 
 namespace GameEngine {
-
 void PluginAPI::registerComponent(const std::string& name, ComponentFactory factory) {
     spdlog::info("[PluginAPI] Registering component: {}", name);
     if (packageLoader) {

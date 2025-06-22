@@ -6,7 +6,6 @@
 #include <functional>
 
 namespace GameEngine {
-
 /**
  * Secure process execution utility that prevents command injection
  * by using exec-style APIs instead of shell interpretation

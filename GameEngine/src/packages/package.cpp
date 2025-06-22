@@ -1,7 +1,6 @@
 #include "package.h"
 
 namespace GameEngine {
-
 Package::Package(const std::string& name, const std::string& version)
     : name(name), version(version) {
 }

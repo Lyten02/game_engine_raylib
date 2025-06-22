@@ -15,10 +15,10 @@ int main(int argc, char* argv[]) {
         // Set thread priority for macOS to prevent throttling
         pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
 #endif
-    
+
     // Parse command line arguments FIRST
     auto args = CLIArgumentParser::parse(argc, argv);
-    
+
     // Configure logging based on command line arguments BEFORE any initialization
     if (!args.logLevel.empty()) {
         // Set specific log level if provided
@@ -38,31 +38,31 @@ int main(int argc, char* argv[]) {
         // Verbose mode - show debug logs
         spdlog::set_level(spdlog::level::debug);
     }
-    
+
     // Initialize engine paths AFTER logging is configured
     GameEngine::EnginePaths::initialize();
-    
+
     // Configure log limiting for test mode
     if (args.mode == CLIMode::BATCH || args.mode == CLIMode::SINGLE_COMMAND) {
         // In batch/test mode, limit repetitive messages
         GameEngine::LogLimiter::configure(3, 60, true);  // Max 3 messages per key per minute
     }
-    
+
     if (args.help) {
         CLIArgumentParser::printHelp();
         return 0;
     }
-    
+
     if (args.version) {
         CLIArgumentParser::printVersion();
         return 0;
     }
-    
+
     // If running in CLI mode
     if (args.mode != CLIMode::INTERACTIVE) {
         // Create CLI engine
         CLIEngine cliEngine;
-        
+
         if (!cliEngine.initialize(args.mode, args.headless, argc, argv)) {
             if (args.jsonOutput) {
                 std::cout << CLIResult::Failure("Failed to initialize engine").toJson().dump() << std::endl;
@@ -71,9 +71,9 @@ int main(int argc, char* argv[]) {
             }
             return 3;
         }
-        
+
         CLIResult result;
-        
+
         // Open project if specified
         if (!args.projectPath.empty()) {
             result = cliEngine.openProject(args.projectPath);
@@ -86,13 +86,13 @@ int main(int argc, char* argv[]) {
                 return 4;
             }
         }
-        
+
         // Execute command based on mode
         switch (args.mode) {
             case CLIMode::SINGLE_COMMAND:
                 result = cliEngine.executeCommand(args.command);
                 break;
-                
+
             case CLIMode::BATCH:
                 if (!args.scriptPath.empty()) {
                     result = cliEngine.executeBatch(args.scriptPath);
@@ -100,12 +100,12 @@ int main(int argc, char* argv[]) {
                     result = cliEngine.executeBatch(args.batchCommands);
                 }
                 break;
-                
+
             default:
                 result = CLIResult::Failure("Invalid CLI mode");
                 break;
         }
-        
+
         // Output result
         if (args.jsonOutput) {
             std::cout << result.toJson().dump() << std::endl;
@@ -116,33 +116,33 @@ int main(int argc, char* argv[]) {
                 std::cerr << "Error: " << result.error << std::endl;
             }
         }
-        
+
         return result.exitCode;
     }
-    
+
     // Otherwise run in interactive mode (original behavior)
     spdlog::info("Game Engine starting in interactive mode...");
-    
+
     // Create engine instance
     Engine engine;
-    
+
     // Set headless mode if specified
     if (args.headless) {
         engine.setHeadlessMode(true);
     }
-    
+
     // Initialize engine (loads config automatically)
     if (!engine.initialize()) {
         spdlog::error("Failed to initialize engine");
         return -1;
     }
-    
+
     // Run the engine
     engine.run();
-    
+
     // Shutdown
     engine.shutdown();
-    
+
     spdlog::info("Game Engine terminated");
     return 0;
 }

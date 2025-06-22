@@ -20,11 +20,11 @@
     REGISTER_COMMAND_GROUP(processor, name, [this](const std::vector<std::string>& args) { code; }, help, group)
 
 // Validate argument count
-inline bool validateArgCount(Console* console, const std::vector<std::string>& args, 
+inline bool validateArgCount(Console* console, const std::vector<std::string>& args,
                             size_t expected, const std::string& usage) {
     if (args.size() != expected) {
-        console->addLine("Invalid number of arguments. Expected " + 
-                        std::to_string(expected) + ", got " + 
+        console->addLine("Invalid number of arguments. Expected " +
+                        std::to_string(expected) + ", got " +
                         std::to_string(args.size()), RED);
         console->addLine("Usage: " + usage, GRAY);
         return false;
@@ -33,11 +33,11 @@ inline bool validateArgCount(Console* console, const std::vector<std::string>& a
 }
 
 // Validate minimum argument count
-inline bool validateMinArgCount(Console* console, const std::vector<std::string>& args, 
+inline bool validateMinArgCount(Console* console, const std::vector<std::string>& args,
                                size_t minimum, const std::string& usage) {
     if (args.size() < minimum) {
-        console->addLine("Too few arguments. Expected at least " + 
-                        std::to_string(minimum) + ", got " + 
+        console->addLine("Too few arguments. Expected at least " +
+                        std::to_string(minimum) + ", got " +
                         std::to_string(args.size()), RED);
         console->addLine("Usage: " + usage, GRAY);
         return false;

@@ -3,7 +3,6 @@
 #include <string>
 
 namespace GameEngine {
-
 // Forward declarations
 class PluginAPI;
 
@@ -23,13 +22,13 @@ struct PluginInfo {
 class IPlugin {
 public:
     virtual ~IPlugin() = default;
-    
+
     // Called when plugin is loaded
     virtual bool onLoad(PluginAPI* api) = 0;
-    
+
     // Called when plugin is unloaded
     virtual void onUnload() = 0;
-    
+
     // Get plugin information
     virtual PluginInfo getInfo() const = 0;
 };
@@ -38,10 +37,10 @@ public:
 extern "C" {
     // Create plugin instance
     typedef IPlugin* (*CreatePluginFunc)();
-    
+
     // Destroy plugin instance
     typedef void (*DestroyPluginFunc)(IPlugin*);
-    
+
     // Get API version
     typedef int (*GetPluginAPIVersionFunc)();
 }

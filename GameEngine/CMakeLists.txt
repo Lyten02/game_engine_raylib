@@ -363,7 +363,11 @@ set(INCLUDE_DIRS \"-I${CMAKE_SOURCE_DIR}/src -I${GLOBAL_DEPS_CACHE}/raylib-src/s
 file(GLOB_RECURSE ENGINE_OBJECTS \"${CMAKE_BINARY_DIR}/CMakeFiles/game_engine.dir/*.${TEST_OBJ_EXT}\")
 # Remove main.cpp object file to avoid multiple main() definitions
 list(FILTER ENGINE_OBJECTS EXCLUDE REGEX \"main.cpp.${TEST_OBJ_EXT}\")
-set(LIBRARIES \"-L${CMAKE_BINARY_DIR} -L${GLOBAL_DEPS_CACHE}/raylib-build/raylib -L${GLOBAL_DEPS_CACHE}/spdlog-build -lraylib -lspdlog\")
+if(WIN32)
+    set(LIBRARIES \"-L${CMAKE_BINARY_DIR} -L${GLOBAL_DEPS_CACHE}/raylib-build/raylib -L${GLOBAL_DEPS_CACHE}/spdlog-build -lraylib -lspdlog -lstdc++ -lm\")
+else()
+    set(LIBRARIES \"-L${CMAKE_BINARY_DIR} -L${GLOBAL_DEPS_CACHE}/raylib-build/raylib -L${GLOBAL_DEPS_CACHE}/spdlog-build -lraylib -lspdlog\")
+endif()
 set(FRAMEWORKS \"${TEST_FRAMEWORKS}\")
 
 set(CPP_TESTS ${ALL_CPP_TESTS})

@@ -7,7 +7,6 @@
 #include <spdlog/fmt/fmt.h>
 
 namespace GameEngine {
-
 /**
  * Utility class to limit repetitive log messages
  * Prevents spam by tracking message frequency and suppressing duplicates

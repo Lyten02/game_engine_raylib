@@ -10,6 +10,7 @@
 #include <sstream>
 #include <cstdlib>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 namespace GameEngine {
 bool BuildSystem::buildProject(Project* project, const std::string& buildConfig) {

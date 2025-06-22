@@ -10,11 +10,9 @@
 #include <spdlog/spdlog.h>
 
 namespace GameEngine {
-
-void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Console* console, 
+void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Console* console,
                                            ProjectManager* projectManager, std::function<Scene*()> getScene, Engine* engine) {
-    // project.create command
-    {
+    // project.create command {
         std::vector<CommandParameter> projectParams = {{"name", "Name of the new project", true}};
         processor->registerCommand("project.create",
         [console, projectManager, getScene, engine](const std::vector<std::string>& args) {
@@ -22,24 +20,24 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
                 console->addLine("Usage: project.create <name>", RED);
                 return;
             }
-            
+
             // Check if project already exists
             if (projectManager->projectExists(args[0])) {
                 console->addLine("Project already exists: " + args[0], YELLOW);
                 console->addLine("Opening existing project...", GRAY);
-                
+
                 // Open the existing project
                 if (projectManager->openProject(args[0])) {
                     console->addLine("Project opened: " + args[0], GREEN);
-                    
+
                     // Destroy current scene
                     if (getScene()) {
                         engine->destroyScene();
                     }
-                    
+
                     // Create new scene
                     engine->createScene();
-                    
+
                     // Try to load the main scene
                     std::string mainScenePath = projectManager->getCurrentProject()->getPath() + "/scenes/main_scene.json";
                     if (std::filesystem::exists(mainScenePath)) {
@@ -53,7 +51,7 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
                 }
                 return;
             }
-            
+
             // Create new project if it doesn't exist
             if (projectManager->createProject(args[0])) {
                 console->addLine("Project created: " + args[0], GREEN);
@@ -64,9 +62,8 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
         }, "Create a new project or open if it already exists", "Project",
         "project.create <name>", projectParams);
     }
-    
-    // project.open command
-    {
+
+    // project.open command {
         std::vector<CommandParameter> openParams = {
             {"name", "Name of the project to open", true, [this]() { return getProjectList(); }}
         };
@@ -76,18 +73,18 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
                 console->addLine("Usage: project.open <name>", RED);
                 return;
             }
-            
+
             if (projectManager->openProject(args[0])) {
                 console->addLine("Project opened: " + args[0], GREEN);
-                
+
                 // Destroy current scene
                 if (getScene()) {
                     engine->destroyScene();
                 }
-                
+
                 // Create new scene
                 engine->createScene();
-                
+
                 // Try to load the main scene
                 std::string mainScenePath = projectManager->getCurrentProject()->getPath() + "/scenes/main_scene.json";
                 if (std::filesystem::exists(mainScenePath)) {
@@ -102,7 +99,7 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
         }, "Open an existing project", "Project",
         "project.open <name>", openParams);
     }
-    
+
     // project.close command
     processor->registerCommand("project.close",
         [console, projectManager, getScene, engine](const std::vector<std::string>& args) {
@@ -110,23 +107,23 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
                 console->addLine("No project is currently open", YELLOW);
                 return;
             }
-            
+
             std::string projectName = projectManager->getCurrentProject()->getName();
-            
+
             // Destroy current scene
             if (getScene()) {
                 engine->destroyScene();
             }
-            
+
             projectManager->closeProject();
             console->addLine("Project closed: " + projectName, GREEN);
         }, "Close the current project", "Project");
-    
+
     // project.list command
     processor->registerCommand("project.list",
         [console, this](const std::vector<std::string>& args) {
             std::vector<std::string> projects = getProjectList();
-            
+
             if (projects.empty()) {
                 console->addLine("No projects found", YELLOW);
                 console->addLine("Use 'project.create <name>' to create a new project", GRAY);
@@ -137,7 +134,7 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
                 }
             }
         }, "List all projects", "Project");
-    
+
     // project.info command
     processor->registerCommand("project.info",
         [console, projectManager](const std::vector<std::string>& args) {
@@ -145,7 +142,7 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
                 console->addLine("No project is currently open", YELLOW);
                 return;
             }
-            
+
             auto project = projectManager->getCurrentProject();
             console->addLine("Project Information:", YELLOW);
             console->addLine("  Name: " + project->getName(), WHITE);
@@ -153,9 +150,8 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
             console->addLine("  Build Path: output/" + project->getName(), WHITE);
             console->addLine("  Assets Path: " + project->getPath() + "/assets", WHITE);
         }, "Show current project information", "Project");
-    
-    // project.rename command
-    {
+
+    // project.rename command {
         std::vector<CommandParameter> renameParams = {{"new_name", "New project name", true}};
         processor->registerCommand("project.rename",
         [console, projectManager](const std::vector<std::string>& args) {
@@ -163,12 +159,12 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
                 console->addLine("No project is currently open", YELLOW);
                 return;
             }
-            
+
             if (args.empty()) {
                 console->addLine("Usage: project.rename <new_name>", RED);
                 return;
             }
-            
+
             std::string oldName = projectManager->getCurrentProject()->getName();
             // Rename not implemented
             console->addLine("Project rename not implemented yet", YELLOW);
@@ -180,9 +176,8 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
         }, "Rename the current project", "Project",
         "project.rename <new_name>", renameParams);
     }
-    
-    // project.delete command
-    {
+
+    // project.delete command {
         std::vector<CommandParameter> deleteParams = {
             {"name", "Name of the project to delete", true, [this]() { return getProjectList(); }}
         };
@@ -193,14 +188,14 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
                 console->addLine("WARNING: This will permanently delete the project and all its files!", YELLOW);
                 return;
             }
-            
+
             // Prevent deleting current project
-            if (projectManager->getCurrentProject() && 
+            if (projectManager->getCurrentProject() &&
                 projectManager->getCurrentProject()->getName() == args[0]) {
                 console->addLine("Cannot delete the currently open project. Close it first.", RED);
                 return;
             }
-            
+
             // Delete not implemented, do it manually
             std::string projectPath = "projects/" + args[0];
             if (std::filesystem::exists(projectPath)) {
@@ -221,7 +216,7 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
         }, "Delete a project", "Project",
         "project.delete <name>", deleteParams);
     }
-    
+
     // scene.list command
     processor->registerCommand("scene.list",
         [console, this, projectManager](const std::vector<std::string>& args) {
@@ -229,9 +224,9 @@ void CommandRegistry::registerProjectCommands(CommandProcessor* processor, Conso
                 console->addLine("No project is currently open", YELLOW);
                 return;
             }
-            
+
             std::vector<std::string> scenes = getSceneList(projectManager);
-            
+
             if (scenes.empty()) {
                 console->addLine("No scenes found in current project", YELLOW);
                 console->addLine("Use 'scene.save <name>' to save the current scene", GRAY);

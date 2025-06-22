@@ -6,7 +6,6 @@
 #include <string>
 
 namespace GameEngine {
-
 // Plugin manager interface
 class IPluginManager {
 public:
@@ -17,7 +16,7 @@ public:
 // Plugin initialization function type
 using PluginInitFunction = void(*)(IPluginManager* manager);
 
-// Game logic plugin info structure  
+// Game logic plugin info structure
 struct GameLogicPluginInfo {
     std::string name;
     std::string version;
@@ -39,7 +38,7 @@ public:
 extern "C" {
     // Every plugin must export this function
     void initializePlugin(GameEngine::IPluginManager* manager);
-    
+
     // Optional: plugin info functions (return individual components to avoid C linkage issues)
     const char* getPluginName();
     const char* getPluginVersion();

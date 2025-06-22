@@ -14,10 +14,8 @@
 #include <filesystem>
 
 namespace GameEngine {
-
 void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene, ProjectManager* projectManager) {
-    // scene.create command
-    {
+    // scene.create command {
         std::vector<CommandParameter> createParams = {
             {"name", "Name of the scene (optional)", false}
         };
@@ -28,10 +26,10 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
                 console->addLine("No active scene to replace", RED);
                 return;
             }
-            
+
             // Clear current scene
             scene->registry.clear();
-            
+
             if (!args.empty()) {
                 console->addLine("New scene created: " + args[0], GREEN);
                 console->addLine("Use 'scene.save " + args[0] + "' to save it", GRAY);
@@ -40,9 +38,8 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
             }
         }, "Create a new empty scene", "Scene", "scene.create [name]", createParams);
     }
-    
-    // scene.save command
-    {
+
+    // scene.save command {
         std::vector<CommandParameter> saveParams = {
             {"filename", "Scene filename (without extension)", true}
         };
@@ -53,21 +50,21 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
                 console->addLine("No active scene to save", RED);
                 return;
             }
-            
+
             if (args.empty()) {
                 console->addLine("Usage: scene.save <filename>", RED);
                 return;
             }
-            
+
             if (!projectManager || !projectManager->getCurrentProject()) {
                 console->addLine("No project open. Use 'project.open' first.", RED);
                 return;
             }
-            
+
             // Create scenes directory in project if it doesn't exist
             std::string scenesDir = projectManager->getCurrentProject()->getPath() + "/scenes";
             std::filesystem::create_directories(scenesDir);
-            
+
             std::string filename = scenesDir + "/" + args[0] + ".json";
             SceneSerializer serializer;
             if (serializer.saveScene(scene, filename)) {
@@ -77,9 +74,8 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
             }
         }, "Save current scene to file", "Scene", "", saveParams);
     }
-    
-    // scene.load command
-    {
+
+    // scene.load command {
         std::vector<CommandParameter> loadParams = {
             {"filename", "Scene filename (without extension)", true}
         };
@@ -90,17 +86,17 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
                 console->addLine("No active scene", RED);
                 return;
             }
-            
+
             if (args.empty()) {
                 console->addLine("Usage: scene.load <filename>", RED);
                 return;
             }
-            
+
             if (!projectManager || !projectManager->getCurrentProject()) {
                 console->addLine("No project open. Use 'project.open' first.", RED);
                 return;
             }
-            
+
             std::string filename = projectManager->getCurrentProject()->getPath() + "/scenes/" + args[0] + ".json";
             SceneSerializer serializer;
             if (serializer.loadScene(scene, filename)) {
@@ -110,7 +106,7 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
             }
         }, "Load scene from file", "Scene", "", loadParams);
     }
-    
+
     // scene.info command
     processor->registerCommand("scene.info",
         [console, getScene](const std::vector<std::string>& args) {
@@ -119,7 +115,7 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
                 console->addLine("No active scene", RED);
                 return;
             }
-            
+
             auto& registry = scene->registry;
             size_t entityCount = 0;
             // Count entities manually
@@ -128,20 +124,20 @@ void CommandRegistry::registerSceneCommands(CommandProcessor* processor, Console
             for (auto entity : view) {
                 entityCount++;
             }
-            
+
             std::stringstream ss;
             ss << "Scene Information:\n";
             ss << "  Total entities: " << entityCount << "\n";
             // Component counting removed - components are now plugin-based
             // TODO: Add dynamic component statistics via plugin API
-            
+
             console->addLine(ss.str(), YELLOW);
         }, "Display current scene information", "Scene");
 }
 
 void CommandRegistry::registerScriptCommands(CommandProcessor* processor, Console* console, ScriptManager* scriptManager) {
     if (!scriptManager) return;
-    
+
     // script.run command
     processor->registerCommand("script.run",
         [console, scriptManager](const std::vector<std::string>& args) {
@@ -149,11 +145,11 @@ void CommandRegistry::registerScriptCommands(CommandProcessor* processor, Consol
                 console->addLine("Usage: script.run <filename>", RED);
                 return;
             }
-            
+
             // Script loading not implemented yet
             console->addLine("Script loading not implemented yet", YELLOW);
         }, "Run a Lua script", "Script");
-    
+
     // script.reload command
     processor->registerCommand("script.reload",
         [console, scriptManager](const std::vector<std::string>& args) {
@@ -162,13 +158,13 @@ void CommandRegistry::registerScriptCommands(CommandProcessor* processor, Consol
                 console->addLine("No script currently loaded", RED);
                 return;
             }
-            
+
             console->addLine("Script reload not implemented yet", YELLOW);
         }, "Reload the current script", "Script");
 }
 
-void CommandRegistry::registerPlayModeCommands(CommandProcessor* processor, Console* console, 
-                                             std::function<Scene*()> getScene, ProjectManager* projectManager, 
+void CommandRegistry::registerPlayModeCommands(CommandProcessor* processor, Console* console,
+                                             std::function<Scene*()> getScene, ProjectManager* projectManager,
                                              PlayMode* playMode) {
     // play command
     processor->registerCommand("play",
@@ -177,7 +173,7 @@ void CommandRegistry::registerPlayModeCommands(CommandProcessor* processor, Cons
                 console->addLine("No active project to play", RED);
                 return;
             }
-            
+
             // Save current scene if modified
             Scene* scene = getScene();
             if (scene) {
@@ -187,14 +183,14 @@ void CommandRegistry::registerPlayModeCommands(CommandProcessor* processor, Cons
                     console->addLine("Scene saved before play mode", GRAY);
                 }
             }
-            
+
             if (playMode->start(scene, projectManager->getCurrentProject())) {
                 console->addLine("Play mode started", GREEN);
             } else {
                 console->addLine("Failed to start play mode", RED);
             }
         }, "Start play mode", "Play");
-    
+
     // stop command
     processor->registerCommand("stop",
         [console, playMode](const std::vector<std::string>& args) {
@@ -202,11 +198,11 @@ void CommandRegistry::registerPlayModeCommands(CommandProcessor* processor, Cons
                 console->addLine("Play mode is not running", YELLOW);
                 return;
             }
-            
+
             playMode->stop();
             console->addLine("Play mode stopped", GREEN);
         }, "Stop play mode", "Play");
-    
+
     // play.status command
     processor->registerCommand("play.status",
         [console, playMode](const std::vector<std::string>& args) {
@@ -232,15 +228,15 @@ public:
     std::string getName() const override { return "ExampleGameLogic"; }
 };
 
-void CommandRegistry::registerGameLogicCommands(CommandProcessor* processor, Console* console, 
+void CommandRegistry::registerGameLogicCommands(CommandProcessor* processor, Console* console,
                                               GameLogicManager* gameLogicManager, std::function<Scene*()> getScene) {
     if (!gameLogicManager) return;
-    
+
     // logic.list command
     processor->registerCommand("logic.list",
         [console, gameLogicManager](const std::vector<std::string>& args) {
             auto activeLogics = gameLogicManager->getActiveLogics();
-            
+
             if (activeLogics.empty()) {
                 console->addLine("No active game logics", YELLOW);
             } else {
@@ -250,9 +246,8 @@ void CommandRegistry::registerGameLogicCommands(CommandProcessor* processor, Con
                 }
             }
         }, "List active game logics", "GameLogic");
-    
-    // logic.create command
-    {
+
+    // logic.create command {
         std::vector<CommandParameter> createParams = {
             {"name", "Name of the game logic to create", true}
         };
@@ -262,13 +257,13 @@ void CommandRegistry::registerGameLogicCommands(CommandProcessor* processor, Con
                     console->addLine("Usage: logic.create <name>", RED);
                     return;
                 }
-                
+
                 Scene* scene = getScene();
                 if (!scene) {
                     console->addLine("No active scene for game logic", RED);
                     return;
                 }
-                
+
                 if (gameLogicManager->createLogic(args[0], scene->registry)) {
                     console->addLine("Created game logic: " + args[0], GREEN);
                 } else {
@@ -277,9 +272,8 @@ void CommandRegistry::registerGameLogicCommands(CommandProcessor* processor, Con
                 }
             }, "Create a new game logic instance", "GameLogic", "", createParams);
     }
-    
-    // logic.remove command
-    {
+
+    // logic.remove command {
         std::vector<CommandParameter> removeParams = {
             {"name", "Name of the game logic to remove", true}
         };
@@ -289,7 +283,7 @@ void CommandRegistry::registerGameLogicCommands(CommandProcessor* processor, Con
                     console->addLine("Usage: logic.remove <name>", RED);
                     return;
                 }
-                
+
                 if (gameLogicManager->removeLogic(args[0])) {
                     console->addLine("Removed game logic: " + args[0], GREEN);
                 } else {
@@ -298,14 +292,14 @@ void CommandRegistry::registerGameLogicCommands(CommandProcessor* processor, Con
                 }
             }, "Remove a game logic instance", "GameLogic", "", removeParams);
     }
-    
+
     // logic.clear command
     processor->registerCommand("logic.clear",
         [console, gameLogicManager](const std::vector<std::string>& args) {
             gameLogicManager->clearLogics();
             console->addLine("All game logics cleared", GREEN);
         }, "Remove all active game logics", "GameLogic");
-    
+
     // logic.register command - Example registration
     processor->registerCommand("logic.register.example",
         [console, gameLogicManager](const std::vector<std::string>& args) {

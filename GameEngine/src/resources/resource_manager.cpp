@@ -22,7 +22,7 @@ void ResourceManager::createDummyTexture() {
     defaultTexture->height = 64;
     defaultTexture->mipmaps = 1;
     defaultTexture->format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
-    
+
     // Log only once to avoid spam
     static std::atomic<bool> loggedOnce{false};
     if (!silentMode.load() && !loggedOnce.exchange(true)) {
@@ -37,19 +37,19 @@ void ResourceManager::createDummyTexture() {
 void ResourceManager::createRealTexture() {
     const int size = 64;
     const int checkSize = 8;
-    
+
     // Generate checkerboard image
     Image img = GenImageChecked(size, size, checkSize, checkSize, MAGENTA, BLACK);
-    
+
     // RAII scope guard to ensure image cleanup
     struct ImageGuard {
         Image& img;
         ~ImageGuard() { UnloadImage(img); }
     } imageGuard{img};
-    
+
     // Create texture from image
     defaultTexture = std::make_unique<Texture2D>(LoadTextureFromImage(img));
-    
+
     if (!silentMode.load()) {
         spdlog::info("[ResourceManager] Created default texture (64x64 pink-black checkerboard)");
     }
@@ -63,7 +63,7 @@ void ResourceManager::createEmergencyFallbackTexture() noexcept {
         defaultTexture->height = 64;
         defaultTexture->mipmaps = 1;
         defaultTexture->format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
-        
+
         if (!silentMode.load()) {
             spdlog::warn("[ResourceManager] Using emergency fallback texture");
         }
@@ -96,7 +96,7 @@ void ResourceManager::createDefaultTextureThreadSafe() {
         spdlog::error("[ResourceManager] Unexpected error creating default texture");
         createEmergencyFallbackTexture();
     }
-    
+
     // Post-condition: defaultTexture is always valid
     if (!defaultTexture) {
         spdlog::critical("[ResourceManager] Default texture is null after initialization - critical system error");
@@ -107,21 +107,21 @@ void ResourceManager::createDefaultTextureThreadSafe() {
 Texture2D& ResourceManager::getDefaultTexture() {
     // Double-checked locking pattern for thread-safe lazy initialization
     // This pattern is safe on all architectures when using proper memory ordering
-    
+
     // First check with acquire semantics - ensures we see all writes from the initialization
     // This is the fast path that avoids locking after initialization
     if (!defaultTextureInitialized.load(std::memory_order_acquire)) {
         // Take the mutex to ensure only one thread initializes
         std::lock_guard<std::mutex> lock(defaultTextureMutex);
-        
+
         // Double-check if initialization was attempted to prevent repeated exceptions
         if (!defaultTextureInitAttempted.load(std::memory_order_relaxed)) {
             // Mark that we've attempted initialization
             defaultTextureInitAttempted.store(true, std::memory_order_relaxed);
-            
+
             try {
                 createDefaultTextureThreadSafe();
-                
+
                 // Only mark as initialized if successful
                 // Store with release semantics - ensures all initialization writes are visible
                 // before other threads see defaultTextureInitialized as true
@@ -132,18 +132,18 @@ Texture2D& ResourceManager::getDefaultTexture() {
             }
         }
     }
-    
+
     // Memory ordering guarantees:
     // - If we see defaultTextureInitialized == true (via acquire), we're guaranteed to see
     //   the fully initialized defaultTexture (via the release store)
     // - This works correctly on weak memory models like ARM without additional barriers
-    
+
     // Emergency safety check - should never happen with proper initialization
     if (!defaultTexture) {
         spdlog::error("[ResourceManager] Default texture is null after initialization - critical error");
         throw std::runtime_error("[ResourceManager] Default texture initialization failed");
     }
-    
+
     return *defaultTexture;
 }
 
@@ -154,22 +154,21 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
         if (!silentMode.load()) {
             GameEngine::LogLimiter::info(
                 "headless_mode_texture",
-                "[ResourceManager] Headless mode: using dummy texture for '{}'", 
+                "[ResourceManager] Headless mode: using dummy texture for '{}'",
                 name
             );
         }
         return &getDefaultTexture();
     }
-    
-    // Thread-safe check if already loaded (read lock)
-    {
+
+    // Thread-safe check if already loaded (read lock) {
         std::shared_lock<std::shared_mutex> lock(resourceMutex);
         auto it = textures.find(name);
         if (it != textures.end()) {
             if (!silentMode.load()) {
                 GameEngine::LogLimiter::info(
                     "texture_already_loaded",
-                    "[ResourceManager] Texture '{}' already loaded.", 
+                    "[ResourceManager] Texture '{}' already loaded.",
                     name
                 );
             }
@@ -183,7 +182,7 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
         if (!silentMode.load()) {
             GameEngine::LogLimiter::info(
                 "raylib_not_initialized_texture",
-                "[ResourceManager] RayLib not initialized: using default texture for '{}'", 
+                "[ResourceManager] RayLib not initialized: using default texture for '{}'",
                 name
             );
         }
@@ -196,7 +195,7 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
         if (!silentMode.load()) {
             GameEngine::LogLimiter::warn(
                 "texture_file_not_found",
-                "[ResourceManager] Texture file not found: {} - using default texture for '{}'", 
+                "[ResourceManager] Texture file not found: {} - using default texture for '{}'",
                 path, name
             );
         }
@@ -209,17 +208,16 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
         if (!silentMode.load()) {
             GameEngine::LogLimiter::warn(
                 "texture_load_failed",
-                "[ResourceManager] Failed to load texture: {} - using default texture for '{}'", 
+                "[ResourceManager] Failed to load texture: {} - using default texture for '{}'",
                 path, name
             );
         }
         return &getDefaultTexture();
     }
 
-    // Store texture with double-check pattern (write lock)
-    {
+    // Store texture with double-check pattern (write lock) {
         std::unique_lock<std::shared_mutex> lock(resourceMutex);
-        
+
         // Double-check: another thread might have loaded it while we were loading
         auto it = textures.find(name);
         if (it != textures.end()) {
@@ -230,7 +228,7 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
             }
             return &it->second;
         }
-        
+
         // We're first to load it
         textures[name] = std::move(texture);
         if (!silentMode.load()) {
@@ -241,15 +239,14 @@ Texture2D* ResourceManager::loadTexture(const std::string& path, const std::stri
 }
 
 Sound* ResourceManager::loadSound(const std::string& path, const std::string& name) {
-    // Thread-safe check if already loaded (read lock)
-    {
+    // Thread-safe check if already loaded (read lock) {
         std::shared_lock<std::shared_mutex> lock(resourceMutex);
         auto it = sounds.find(name);
         if (it != sounds.end()) {
             if (!silentMode.load()) {
                 GameEngine::LogLimiter::info(
                     "sound_already_loaded",
-                    "[ResourceManager] Sound '{}' already loaded.", 
+                    "[ResourceManager] Sound '{}' already loaded.",
                     name
                 );
             }
@@ -280,8 +277,7 @@ Sound* ResourceManager::loadSound(const std::string& path, const std::string& na
         return nullptr;
     }
 
-    // Thread-safe sound storage (write lock)
-    {
+    // Thread-safe sound storage (write lock) {
         std::unique_lock<std::shared_mutex> lock(resourceMutex);
         sounds[name] = sound;
         if (!silentMode.load()) {
@@ -292,20 +288,19 @@ Sound* ResourceManager::loadSound(const std::string& path, const std::string& na
 }
 
 Texture2D* ResourceManager::getTexture(const std::string& name) {
-    // Thread-safe texture lookup (read lock)
-    {
+    // Thread-safe texture lookup (read lock) {
         std::shared_lock<std::shared_mutex> lock(resourceMutex);
         auto it = textures.find(name);
         if (it != textures.end()) {
             return &it->second;
         }
     }
-    
+
     // Use LogLimiter for missing texture warnings
     if (!silentMode.load()) {
         GameEngine::LogLimiter::warn(
             "texture_not_found",
-            "[ResourceManager] Texture '{}' not found - using default texture", 
+            "[ResourceManager] Texture '{}' not found - using default texture",
             name
         );
     }
@@ -323,7 +318,7 @@ Sound* ResourceManager::getSound(const std::string& name) {
     if (!silentMode.load()) {
         GameEngine::LogLimiter::warn(
             "sound_not_found",
-            "[ResourceManager] Sound '{}' not found.", 
+            "[ResourceManager] Sound '{}' not found.",
             name
         );
     }
@@ -334,10 +329,10 @@ void ResourceManager::unloadAll() {
     if (!silentMode.load()) {
         spdlog::info("[ResourceManager] Unloading all resources...");
     }
-    
+
     // Thread-safe resource unloading (write lock)
     std::unique_lock<std::shared_mutex> lock(resourceMutex);
-    
+
     // Unload textures
     for (auto& [name, texture] : textures) {
         if (!headlessMode.load() && rayLibInitialized.load() && texture.id > 0) {
@@ -348,7 +343,7 @@ void ResourceManager::unloadAll() {
         }
     }
     textures.clear();
-    
+
     // Unload sounds
     for (auto& [name, sound] : sounds) {
         if (!headlessMode.load() && rayLibInitialized.load()) {
@@ -381,7 +376,7 @@ void ResourceManager::unloadTexture(const std::string& name) {
         if (!silentMode.load()) {
             GameEngine::LogLimiter::warn(
                 "cannot_unload_texture",
-                "[ResourceManager] Cannot unload texture '{}' - not found.", 
+                "[ResourceManager] Cannot unload texture '{}' - not found.",
                 name
             );
         }
@@ -403,7 +398,7 @@ void ResourceManager::unloadSound(const std::string& name) {
         if (!silentMode.load()) {
             GameEngine::LogLimiter::warn(
                 "cannot_unload_sound",
-                "[ResourceManager] Cannot unload sound '{}' - not found.", 
+                "[ResourceManager] Cannot unload sound '{}' - not found.",
                 name
             );
         }

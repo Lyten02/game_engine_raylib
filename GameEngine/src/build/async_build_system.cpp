@@ -8,6 +8,7 @@
 #include <sstream>
 #include <regex>
 #include <fstream>
+#include <filesystem>
 
 namespace GameEngine {
 AsyncBuildSystem::AsyncBuildSystem() {

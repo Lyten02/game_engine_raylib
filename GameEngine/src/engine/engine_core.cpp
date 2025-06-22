@@ -12,23 +12,22 @@
 #include <vector>
 
 namespace GameEngine {
-
 EngineCore::EngineCore() = default;
 EngineCore::~EngineCore() = default;
 
 bool EngineCore::initialize(bool headless) {
     headlessMode = headless;
-    
+
     // Initialize EnginePaths first
     EnginePaths::initialize();
-    
+
     if (!headlessMode) {
         spdlog::info("EngineCore::initialize - Starting engine initialization");
     } else {
         Config::setSilentMode(true);
         spdlog::set_level(spdlog::level::off);
     }
-    
+
     // Load configuration using EnginePaths
     std::string configPath = EnginePaths::getConfigFile().string();
     if (!Config::load(configPath)) {
@@ -36,7 +35,7 @@ bool EngineCore::initialize(bool headless) {
             spdlog::warn("EngineCore::initialize - Failed to load {}, using defaults", configPath);
         }
     }
-    
+
     if (headlessMode) {
         return initializeHeadless();
     } else {
@@ -52,21 +51,21 @@ bool EngineCore::initializeGraphics() {
     bool fullscreen = Config::getBool("window.fullscreen", false);
     vsyncEnabled = Config::getBool("window.vsync", true);
     targetFPS = Config::getInt("window.target_fps", 60);
-    
+
     // Configure window before initialization
     SetConfigFlags(FLAG_WINDOW_HIGHDPI);
     if (fullscreen) {
         SetConfigFlags(FLAG_FULLSCREEN_MODE);
     }
-    
+
     // Initialize Raylib window
     InitWindow(width, height, title.c_str());
-    
+
     if (!IsWindowReady()) {
         spdlog::error("EngineCore::initialize - Failed to create window");
         return false;
     }
-    
+
     // Apply V-Sync and FPS settings
     if (vsyncEnabled) {
         SetWindowState(FLAG_VSYNC_HINT);
@@ -74,20 +73,20 @@ bool EngineCore::initializeGraphics() {
         ClearWindowState(FLAG_VSYNC_HINT);
     }
     SetTargetFPS(targetFPS);
-    
+
     // Disable event waiting to prevent FPS drops
     SetExitKey(0);  // Disable ESC key exit
-    
+
     // Initialize logging
     initializeLogging();
-    
+
     // Display engine paths information
     displayEnginePaths();
-    
+
     running = true;
-    spdlog::info("EngineCore::initialize - Engine core initialized successfully ({}x{}, \"{}\")", 
+    spdlog::info("EngineCore::initialize - Engine core initialized successfully ({}x{}, \"{}\")",
                  width, height, title);
-    
+
     return true;
 }
 
@@ -96,14 +95,14 @@ bool EngineCore::initializeHeadless() {
     try {
         auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
         auto logger = std::make_shared<spdlog::logger>("engine", console_sink);
-        
+
         spdlog::set_default_logger(logger);
         spdlog::set_level(spdlog::level::err);
         spdlog::flush_on(spdlog::level::err);
     } catch (const std::exception& e) {
         // Silent failure - we're in headless mode
     }
-    
+
     running = true;
     return true;
 }
@@ -113,25 +112,25 @@ void EngineCore::initializeLogging() {
         // Create logs directory using EnginePaths
         std::filesystem::path logsDir = EnginePaths::getLogsDir();
         std::filesystem::create_directories(logsDir);
-        
+
         // Create file sink with timestamp
         auto now = std::chrono::system_clock::now();
         auto time = std::chrono::system_clock::to_time_t(now);
         std::stringstream logFileName;
         logFileName << "engine_" << std::put_time(std::localtime(&time), "%Y%m%d_%H%M%S") << ".log";
-        
+
         std::filesystem::path logFilePath = logsDir / logFileName.str();
-        
+
         auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath.string());
         auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        
+
         std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
         auto logger = std::make_shared<spdlog::logger>("engine", sinks.begin(), sinks.end());
-        
+
         spdlog::set_default_logger(logger);
         spdlog::set_level(spdlog::level::info);
         spdlog::flush_on(spdlog::level::info);
-        
+
         spdlog::info("Log file created: {}", logFilePath.string());
     } catch (const std::exception& e) {
         spdlog::error("Failed to create log file: {}", e.what());
@@ -170,14 +169,14 @@ void EngineCore::clearBackground() {
 
 void EngineCore::shutdown() {
     spdlog::info("EngineCore::shutdown - Shutting down engine core");
-    
+
     // Default texture cleanup is now handled automatically by ResourceManager destructor
-    
+
     if (!headlessMode && IsWindowReady()) {
         CloseWindow();
         spdlog::info("EngineCore::shutdown - Window closed");
     }
-    
+
     running = false;
     spdlog::info("EngineCore::shutdown - Engine core shutdown complete");
 }

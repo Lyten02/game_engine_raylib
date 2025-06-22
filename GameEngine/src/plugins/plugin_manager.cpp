@@ -9,8 +9,7 @@
 #endif
 
 namespace GameEngine {
-
-PluginManager::PluginManager(PackageLoader* loader) 
+PluginManager::PluginManager(PackageLoader* loader)
     : packageLoader(loader) {
 }
 
@@ -25,30 +24,30 @@ bool PluginManager::loadPlugin(const std::filesystem::path& pluginPath) {
         spdlog::error("[PluginManager] {}", lastError);
         return false;
     }
-    
+
     // Load the library
     LibraryHandle handle = loadLibrary(pluginPath);
     if (!handle) {
         return false;
     }
-    
+
     // Validate plugin
     if (!validatePlugin(handle)) {
         unloadLibrary(handle);
         return false;
     }
-    
+
     // Get plugin creation functions
     auto createFunc = reinterpret_cast<CreatePluginFunc>(getSymbol(handle, "createPlugin"));
     auto destroyFunc = reinterpret_cast<DestroyPluginFunc>(getSymbol(handle, "destroyPlugin"));
-    
+
     if (!createFunc || !destroyFunc) {
         lastError = "Plugin missing required export functions";
         spdlog::error("[PluginManager] {}", lastError);
         unloadLibrary(handle);
         return false;
     }
-    
+
     // Create plugin instance
     IPlugin* pluginInstance = createFunc();
     if (!pluginInstance) {
@@ -57,10 +56,10 @@ bool PluginManager::loadPlugin(const std::filesystem::path& pluginPath) {
         unloadLibrary(handle);
         return false;
     }
-    
+
     // Get plugin info
     PluginInfo info = pluginInstance->getInfo();
-    
+
     // Check if plugin already loaded
     if (loadedPlugins.find(info.name) != loadedPlugins.end()) {
         lastError = "Plugin already loaded: " + info.name;
@@ -69,10 +68,10 @@ bool PluginManager::loadPlugin(const std::filesystem::path& pluginPath) {
         unloadLibrary(handle);
         return false;
     }
-    
+
     // Create plugin API
     auto api = std::make_unique<PluginAPI>(packageLoader);
-    
+
     // Initialize plugin
     if (!pluginInstance->onLoad(api.get())) {
         lastError = "Plugin initialization failed";
@@ -81,7 +80,7 @@ bool PluginManager::loadPlugin(const std::filesystem::path& pluginPath) {
         unloadLibrary(handle);
         return false;
     }
-    
+
     // Store loaded plugin
     auto loadedPlugin = std::make_unique<LoadedPlugin>();
     loadedPlugin->path = pluginPath;
@@ -89,9 +88,9 @@ bool PluginManager::loadPlugin(const std::filesystem::path& pluginPath) {
     loadedPlugin->instance.reset(pluginInstance);
     loadedPlugin->api = std::move(api);
     loadedPlugin->info = info;
-    
+
     loadedPlugins[info.name] = std::move(loadedPlugin);
-    
+
     spdlog::info("[PluginManager] Loaded plugin: {} v{}", info.name, info.version);
     return true;
 }
@@ -102,28 +101,28 @@ bool PluginManager::unloadPlugin(const std::string& pluginName) {
         lastError = "Plugin not loaded: " + pluginName;
         return false;
     }
-    
+
     auto& plugin = it->second;
-    
+
     // Call unload callback
     plugin->instance->onUnload();
-    
+
     // Get destroy function before unloading library
     auto destroyFunc = reinterpret_cast<DestroyPluginFunc>(
         getSymbol(plugin->handle, "destroyPlugin")
     );
-    
+
     // Destroy plugin instance
     if (destroyFunc) {
         destroyFunc(plugin->instance.release());
     }
-    
+
     // Unload library
     unloadLibrary(plugin->handle);
-    
+
     // Remove from loaded plugins
     loadedPlugins.erase(it);
-    
+
     spdlog::info("[PluginManager] Unloaded plugin: {}", pluginName);
     return true;
 }
@@ -134,7 +133,7 @@ void PluginManager::unloadAllPlugins() {
     for (const auto& [name, plugin] : loadedPlugins) {
         pluginNames.push_back(name);
     }
-    
+
     // Unload each plugin
     for (const auto& name : pluginNames) {
         unloadPlugin(name);
@@ -181,7 +180,7 @@ LibraryHandle PluginManager::loadLibrary(const std::filesystem::path& path) {
 
 void PluginManager::unloadLibrary(LibraryHandle handle) {
     if (!handle) return;
-    
+
 #ifdef _WIN32
     FreeLibrary(handle);
 #else
@@ -191,7 +190,7 @@ void PluginManager::unloadLibrary(LibraryHandle handle) {
 
 void* PluginManager::getSymbol(LibraryHandle handle, const std::string& name) {
     if (!handle) return nullptr;
-    
+
 #ifdef _WIN32
     return reinterpret_cast<void*>(GetProcAddress(handle, name.c_str()));
 #else
@@ -204,22 +203,22 @@ bool PluginManager::validatePlugin(LibraryHandle handle) {
     auto getVersionFunc = reinterpret_cast<GetPluginAPIVersionFunc>(
         getSymbol(handle, "getPluginAPIVersion")
     );
-    
+
     if (!getVersionFunc) {
         lastError = "Plugin missing getPluginAPIVersion export";
         spdlog::error("[PluginManager] {}", lastError);
         return false;
     }
-    
+
     int pluginApiVersion = getVersionFunc();
     if (pluginApiVersion != PLUGIN_API_VERSION) {
-        lastError = "Plugin API version mismatch. Expected: " + 
-                   std::to_string(PLUGIN_API_VERSION) + 
+        lastError = "Plugin API version mismatch. Expected: " +
+                   std::to_string(PLUGIN_API_VERSION) +
                    ", Got: " + std::to_string(pluginApiVersion);
         spdlog::error("[PluginManager] {}", lastError);
         return false;
     }
-    
+
     return true;
 }
 

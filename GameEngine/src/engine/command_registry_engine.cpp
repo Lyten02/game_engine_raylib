@@ -12,10 +12,9 @@
 #include <climits>
 
 namespace GameEngine {
-
 void CommandRegistry::registerEngineCommands(CommandProcessor* processor, EngineCore* engineCore, Console* console) {
     // engine.info command
-    processor->registerCommand("engine.info", 
+    processor->registerCommand("engine.info",
         [engineCore, console](const std::vector<std::string>& args) {
             std::stringstream ss;
             ss << "Engine Information:\n";
@@ -23,22 +22,21 @@ void CommandRegistry::registerEngineCommands(CommandProcessor* processor, Engine
             ss << "  Frame Time: " << std::fixed << std::setprecision(3) << engineCore->getFrameTime() * 1000 << " ms\n";
             ss << "  Total Time: " << std::fixed << std::setprecision(1) << engineCore->getTotalTime() << " s\n";
             ss << "  Window: " << engineCore->getScreenWidth() << "x" << engineCore->getScreenHeight();
-            
+
             console->addLine(ss.str(), YELLOW);
         }, "Display engine information", "Engine");
-    
+
     // quit command
     processor->registerCommand("quit",
         [engineCore, console](const std::vector<std::string>& args) {
             console->addLine("Shutting down...", YELLOW);
             engineCore->requestQuit();
         }, "Quit the application", "General");
-    
-    // engine.fps command
-    {
+
+    // engine.fps command {
         std::vector<CommandParameter> fpsParams = {
-            {"limit", "FPS limit value", true, []() { 
-                return std::vector<std::string>{"0", "30", "60", "120", "144", "240"}; 
+            {"limit", "FPS limit value", true, []() {
+                return std::vector<std::string>{"0", "30", "60", "120", "144", "240"};
             }}
         };
         processor->registerCommand("engine.fps",
@@ -49,18 +47,17 @@ void CommandRegistry::registerEngineCommands(CommandProcessor* processor, Engine
                 console->addLine("Current FPS limit: " + std::string(engineCore->getTargetFPS() == 0 ? "Unlimited" : std::to_string(engineCore->getTargetFPS())), YELLOW);
                 return;
             }
-            
+
             int limit = std::stoi(args[0]);
             engineCore->setTargetFPS(limit);
             console->addLine("FPS limit set to: " + (limit == 0 ? std::string("Unlimited") : std::to_string(limit)), GREEN);
         }, "Set engine FPS limit", "Engine", "", fpsParams);
     }
-    
-    // engine.vsync command
-    {
+
+    // engine.vsync command {
         std::vector<CommandParameter> vsyncParams = {
-            {"enabled", "Enable or disable vsync", true, []() { 
-                return std::vector<std::string>{"on", "off", "true", "false", "1", "0"}; 
+            {"enabled", "Enable or disable vsync", true, []() {
+                return std::vector<std::string>{"on", "off", "true", "false", "1", "0"};
             }}
         };
         processor->registerCommand("engine.vsync",
@@ -70,13 +67,13 @@ void CommandRegistry::registerEngineCommands(CommandProcessor* processor, Engine
                 console->addLine("Current vsync: " + std::string(engineCore->isVSyncEnabled() ? "ON" : "OFF"), YELLOW);
                 return;
             }
-            
+
             bool enable = args[0] == "on" || args[0] == "true" || args[0] == "1";
             engineCore->setVSync(enable);
             console->addLine("VSync " + std::string(enable ? "enabled" : "disabled"), GREEN);
         }, "Toggle engine VSync", "Engine", "", vsyncParams);
     }
-    
+
     // engine.diag command
     processor->registerCommand("engine.diag",
         [engineCore, console](const std::vector<std::string>& args) {
@@ -88,7 +85,7 @@ void CommandRegistry::registerEngineCommands(CommandProcessor* processor, Engine
             ss << "  Target FPS: " << (engineCore->getTargetFPS() == 0 ? "Unlimited" : std::to_string(engineCore->getTargetFPS())) << "\n";
             ss << "  Current FPS: " << engineCore->getFPS() << "\n";
             ss << "  Frame Time: " << std::fixed << std::setprecision(3) << engineCore->getFrameTime() * 1000 << " ms";
-            
+
             console->addLine(ss.str(), YELLOW);
         }, "Display engine diagnostics", "Engine");
 }
@@ -100,12 +97,11 @@ void CommandRegistry::registerDebugCommands(CommandProcessor* processor, Console
             *showDebugInfo = !(*showDebugInfo);
             console->addLine("Debug info " + std::string(*showDebugInfo ? "enabled" : "disabled"), GREEN);
         }, "Toggle debug information display", "Debug");
-    
-    // debug.log command
-    {
+
+    // debug.log command {
         std::vector<CommandParameter> logParams = {
-            {"level", "Log level", true, []() { 
-                return std::vector<std::string>{"trace", "debug", "info", "warn", "error", "critical", "off"}; 
+            {"level", "Log level", true, []() {
+                return std::vector<std::string>{"trace", "debug", "info", "warn", "error", "critical", "off"};
             }}
         };
         processor->registerCommand("debug.log",
@@ -118,7 +114,7 @@ void CommandRegistry::registerDebugCommands(CommandProcessor* processor, Console
                 console->addLine("Current level: " + levelStr, YELLOW);
                 return;
             }
-            
+
             std::string level = args[0];
             if (level == "trace") spdlog::set_level(spdlog::level::trace);
             else if (level == "debug") spdlog::set_level(spdlog::level::debug);
@@ -131,7 +127,7 @@ void CommandRegistry::registerDebugCommands(CommandProcessor* processor, Console
                 console->addLine("Invalid log level: " + level, RED);
                 return;
             }
-            
+
             console->addLine("Log level set to: " + level, GREEN);
         }, "Set logging level", "Debug", "", logParams);
     }
@@ -147,12 +143,11 @@ void CommandRegistry::registerConfigCommands(CommandProcessor* processor, Consol
                 console->addLine("Failed to reload configuration", RED);
             }
         }, "Reload configuration from file", "Config");
-    
-    // config.get command
-    {
+
+    // config.get command {
         std::vector<CommandParameter> getParams = {
-            {"key", "Configuration key", true, [this]() { 
-                return getConfigKeys(); 
+            {"key", "Configuration key", true, [this]() {
+                return getConfigKeys();
             }}
         };
         processor->registerCommand("config.get",
@@ -161,9 +156,9 @@ void CommandRegistry::registerConfigCommands(CommandProcessor* processor, Consol
                 console->addLine("Usage: config.get <key>", RED);
                 return;
             }
-            
+
             std::string key = args[0];
-            
+
             // Add key validation
             if (!Config::isValidConfigKey(key)) {
                 console->addLine("Error: Invalid config key format: " + key, RED);
@@ -174,19 +169,18 @@ void CommandRegistry::registerConfigCommands(CommandProcessor* processor, Consol
                 console->addLine("  - Maximum 100 characters", GRAY);
                 return;
             }
-            
+
             // Try to get as different types
-            // Config doesn't have hasKey, try to get value
-            {
+            // Config doesn't have hasKey, try to get value {
                 // Check if it's a string
                 auto strVal = Config::getString(key, "");
                 auto intVal = Config::getInt(key, INT_MIN);
                 auto floatVal = Config::getFloat(key, -999999.0f);
                 auto boolVal = Config::getBool(key, false);
-                
+
                 std::stringstream ss;
                 ss << "Config[" << key << "] = ";
-                
+
                 // Determine type and display
                 if (intVal != INT_MIN && std::to_string(intVal) == strVal) {
                     ss << intVal << " (int)";
@@ -197,7 +191,7 @@ void CommandRegistry::registerConfigCommands(CommandProcessor* processor, Consol
                 } else {
                     ss << "\"" << strVal << "\" (string)";
                 }
-                
+
                 console->addLine(ss.str(), YELLOW);
             }
             // else {
@@ -205,12 +199,11 @@ void CommandRegistry::registerConfigCommands(CommandProcessor* processor, Consol
             // }
         }, "Get configuration value", "Config", "", getParams);
     }
-    
-    // config.set command
-    {
+
+    // config.set command {
         std::vector<CommandParameter> setParams = {
-            {"key", "Configuration key", true, [this]() { 
-                return getConfigKeys(); 
+            {"key", "Configuration key", true, [this]() {
+                return getConfigKeys();
             }},
             {"value", "Value to set", true}
         };
@@ -220,10 +213,10 @@ void CommandRegistry::registerConfigCommands(CommandProcessor* processor, Consol
                 console->addLine("Usage: config.set <key> <value>", RED);
                 return;
             }
-            
+
             std::string key = args[0];
             std::string value = args[1];
-            
+
             // Add key validation
             if (!Config::isValidConfigKey(key)) {
                 console->addLine("Error: Invalid config key format: " + key, RED);
@@ -234,12 +227,12 @@ void CommandRegistry::registerConfigCommands(CommandProcessor* processor, Consol
                 console->addLine("  - Maximum 100 characters", GRAY);
                 return;
             }
-            
+
             // Try to parse as different types
             bool isInt = true, isFloat = true, isBool = false;
             int intVal = 0;
             float floatVal = 0.0f;
-            
+
             try {
                 size_t idx;
                 intVal = std::stoi(value, &idx);
@@ -247,7 +240,7 @@ void CommandRegistry::registerConfigCommands(CommandProcessor* processor, Consol
             } catch (...) {
                 isInt = false;
             }
-            
+
             try {
                 size_t idx;
                 floatVal = std::stof(value, &idx);
@@ -255,11 +248,11 @@ void CommandRegistry::registerConfigCommands(CommandProcessor* processor, Consol
             } catch (...) {
                 isFloat = false;
             }
-            
+
             if (value == "true" || value == "false") {
                 isBool = true;
             }
-            
+
             // Set based on detected type
             if (isBool) {
                 // Config doesn't have setters
@@ -275,7 +268,7 @@ void CommandRegistry::registerConfigCommands(CommandProcessor* processor, Consol
                 // Config::setString(key, value);
                 console->addLine("Set " + key + " = \"" + value + "\" (string)", GREEN);
             }
-            
+
             // Note: Config doesn't have a save method currently
             // if (!Config::save("config.json")) {
             //     console->addLine("Warning: Failed to save configuration", YELLOW);
@@ -299,41 +292,41 @@ void CommandRegistry::registerLogCommands(CommandProcessor* processor, Console* 
         [console](const std::vector<std::string>& args) {
             try {
                 std::vector<std::filesystem::path> logFiles;
-                
+
                 // Check if logs directory exists
                 if (!std::filesystem::exists("logs")) {
                     console->addLine("No logs directory found", YELLOW);
                     return;
                 }
-                
+
                 // Collect all log files
                 for (const auto& entry : std::filesystem::directory_iterator("logs")) {
                     if (entry.is_regular_file() && entry.path().extension() == ".log") {
                         logFiles.push_back(entry.path());
                     }
                 }
-                
+
                 if (logFiles.empty()) {
                     console->addLine("No log files found", YELLOW);
                     return;
                 }
-                
+
                 // Sort by modification time (newest first)
-                std::sort(logFiles.begin(), logFiles.end(), 
+                std::sort(logFiles.begin(), logFiles.end(),
                     [](const std::filesystem::path& a, const std::filesystem::path& b) {
                         return std::filesystem::last_write_time(a) > std::filesystem::last_write_time(b);
                     });
-                
+
                 console->addLine("Log files (newest first):", YELLOW);
                 for (const auto& file : logFiles) {
                     auto fileTime = std::filesystem::last_write_time(file);
                     auto fileSize = std::filesystem::file_size(file);
-                    
+
                     std::stringstream ss;
                     ss << "  " << file.filename().string() << " - " << fileSize << " bytes";
                     console->addLine(ss.str(), GRAY);
                 }
-                
+
             } catch (const std::exception& e) {
                 console->addLine("Error listing logs: " + std::string(e.what()), RED);
             }

@@ -7,13 +7,13 @@ std::vector<std::string> split(const std::string& str, char delimiter) {
     std::vector<std::string> tokens;
     std::stringstream ss(str);
     std::string token;
-    
+
     while (std::getline(ss, token, delimiter)) {
         if (!token.empty()) {
             tokens.push_back(token);
         }
     }
-    
+
     return tokens;
 }
 
@@ -22,7 +22,7 @@ std::string trim(const std::string& str) {
     if (first == std::string::npos) {
         return "";
     }
-    
+
     size_t last = str.find_last_not_of(" \t\n\r");
     return str.substr(first, (last - first + 1));
 }

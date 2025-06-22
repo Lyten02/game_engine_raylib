@@ -2,8 +2,11 @@
 #include <fstream>
 #include <filesystem>
 #include <algorithm>
-#include "../src/packages/package_manager.h"
-#include "../src/packages/package.h"
+#include "packages/package_manager.h"
+#include "packages/package.h"
+
+using GameEngine::Package;
+using GameEngine::PackageManager;
 
 // Test helper macros
 #define TEST_ASSERT(condition, message) \

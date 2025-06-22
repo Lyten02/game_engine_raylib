@@ -91,13 +91,20 @@ docs/_templates/
 /build/game_engine
 GameEngine/build/game_engine
 
-# Test files and directories
-tests/test_*
-!tests/test_*.cpp
-!tests/test_*.py
-!tests/test_*.txt
-test_plugin_*
-!test_plugin_*.cpp
+# Test executable files (compiled tests without extension)
+# Specific test executables to ignore
+tests/**/test_resource_manager_headless
+tests/**/test_resource_manager_safety
+tests/**/test_resource_manager_threading
+tests/**/*.out
+tests/**/*.exe
+
+# General pattern: ignore executables but keep source files
+tests/**/test_*
+!tests/**/*.cpp
+!tests/**/*.py
+!tests/**/*.txt
+!tests/**/test_*/
 
 # Test generated/temporary files
 projects/

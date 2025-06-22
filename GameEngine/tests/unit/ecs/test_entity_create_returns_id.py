@@ -9,8 +9,7 @@ import os
 def test_entity_create_returns_id():
     """Test entity.create returns structured data"""
     
-    # Change to build directory where the game executable is
-    os.chdir(os.path.join(os.path.dirname(__file__), '../build'))
+    # We are already in the build directory when tests are run
     
     # Execute command
     result = subprocess.run(
@@ -42,8 +41,7 @@ def test_entity_create_returns_id():
 def test_entity_create_with_position():
     """Test entity.create with position parameters"""
     
-    # Change to build directory where the game executable is
-    os.chdir(os.path.join(os.path.dirname(__file__), '../build'))
+    # We are already in the build directory when tests are run
     
     result = subprocess.run(
         ["./game_engine", "--json", "--headless", "--command", "entity.create 10 20 30"],
@@ -67,8 +65,7 @@ def test_entity_create_with_position():
 def test_entity_create_output_format():
     """Test that entity.create output format is correct"""
     
-    # Change to build directory where the game executable is
-    os.chdir(os.path.join(os.path.dirname(__file__), '../build'))
+    # We are already in the build directory when tests are run
     
     result = subprocess.run(
         ["./game_engine", "--json", "--headless", "--command", "entity.create"],

@@ -19,9 +19,7 @@ def stress_test_config():
     
     print("Running config stress test...")
     
-    # Change to build directory
-    build_dir = os.path.join(os.path.dirname(__file__), "..", "build")
-    os.chdir(build_dir)
+    # We are already in the build directory when tests are run
     
     # Warm up - single command
     print("Warm up test...")

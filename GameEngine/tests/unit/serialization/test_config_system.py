@@ -11,9 +11,7 @@ def test_config_commands():
     
     print("Testing config system edge cases...")
     
-    # Change to build directory
-    build_dir = os.path.join(os.path.dirname(__file__), "..", "build")
-    os.chdir(build_dir)
+    # We are already in the build directory when tests are run
     
     # Test 1: Normal config access
     print("Test 1: Normal config access...")

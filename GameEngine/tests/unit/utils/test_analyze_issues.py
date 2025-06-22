@@ -12,13 +12,13 @@ def analyze_threading_tests():
     """Analyze C++ threading test resource usage"""
     print("\n🔍 Analyzing C++ threading tests...")
     
+    issues = []  # Initialize issues at the beginning
+    
     # Check the source code for problematic patterns
     cpp_file = "test_resource_manager_threading.cpp"
     if os.path.exists(cpp_file):
         with open(cpp_file, 'r') as f:
             content = f.read()
-            
-        issues = []
         
         # Check for high thread counts
         if "const int numThreads = 100;" in content:
@@ -35,6 +35,8 @@ def analyze_threading_tests():
         print(f"Found {len(issues)} potential issues:")
         for issue in issues:
             print(f"  {issue}")
+    else:
+        print(f"File {cpp_file} not found in current directory")
     
     return len(issues) > 0
 

@@ -1,8 +1,8 @@
 #include <iostream>
 #include <filesystem>
-#include "../src/plugins/plugin_manager.h"
-#include "../src/plugins/plugin_api.h"
-#include "../src/packages/package_loader.h"
+#include "plugins/plugin_manager.h"
+#include "plugins/plugin_api.h"
+#include "packages/package_loader.h"
 
 // Test helper macros
 #define TEST_ASSERT(condition, message) \

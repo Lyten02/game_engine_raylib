@@ -2,8 +2,8 @@
 #include <fstream>
 #include <filesystem>
 #include <nlohmann/json.hpp>
-#include "../src/packages/package_loader.h"
-#include "../src/plugins/plugin_manager.h"
+#include "packages/package_loader.h"
+#include "plugins/plugin_manager.h"
 
 // Test helper macros
 #define TEST_ASSERT(condition, message) \

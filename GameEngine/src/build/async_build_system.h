@@ -8,7 +8,6 @@
 #include <mutex>
 
 namespace GameEngine {
-
 class Project;
 class BuildSystem;
 
@@ -20,7 +19,7 @@ public:
         Success,
         Failed
     };
-    
+
     struct BuildProgress {
         std::atomic<float> progress{0.0f};
         std::atomic<BuildStatus> status{BuildStatus::Idle};
@@ -30,35 +29,35 @@ public:
         std::mutex messageMutex;
         std::string errorMessage;
     };
-    
+
     using ProgressCallback = std::function<void(const std::string& message, float progress)>;
-    
+
 private:
     std::unique_ptr<std::thread> buildThread;
     std::mutex buildThreadMutex;  // Protects access to buildThread
     BuildProgress buildProgress;
     std::unique_ptr<BuildSystem> buildSystem;
-    
+
 public:
     AsyncBuildSystem();
     ~AsyncBuildSystem();
-    
+
     bool startBuild(Project* project, const std::string& buildConfig = "Release");
     bool startFastBuild(Project* project, const std::string& buildConfig = "Release");
     void cancelBuild();
-    
+
     BuildStatus getStatus() const { return buildProgress.status.load(); }
     float getProgress() const { return buildProgress.progress.load(); }
-    std::string getCurrentStep() const { 
+    std::string getCurrentStep() const {
         std::lock_guard<std::mutex> lock(buildProgress.currentStepMutex);
-        return buildProgress.currentStep; 
+        return buildProgress.currentStep;
     }
-    
+
     bool hasMessages();
     std::string getNextMessage();
-    
+
     void waitForCompletion();
-    
+
 private:
     void buildThreadFunc(Project* project, const std::string& buildConfig);
     void fastBuildThreadFunc(Project* project, const std::string& buildConfig);

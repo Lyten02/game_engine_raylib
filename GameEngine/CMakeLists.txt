@@ -44,6 +44,10 @@ FetchContent_Declare(
     GIT_TAG v1.14.1
 )
 
+# Set spdlog to build as shared library
+set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries" FORCE)
+set(SPDLOG_BUILD_SHARED ON CACHE BOOL "Build spdlog as shared library" FORCE)
+
 # Download and configure EnTT
 FetchContent_Declare(
     EnTT

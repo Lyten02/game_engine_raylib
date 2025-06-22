@@ -4,7 +4,6 @@
 #include <memory>
 
 namespace GameEngine {
-
 class Project;
 
 class BuildSystem {
@@ -22,7 +21,7 @@ public:
     bool generateCMakeLists(Project* project, const std::string& outputDir);
     bool generateCMakeListsFast(Project* project, const std::string& outputDir);
     bool createBuildDirectory(const std::string& projectName);
-    
+
 private:
     bool copyRuntimeLibrary(const std::string& outputDir);
     std::string processTemplate(const std::string& templateContent, Project* project);

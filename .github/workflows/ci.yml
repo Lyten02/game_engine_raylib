@@ -204,6 +204,18 @@ jobs:
           exit 1
         fi
     
+    - name: List test artifacts for debugging
+      if: always()
+      run: |
+        echo "=== Searching for test artifacts ==="
+        echo "In build directory:"
+        find GameEngine/build -name "test_results.json" -o -name "test_log_*.log" 2>/dev/null || true
+        echo -e "\nIn tests directory:"
+        find GameEngine/tests -name "test_results.json" -o -name "test_log_*.log" 2>/dev/null || true
+        echo -e "\nAll log files:"
+        find GameEngine -name "*.log" -type f -mtime -1 2>/dev/null | head -20 || true
+      continue-on-error: true
+    
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v4
@@ -212,7 +224,10 @@ jobs:
         path: |
           GameEngine/build/test_results.json
           GameEngine/build/test_log_*.log
-          GameEngine/logs/test_log_*.log
+          GameEngine/build/logs/test_log_*.log
+          GameEngine/tests/test_results.json
+          GameEngine/tests/test_log_*.log
+          GameEngine/tests/logs/test_log_*.log
         if-no-files-found: warn
     
     - name: Upload build artifacts

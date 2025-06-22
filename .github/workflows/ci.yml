@@ -30,16 +30,44 @@ jobs:
       with:
         submodules: recursive
     
-    - name: Cache dependencies
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    
+    - name: Cache pip dependencies
       uses: actions/cache@v3
       with:
         path: |
-          build/_deps
-          build/.deps_cache
-          ~/.ccache
-        key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
+          ~/.cache/pip
+          ~/Library/Caches/pip
+          ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/setup.py') }}
         restore-keys: |
-          ${{ runner.os }}-deps-
+          ${{ runner.os }}-pip-
+    
+    - name: Cache CMake dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          GameEngine/build/_deps
+          GameEngine/build/.deps_cache
+          GameEngine/build/CMakeCache.txt
+          GameEngine/build/CMakeFiles
+        key: ${{ runner.os }}-cmake-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
+        restore-keys: |
+          ${{ runner.os }}-cmake-
+    
+    - name: Cache ccache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.ccache
+          ~/Library/Caches/ccache
+          ~\AppData\Local\ccache
+        key: ${{ runner.os }}-ccache-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-ccache-
     
     - name: Install dependencies (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
@@ -70,17 +98,31 @@ jobs:
         choco install mingw cmake -y
         echo "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
     
+    - name: Configure ccache
+      run: |
+        echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
+        echo "CCACHE_COMPRESS=1" >> $GITHUB_ENV
+        echo "CCACHE_MAXSIZE=500M" >> $GITHUB_ENV
+        which ccache && ccache --version && ccache --zero-stats || true
+    
     - name: Configure CMake
       run: |
         cd GameEngine
         mkdir -p build
         cd build
-        cmake .. -G "${{ matrix.cmake_generator }}" -DCMAKE_BUILD_TYPE=Release
+        cmake .. -G "${{ matrix.cmake_generator }}" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
     
     - name: Build
       run: |
         cd GameEngine/build
         ${{ matrix.build_command }}
+    
+    - name: Show ccache statistics
+      run: |
+        ccache --show-stats || true
     
     - name: Run Unit Tests
       run: |

@@ -9,7 +9,7 @@ struct Sprite {
     Rectangle sourceRect{0.0f, 0.0f, 0.0f, 0.0f};
     Color tint = WHITE;
     std::string texturePath; // For serialization
-    
+
     nlohmann::json to_json() const {
         return {
             {"texture", texturePath},
@@ -17,7 +17,7 @@ struct Sprite {
             {"tint", {tint.r, tint.g, tint.b, tint.a}}
         };
     }
-    
+
     void from_json(const nlohmann::json& j) {
         if (j.contains("texture")) {
             texturePath = j["texture"];

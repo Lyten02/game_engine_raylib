@@ -9,7 +9,7 @@ namespace ComponentTypes {
     constexpr const char* TRANSFORM = "Transform";
     constexpr const char* SPRITE = "Sprite";
     constexpr const char* CAMERA = "Camera";
-    
+
     // Component categories
     constexpr const char* CATEGORY_RENDERING = "Rendering";
     constexpr const char* CATEGORY_TRANSFORM = "Transform";
@@ -22,7 +22,7 @@ struct ComponentMetadata {
     std::string name;
     std::string category;
     std::type_index typeIndex;
-    
+
     ComponentMetadata(const std::string& n, const std::string& c, std::type_index t)
         : name(n), category(c), typeIndex(t) {}
 };

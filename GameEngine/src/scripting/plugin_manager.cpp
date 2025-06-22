@@ -7,7 +7,6 @@
 #include <dlfcn.h>
 
 namespace GameEngine {
-
 GameLogicPluginManager::GameLogicPluginManager() {
     // Add allowed plugin paths for security
     std::string engineRoot = EnginePaths::getEngineRoot();
@@ -34,25 +33,25 @@ bool GameLogicPluginManager::loadPlugin(const std::string& path, const std::stri
         spdlog::error("PluginManager: Plugin path not allowed: {}", path);
         return false;
     }
-    
+
     // Check if already loaded
     if (loadedLibraries.find(name) != loadedLibraries.end()) {
         spdlog::debug("PluginManager: Plugin already loaded: {}", name);
         return true;
     }
-    
+
     // Check if file exists
     if (!std::filesystem::exists(path)) {
         spdlog::error("PluginManager: Plugin file not found: {}", path);
         return false;
     }
-    
+
     void* handle = dlopen(path.c_str(), RTLD_LAZY);
     if (!handle) {
         spdlog::error("PluginManager: Failed to load plugin {}: {}", path, dlerror());
         return false;
     }
-    
+
     // Verify plugin has required exports
     void* initFunc = dlsym(handle, "initializePlugin");
     if (!initFunc) {
@@ -60,12 +59,12 @@ bool GameLogicPluginManager::loadPlugin(const std::string& path, const std::stri
         dlclose(handle);
         return false;
     }
-    
+
     // Initialize the plugin
     try {
         auto pluginInit = reinterpret_cast<void(*)(IPluginManager*)>(initFunc);
         pluginInit(this);
-        
+
         loadedLibraries[name] = handle;
         spdlog::info("PluginManager: Loaded and initialized plugin: {}", name);
         return true;
@@ -82,13 +81,13 @@ bool GameLogicPluginManager::unloadPlugin(const std::string& name) {
         dlclose(it->second);
         loadedLibraries.erase(it);
         spdlog::info("PluginManager: Unloaded plugin: {}", name);
-        
+
         // Remove associated game logic factories
         auto factoryIt = gameLogicFactories.find(name);
         if (factoryIt != gameLogicFactories.end()) {
             gameLogicFactories.erase(factoryIt);
         }
-        
+
         return true;
     }
     return false;
@@ -102,12 +101,12 @@ bool GameLogicPluginManager::loadProjectPlugins(const std::string& projectPath) 
             spdlog::warn("PluginManager: Project file not found: {}", projectFile);
             return false;
         }
-        
+
         std::ifstream file(projectFile);
         nlohmann::json projectData;
         file >> projectData;
         file.close();
-        
+
         // Load dependencies
         if (projectData.contains("dependencies") && projectData["dependencies"].is_array()) {
             for (const auto& dep : projectData["dependencies"]) {
@@ -117,7 +116,7 @@ bool GameLogicPluginManager::loadProjectPlugins(const std::string& projectPath) 
                 }
             }
         }
-        
+
         return true;
     } catch (const std::exception& e) {
         spdlog::error("PluginManager: Failed to load project plugins: {}", e.what());
@@ -128,7 +127,7 @@ bool GameLogicPluginManager::loadProjectPlugins(const std::string& projectPath) 
 bool GameLogicPluginManager::loadPackageFromProject(const std::string& projectPath, const std::string& packageName) {
     // Get engine root path
     std::string engineRoot = EnginePaths::getEngineRoot();
-    
+
     // Try different possible package locations
     std::vector<std::string> possiblePaths = {
         engineRoot + "/packages/" + packageName,
@@ -137,31 +136,31 @@ bool GameLogicPluginManager::loadPackageFromProject(const std::string& projectPa
         projectPath + "/../packages/" + packageName,
         projectPath + "/../build/packages/" + packageName
     };
-    
+
     for (const auto& packageDir : possiblePaths) {
         std::filesystem::path packagePath(packageDir);
         std::filesystem::path packageJson = packagePath / "package.json";
-        
+
         spdlog::debug("PluginManager: Checking package path: {}", packageJson.string());
-        
+
         if (!std::filesystem::exists(packageJson)) {
             continue;
         }
-        
+
         spdlog::info("PluginManager: Found package.json at: {}", packageJson.string());
-        
+
         try {
             // Read package.json
             std::ifstream packageFile(packageJson);
             nlohmann::json packageData;
             packageFile >> packageData;
             packageFile.close();
-            
+
             // Load plugin if specified
             if (packageData.contains("plugin")) {
                 const auto& plugin = packageData["plugin"];
                 std::string library = plugin.value("library", "");
-                
+
                 if (!library.empty()) {
                     std::filesystem::path libraryPath = packagePath / library;
                     if (std::filesystem::exists(libraryPath)) {
@@ -173,7 +172,7 @@ bool GameLogicPluginManager::loadPackageFromProject(const std::string& projectPa
             spdlog::error("PluginManager: Error loading package {}: {}", packageName, e.what());
         }
     }
-    
+
     spdlog::warn("PluginManager: Package not found: {}", packageName);
     return false;
 }
@@ -214,31 +213,31 @@ bool GameLogicPluginManager::isPathAllowed(const std::string& path) {
     try {
         std::filesystem::path pluginPath(path);
         std::filesystem::path parentPath = pluginPath.parent_path();
-        
+
         // If path doesn't exist yet, we can't canonicalize it
         if (!std::filesystem::exists(parentPath)) {
             return false;
         }
-        
+
         std::filesystem::path canonicalPath = std::filesystem::canonical(parentPath);
-        
+
         for (const auto& allowedPath : allowedPaths) {
             std::filesystem::path allowedCanonical;
-            
+
             // Handle relative paths
             if (std::filesystem::exists(allowedPath)) {
                 allowedCanonical = std::filesystem::canonical(allowedPath);
             } else {
                 continue;
             }
-            
+
             // Check if plugin path is within allowed directory
             auto relative = std::filesystem::relative(canonicalPath, allowedCanonical);
             if (!relative.empty() && relative.native()[0] != '.') {
                 return true;
             }
         }
-        
+
         return false;
     } catch (const std::exception& e) {
         spdlog::error("PluginManager: Error checking path permissions: {}", e.what());

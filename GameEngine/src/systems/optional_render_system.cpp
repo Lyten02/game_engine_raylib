@@ -2,7 +2,7 @@
 #include "render/sprite_batch.h"
 #include <spdlog/spdlog.h>
 
-OptionalRenderSystem::OptionalRenderSystem() 
+OptionalRenderSystem::OptionalRenderSystem()
     : spriteBatch(std::make_unique<SpriteBatch>()) {
     // Initialize default 2D camera
     camera.target = {640.0f, 360.0f};
@@ -19,12 +19,12 @@ void OptionalRenderSystem::initialize() {
 
 void OptionalRenderSystem::update(entt::registry& registry) {
     BeginMode2D(camera);
-    
+
     // Call all registered render callbacks
     for (const auto& [name, callback] : renderCallbacks) {
         callback(registry, camera);
     }
-    
+
     EndMode2D();
 }
 

@@ -10,7 +10,7 @@ struct TransformComponent {
     Vector3 position{0.0f, 0.0f, 0.0f};  // Position in 3D space
     Vector3 rotation{0.0f, 0.0f, 0.0f};  // Rotation in degrees (pitch, yaw, roll)
     Vector3 scale{1.0f, 1.0f, 1.0f};     // Scale factors for each axis
-    
+
     nlohmann::json to_json() const {
         return {
             {"position", {position.x, position.y, position.z}},
@@ -18,7 +18,7 @@ struct TransformComponent {
             {"scale", {scale.x, scale.y, scale.z}}
         };
     }
-    
+
     void from_json(const nlohmann::json& j) {
         if (j.contains("position")) {
             const auto& pos = j["position"];

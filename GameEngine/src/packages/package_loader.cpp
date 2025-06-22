@@ -8,7 +8,6 @@
 #include "../../packages/physics-2d/systems/physics_system.h"
 
 namespace GameEngine {
-
 PackageLoader::PackageLoader() {
     registerBuiltinComponents();
     registerBuiltinSystems();
@@ -18,7 +17,7 @@ PackageLoader::~PackageLoader() = default;
 
 bool PackageLoader::loadPackageResources(const Package& package, const std::filesystem::path& packagePath) {
     spdlog::info("[PackageLoader] Loading resources for package: {}", package.getName());
-    
+
     // Check if package has plugin
     if (package.hasPluginInfo()) {
         if (!pluginManager) {
@@ -26,19 +25,19 @@ bool PackageLoader::loadPackageResources(const Package& package, const std::file
             lastError = "Plugin manager not available";
             return false;
         }
-        
+
         const auto& pluginInfo = package.getPluginInfo();
         auto pluginPath = packagePath / pluginInfo.library;
-        
+
         if (!pluginManager->loadPlugin(pluginPath.string())) {
             spdlog::error("[PackageLoader] Failed to load plugin: {}", pluginPath.string());
             lastError = "Failed to load plugin: " + pluginPath.string();
             return false;
         }
-        
+
         spdlog::info("[PackageLoader] Successfully loaded plugin: {}", pluginPath.string());
     }
-    
+
     // Load components (both from plugins and built-in)
     for (const auto& component : package.getComponents()) {
         if (!loadComponentFromFile(component, packagePath)) {
@@ -46,7 +45,7 @@ bool PackageLoader::loadPackageResources(const Package& package, const std::file
             return false;
         }
     }
-    
+
     // Load systems (both from plugins and built-in)
     for (const auto& system : package.getSystems()) {
         if (!loadSystemFromFile(system, packagePath)) {
@@ -54,7 +53,7 @@ bool PackageLoader::loadPackageResources(const Package& package, const std::file
             return false;
         }
     }
-    
+
     spdlog::info("[PackageLoader] Successfully loaded package resources for: {}", package.getName());
     return true;
 }
@@ -64,7 +63,7 @@ void PackageLoader::registerComponent(const std::string& name, ComponentFactory 
         spdlog::warn("[PackageLoader] Component already registered: {}", name);
         return;
     }
-    
+
     componentFactories[name] = factory;
     spdlog::debug("[PackageLoader] Registered component: {}", name);
 }
@@ -86,7 +85,7 @@ void PackageLoader::registerSystem(const std::string& name, SystemFactory factor
         spdlog::warn("[PackageLoader] System already registered: {}", name);
         return;
     }
-    
+
     systemFactories[name] = factory;
     spdlog::debug("[PackageLoader] Registered system: {}", name);
 }
@@ -124,11 +123,11 @@ void PackageLoader::registerBuiltinComponents() {
     registerComponent("RigidBody", [](entt::registry& registry, entt::entity entity) {
         registry.emplace<Physics::RigidBody>(entity);
     });
-    
+
     registerComponent("BoxCollider", [](entt::registry& registry, entt::entity entity) {
         registry.emplace<Physics::BoxCollider>(entity);
     });
-    
+
     // Register other built-in components as they are implemented
 }
 
@@ -136,16 +135,16 @@ void PackageLoader::registerBuiltinComponents() {
 class PhysicsSystemAdapter : public ISystem {
 private:
     Physics::PhysicsSystem physicsSystem;
-    
+
 public:
     void initialize() override {
         physicsSystem.initialize();
     }
-    
+
     void update(entt::registry& registry, float deltaTime) override {
         physicsSystem.update(registry, deltaTime);
     }
-    
+
     void shutdown() override {
         physicsSystem.shutdown();
     }
@@ -156,7 +155,7 @@ void PackageLoader::registerBuiltinSystems() {
     registerSystem("PhysicsSystem", []() -> std::unique_ptr<ISystem> {
         return std::make_unique<PhysicsSystemAdapter>();
     });
-    
+
     // Register other built-in systems as they are implemented
 }
 
@@ -166,7 +165,7 @@ bool PackageLoader::loadComponentFromFile(const ComponentInfo& component, const 
         spdlog::debug("[PackageLoader] Component {} already registered", component.name);
         return true;
     }
-    
+
     spdlog::warn("[PackageLoader] Component {} not found in registry or plugins", component.name);
     return false;
 }
@@ -177,7 +176,7 @@ bool PackageLoader::loadSystemFromFile(const SystemInfo& system, const std::file
         spdlog::debug("[PackageLoader] System {} already registered", system.name);
         return true;
     }
-    
+
     spdlog::warn("[PackageLoader] System {} not found in registry or plugins", system.name);
     return false;
 }

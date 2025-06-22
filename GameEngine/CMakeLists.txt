@@ -10,6 +10,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Find Python3 for running tests
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
+if(NOT Python3_FOUND)
+    message(WARNING "Python3 not found, tests will be disabled")
+    set(Python3_EXECUTABLE "python3")
+endif()
 
 # Set global cache directory for dependencies
 set(GLOBAL_DEPS_CACHE "${CMAKE_SOURCE_DIR}/.deps_cache" CACHE PATH "Global dependencies cache directory")
@@ -39,6 +43,10 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
     GIT_TAG v1.14.1
 )
+
+# Set spdlog to build as shared library
+set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries" FORCE)
+set(SPDLOG_BUILD_SHARED ON CACHE BOOL "Build spdlog as shared library" FORCE)
 
 # Download and configure EnTT
 FetchContent_Declare(
@@ -202,6 +210,29 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/projects)
 # Include test discovery module
 include(${CMAKE_SOURCE_DIR}/cmake/TestDiscovery.cmake)
 
+# Include platform-specific configuration if it exists
+if(EXISTS ${CMAKE_SOURCE_DIR}/cmake/PlatformConfig.cmake)
+    include(${CMAKE_SOURCE_DIR}/cmake/PlatformConfig.cmake)
+else()
+    # Fallback platform configuration
+    if(APPLE)
+        set(TEST_CXX_FLAGS "-std=c++20 -stdlib=libc++")
+        set(TEST_PLATFORM_INCLUDES "-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
+        set(TEST_FRAMEWORKS "-framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation")
+        set(TEST_OBJ_EXT "o")
+    elseif(WIN32)
+        set(TEST_CXX_FLAGS "-std=c++20")
+        set(TEST_PLATFORM_INCLUDES "")
+        set(TEST_FRAMEWORKS "-lopengl32 -lgdi32 -lwinmm")
+        set(TEST_OBJ_EXT "obj")
+    else()
+        set(TEST_CXX_FLAGS "-std=c++20")
+        set(TEST_PLATFORM_INCLUDES "")
+        set(TEST_FRAMEWORKS "-lGL -lX11 -lpthread -ldl -lm")
+        set(TEST_OBJ_EXT "o")
+    endif()
+endif()
+
 # Discover all tests
 discover_all_tests(${CMAKE_SOURCE_DIR}/tests)
 
@@ -213,6 +244,18 @@ set(GAME_ENGINE ${CMAKE_BINARY_DIR}/game_engine)
 set(TEST_COUNT 0)
 set(PASSED_COUNT 0)
 set(FAILED_TESTS)
+
+# Initialize test results
+string(TIMESTAMP TEST_TIMESTAMP \"%Y-%m-%d %H:%M:%S\")
+file(WRITE ${CMAKE_BINARY_DIR}/test_results.json \"{\\n  \\\"timestamp\\\": \\\"\${TEST_TIMESTAMP}\\\",\\n  \\\"results\\\": [\\n\")
+
+# Create log directory if it doesn't exist
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/logs)
+
+# Create log file
+string(TIMESTAMP LOG_TIMESTAMP \"%Y%m%d_%H%M%S\")
+set(TEST_LOG_FILE ${CMAKE_BINARY_DIR}/logs/test_log_\${LOG_TIMESTAMP}.log)
+file(WRITE \${TEST_LOG_FILE} \"Test run started at \${TEST_TIMESTAMP}\\n\\n\")
 
 # Check for category filter
 set(TEST_CATEGORY \$ENV{TEST_CATEGORY})
@@ -315,13 +358,17 @@ add_custom_target(test-fast
 file(WRITE ${CMAKE_BINARY_DIR}/compile_cpp_tests.cmake
 "# Auto-generated C++ test compilation script
 set(CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER})
-set(CMAKE_CXX_FLAGS \"-std=c++20 -stdlib=libc++\")
-set(INCLUDE_DIRS \"-I${CMAKE_SOURCE_DIR}/src -I${GLOBAL_DEPS_CACHE}/raylib-src/src -I${GLOBAL_DEPS_CACHE}/spdlog-src/include -I${GLOBAL_DEPS_CACHE}/entt-src/src -I${GLOBAL_DEPS_CACHE}/glm-src -I${GLOBAL_DEPS_CACHE}/json-src/include -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk\")
-file(GLOB_RECURSE ENGINE_OBJECTS \"${CMAKE_BINARY_DIR}/CMakeFiles/game_engine.dir/*.o\")
-# Remove main.cpp.o to avoid multiple main() definitions
-list(FILTER ENGINE_OBJECTS EXCLUDE REGEX \"main.cpp.o\")
-set(LIBRARIES \"-L${CMAKE_BINARY_DIR} -L${GLOBAL_DEPS_CACHE}/raylib-build/raylib -L${GLOBAL_DEPS_CACHE}/spdlog-build -lraylib -lspdlog\")
-set(FRAMEWORKS \"-framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation\")
+set(CMAKE_CXX_FLAGS \"${TEST_CXX_FLAGS}\")
+set(INCLUDE_DIRS \"-I${CMAKE_SOURCE_DIR}/src -I${GLOBAL_DEPS_CACHE}/raylib-src/src -I${GLOBAL_DEPS_CACHE}/spdlog-src/include -I${GLOBAL_DEPS_CACHE}/entt-src/src -I${GLOBAL_DEPS_CACHE}/glm-src -I${GLOBAL_DEPS_CACHE}/json-src/include ${TEST_PLATFORM_INCLUDES}\")
+file(GLOB_RECURSE ENGINE_OBJECTS \"${CMAKE_BINARY_DIR}/CMakeFiles/game_engine.dir/*.${TEST_OBJ_EXT}\")
+# Remove main.cpp object file to avoid multiple main() definitions
+list(FILTER ENGINE_OBJECTS EXCLUDE REGEX \"main.cpp.${TEST_OBJ_EXT}\")
+if(WIN32)
+    set(LIBRARIES \"-L${CMAKE_BINARY_DIR} -L${GLOBAL_DEPS_CACHE}/raylib-build/raylib -L${GLOBAL_DEPS_CACHE}/spdlog-build -lraylib -lspdlog -lstdc++ -lm\")
+else()
+    set(LIBRARIES \"-L${CMAKE_BINARY_DIR} -L${GLOBAL_DEPS_CACHE}/raylib-build/raylib -L${GLOBAL_DEPS_CACHE}/spdlog-build -lraylib -lspdlog\")
+endif()
+set(FRAMEWORKS \"${TEST_FRAMEWORKS}\")
 
 set(CPP_TESTS ${ALL_CPP_TESTS})
 set(TEST_COUNT 0)

@@ -24,11 +24,11 @@ public:
         bool headless = false;  // Run without graphics
         std::string logLevel = "";  // Override log level
     };
-    
+
     static ParsedArgs parse(int argc, char* argv[]);
     static void printHelp();
     static void printVersion();
-    
+
 private:
     static std::string getUsageString();
 };

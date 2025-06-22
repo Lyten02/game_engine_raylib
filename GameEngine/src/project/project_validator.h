@@ -4,7 +4,6 @@
 #include <vector>
 
 namespace GameEngine {
-
 class ProjectValidator {
 public:
     struct ValidationResult {

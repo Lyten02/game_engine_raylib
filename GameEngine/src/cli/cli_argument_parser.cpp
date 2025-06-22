@@ -3,10 +3,10 @@
 
 CLIArgumentParser::ParsedArgs CLIArgumentParser::parse(int argc, char* argv[]) {
     ParsedArgs args;
-    
+
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
-        
+
         if (arg == "--help" || arg == "-h") {
             args.help = true;
         }
@@ -55,7 +55,7 @@ CLIArgumentParser::ParsedArgs CLIArgumentParser::parse(int argc, char* argv[]) {
             }
         }
     }
-    
+
     return args;
 }
 
@@ -92,7 +92,7 @@ Examples:
   GameEngine --headless -c "project.list"     List projects without GUI
   GameEngine --script tests/test.txt          Run test script
   GameEngine --batch "project.create test" "entity.create Player"
-  
+
 For more information, visit: https://github.com/yourgithub/gameengine)"
     ;
 }

@@ -23,7 +23,6 @@ namespace GameEngine {
 }
 
 namespace GameEngine {
-
 class CommandRegistry {
 public:
     CommandRegistry();
@@ -57,7 +56,7 @@ private:
     void registerScriptCommands(CommandProcessor* processor, Console* console, ScriptManager* scriptManager);
     void registerGameLogicCommands(CommandProcessor* processor, Console* console, GameLogicManager* gameLogicManager, std::function<Scene*()> getScene);
     void registerProjectCommands(CommandProcessor* processor, Console* console, ProjectManager* projectManager, std::function<Scene*()> getScene, Engine* engine);
-    void registerBuildCommands(CommandProcessor* processor, Console* console, ProjectManager* projectManager, 
+    void registerBuildCommands(CommandProcessor* processor, Console* console, ProjectManager* projectManager,
                              BuildSystem* buildSystem, AsyncBuildSystem* asyncBuildSystem);
     void registerPlayModeCommands(CommandProcessor* processor, Console* console, std::function<Scene*()> getScene,
                                 ProjectManager* projectManager, PlayMode* playMode);
@@ -69,7 +68,7 @@ private:
     std::vector<std::string> getProjectList() const;
     std::vector<std::string> getScriptList() const;
     std::vector<std::string> getConfigKeys() const;
-    
+
     // State variables managed by commands
     bool* showDebugInfo = nullptr;
 };

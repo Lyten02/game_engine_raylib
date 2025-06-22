@@ -10,11 +10,10 @@
 #include <vector>
 
 namespace GameEngine {
-
 class GameLogicPluginManager : public IPluginManager {
 private:
     std::unordered_map<std::string, void*> loadedLibraries;
-    std::unordered_map<std::string, std::function<std::unique_ptr<IGameLogic>()>> gameLogicFactories;
+    std::unordered_map<std::string, std::function<std::unique_ptr<IGameLogic>() >> gameLogicFactories;
     std::unordered_set<std::string> allowedPaths;
     bool securityEnabled = true;
 
@@ -29,10 +28,10 @@ public:
     bool loadPlugin(const std::string& path, const std::string& name);
     bool unloadPlugin(const std::string& name);
     bool loadProjectPlugins(const std::string& projectPath);
-    
+
     // Game logic creation
     std::unique_ptr<IGameLogic> createGameLogic(const std::string& name);
-    
+
     // Security and lifecycle
     void disableSecurity();
     std::vector<std::string> getLoadedPlugins() const;

@@ -23,7 +23,7 @@ void RenderSystem::update(entt::registry& registry) {
     // RenderSystem is now just a placeholder
     // All rendering is handled by plugins that register their own components
     // This maintains compatibility but does nothing
-    
+
     BeginMode2D(camera);
     // Plugins will handle actual rendering via their own systems
     EndMode2D();

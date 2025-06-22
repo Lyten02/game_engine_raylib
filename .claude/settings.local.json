@@ -46,7 +46,9 @@
       "Bash(./*.sh)",
       "Bash(sh:*)",
       "Bash(bash:*)",
-      "Bash(gh run view:*)"
+      "Bash(gh run view:*)",
+      "Bash(gh pr checks:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [
       "Bash(git:add:*)",

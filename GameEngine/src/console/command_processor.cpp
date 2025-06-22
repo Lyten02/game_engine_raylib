@@ -9,20 +9,20 @@
 
 void CommandProcessor::initialize(Console* con) {
     console = con;
-    
+
     // Load timeout settings from config
     if (Config::isConfigLoaded()) {
         commandTimeoutSeconds = Config::getInt("console.command_timeout_seconds", 10);
         timeoutEnabled = Config::getBool("console.enable_command_timeout", true);
-        spdlog::info("CommandProcessor::initialize - Timeout settings loaded: {} seconds, enabled: {}", 
+        spdlog::info("CommandProcessor::initialize - Timeout settings loaded: {} seconds, enabled: {}",
                      commandTimeoutSeconds, timeoutEnabled);
     }
-    
+
     registerDefaultCommands();
     spdlog::info("CommandProcessor::initialize - Command processor initialized");
 }
 
-void CommandProcessor::registerCommand(const std::string& name, CommandFunction func, 
+void CommandProcessor::registerCommand(const std::string& name, CommandFunction func,
                                      const std::string& help, const std::string& group,
                                      const std::string& syntax, const std::vector<CommandParameter>& params) {
     commands[name] = {func, help, group, syntax, params};
@@ -35,7 +35,7 @@ std::vector<std::string> CommandProcessor::parseCommand(const std::string& input
     std::string token;
     bool inQuotes = false;
     std::string currentToken;
-    
+
     for (char c : input) {
         if (c == '"') {
             inQuotes = !inQuotes;
@@ -48,11 +48,11 @@ std::vector<std::string> CommandProcessor::parseCommand(const std::string& input
             currentToken += c;
         }
     }
-    
+
     if (!currentToken.empty()) {
         tokens.push_back(currentToken);
     }
-    
+
     return tokens;
 }
 
@@ -61,31 +61,31 @@ void CommandProcessor::executeCommand(const std::string& input) {
         spdlog::error("CommandProcessor::executeCommand - Console not initialized");
         return;
     }
-    
+
     auto tokens = parseCommand(input);
     if (tokens.empty()) return;
-    
+
     std::string commandName = tokens[0];
     std::transform(commandName.begin(), commandName.end(), commandName.begin(), ::tolower);
-    
+
     auto it = commands.find(commandName);
     if (it != commands.end()) {
         try {
             std::vector<std::string> args(tokens.begin() + 1, tokens.end());
-            
+
             // Check if this is a build command - no timeout for builds
             bool isBuildCommand = commandName.find("build") != std::string::npos;
-            
+
             // If timeout is disabled or this is a build command, execute directly
             if (!timeoutEnabled || isBuildCommand) {
                 it->second.function(args);
                 return;
             }
-            
+
             // Execute command with timeout
             std::exception_ptr commandException = nullptr;
             bool commandCompleted = false;
-            
+
             auto future = std::async(std::launch::async, [&]() {
                 try {
                     it->second.function(args);
@@ -94,24 +94,24 @@ void CommandProcessor::executeCommand(const std::string& input) {
                     commandException = std::current_exception();
                 }
             });
-            
+
             // Wait with timeout
             const auto timeout = std::chrono::seconds(commandTimeoutSeconds);
-            if (future.wait_for(timeout) == std::future_status::timeout) {
+            if (future.wait_for (timeout) == std::future_status::timeout) {
                 spdlog::error("Command '{}' timed out after {} seconds", commandName, commandTimeoutSeconds);
                 console->addLine("Error: Command timed out after " + std::to_string(commandTimeoutSeconds) + " seconds", RED);
                 console->addLine("The command is still running in the background and may complete later.", YELLOW);
                 return;
             }
-            
+
             // Get result (will wait for command to complete)
             future.get();
-            
+
             // Rethrow any exception that occurred in the command
             if (commandException) {
                 std::rethrow_exception(commandException);
             }
-            
+
         } catch (const std::exception& e) {
             console->addLine("Error: " + std::string(e.what()), RED);
         }
@@ -132,11 +132,11 @@ void CommandProcessor::registerDefaultCommands() {
                 const auto& info = it->second;
                 console->addLine("Command: " + cmdName, YELLOW);
                 console->addLine("  " + info.help, WHITE);
-                
+
                 if (!info.syntax.empty()) {
                     console->addLine("  Syntax: " + info.syntax, SKYBLUE);
                 }
-                
+
                 if (!info.parameters.empty()) {
                     console->addLine("  Parameters:", GREEN);
                     for (const auto& param : info.parameters) {
@@ -150,38 +150,38 @@ void CommandProcessor::registerDefaultCommands() {
                         console->addLine(paramLine, LIGHTGRAY);
                     }
                 }
-                
+
                 console->addLine("  Group: " + info.group, GRAY);
             } else {
                 console->addLine("Unknown command: " + cmdName, RED);
             }
             return;
         }
-        
+
         // Show all commands grouped
         auto groupedCommands = getCommandsByGroup();
-        
+
         console->addLine("=== Available Commands ===", YELLOW);
         console->addLine("", WHITE);
-        
+
         // Sort groups for consistent display
         std::vector<std::string> groups;
         for (const auto& [group, cmds] : groupedCommands) {
             groups.push_back(group);
         }
         std::sort(groups.begin(), groups.end());
-        
+
         // Move "Package" group to the end if it exists
         auto packageIt = std::find(groups.begin(), groups.end(), "Package");
         if (packageIt != groups.end()) {
             groups.erase(packageIt);
             groups.push_back("Package");
         }
-        
+
         // Display each group
         for (const auto& group : groups) {
             const auto& cmds = groupedCommands.at(group);
-            
+
             // Special formatting for Package group
             if (group == "Package") {
                 console->addLine("", WHITE);
@@ -191,15 +191,15 @@ void CommandProcessor::registerDefaultCommands() {
             } else {
                 console->addLine("【 " + group + " 】", SKYBLUE);
             }
-            
+
             // Sort commands within group
             auto sortedCmds = cmds;
             std::sort(sortedCmds.begin(), sortedCmds.end(),
                      [](const auto& a, const auto& b) { return a.first < b.first; });
-            
+
             for (const auto& [cmd, help] : sortedCmds) {
                 std::string helpLine = "  " + cmd;
-                
+
                 // Pad command name for alignment
                 const size_t padLength = 25;
                 if (cmd.length() < padLength) {
@@ -207,29 +207,29 @@ void CommandProcessor::registerDefaultCommands() {
                 } else {
                     helpLine += " ";
                 }
-                
+
                 helpLine += "- " + help;
                 console->addLine(helpLine, group == "Package" ? VIOLET : WHITE);
             }
             console->addLine("", WHITE);
         }
-        
+
         console->addLine("Type 'help <command>' for detailed information about a command.", GRAY);
-    }, "Show this help message", "General", 
+    }, "Show this help message", "General",
     "help [command]",
     {{"command", "Command name to get help for", false}});
-    
+
     // Clear command
     registerCommand("clear", [this](const std::vector<std::string>& args) {
         console->clear();
     }, "Clear the console output", "General");
-    
+
     // Quit command
     registerCommand("quit", [this](const std::vector<std::string>& args) {
         console->addLine("Shutting down...", YELLOW);
         // The actual quit will be handled by the engine
     }, "Quit the application", "General");
-    
+
     // Alias for quit
     registerCommand("exit", [this](const std::vector<std::string>& args) {
         executeCommand("quit");
@@ -253,13 +253,13 @@ std::string CommandProcessor::getCommandHelp(const std::string& name) const {
     return "";
 }
 
-std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> CommandProcessor::getCommandsByGroup() const {
-    std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> grouped;
-    
+std::unordered_map<std::string, std::vector<std::pair<std::string, std::string >> > CommandProcessor::getCommandsByGroup() const {
+    std::unordered_map<std::string, std::vector<std::pair<std::string, std::string >> > grouped;
+
     for (const auto& [name, info] : commands) {
         grouped[info.group].push_back({name, info.help});
     }
-    
+
     return grouped;
 }
 
@@ -276,7 +276,7 @@ std::vector<std::string> CommandProcessor::getParameterSuggestions(const std::st
     if (it != commands.end()) {
         const auto& params = it->second.parameters;
         spdlog::debug("Command '{}' has {} parameters, requesting index {}", command, params.size(), paramIndex);
-        
+
         if (paramIndex >= 0 && paramIndex < static_cast<int>(params.size())) {
             if (params[paramIndex].suggestionProvider) {
                 spdlog::debug("Parameter '{}' has suggestion provider", params[paramIndex].name);

@@ -6,7 +6,6 @@
 #include "project.h"
 
 namespace GameEngine {
-
 class ProjectManager {
 private:
     std::unique_ptr<Project> currentProject;

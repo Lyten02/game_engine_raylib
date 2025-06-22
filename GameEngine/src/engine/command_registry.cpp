@@ -15,7 +15,6 @@
 #include <filesystem>
 
 namespace GameEngine {
-
 CommandRegistry::CommandRegistry() = default;
 CommandRegistry::~CommandRegistry() = default;
 
@@ -35,7 +34,7 @@ void CommandRegistry::registerAllCommands(CommandProcessor* processor,
     // Store the showDebugInfo pointer
     static bool debugInfo = true;
     showDebugInfo = &debugInfo;
-    
+
     // Register commands by category
     registerEngineCommands(processor, engineCore, console);
     registerSceneCommands(processor, console, getScene, projectManager);
@@ -45,20 +44,20 @@ void CommandRegistry::registerAllCommands(CommandProcessor* processor,
     registerDebugCommands(processor, console, showDebugInfo);
     registerConsoleCommands(processor, console);
     registerConfigCommands(processor, console, engineCore);
-    
+
     if (scriptManager) {
         registerScriptCommands(processor, console, scriptManager);
     }
-    
+
     if (gameLogicManager) {
         registerGameLogicCommands(processor, console, gameLogicManager, getScene);
     }
-    
+
     registerProjectCommands(processor, console, projectManager, getScene, engine);
     registerBuildCommands(processor, console, projectManager, buildSystem, asyncBuildSystem);
     registerPlayModeCommands(processor, console, getScene, projectManager, playMode);
     registerLogCommands(processor, console);
-    
+
     if (packageManager) {
         registerPackageCommands(processor, console, packageManager);
     }
@@ -67,10 +66,10 @@ void CommandRegistry::registerAllCommands(CommandProcessor* processor,
 // Helper methods
 std::vector<std::string> CommandRegistry::getSceneList(ProjectManager* projectManager) const {
     std::vector<std::string> scenes;
-    
+
     if (projectManager && projectManager->getCurrentProject()) {
         std::string scenesPath = projectManager->getCurrentProject()->getPath() + "/scenes";
-        
+
         if (std::filesystem::exists(scenesPath)) {
             for (const auto& entry : std::filesystem::directory_iterator(scenesPath)) {
                 if (entry.path().extension() == ".json") {
@@ -79,13 +78,13 @@ std::vector<std::string> CommandRegistry::getSceneList(ProjectManager* projectMa
             }
         }
     }
-    
+
     return scenes;
 }
 
 std::vector<std::string> CommandRegistry::getProjectList() const {
     std::vector<std::string> projects;
-    
+
     std::filesystem::path projectsDir = EnginePaths::getProjectsDir();
     if (std::filesystem::exists(projectsDir)) {
         for (const auto& entry : std::filesystem::directory_iterator(projectsDir)) {
@@ -97,13 +96,13 @@ std::vector<std::string> CommandRegistry::getProjectList() const {
             }
         }
     }
-    
+
     return projects;
 }
 
 std::vector<std::string> CommandRegistry::getScriptList() const {
     std::vector<std::string> scripts;
-    
+
     std::string scriptDir = Config::getString("scripting.script_directory", "scripts/");
     if (std::filesystem::exists(scriptDir)) {
         for (const auto& entry : std::filesystem::directory_iterator(scriptDir)) {
@@ -112,13 +111,13 @@ std::vector<std::string> CommandRegistry::getScriptList() const {
             }
         }
     }
-    
+
     return scripts;
 }
 
 std::vector<std::string> CommandRegistry::getConfigKeys() const {
     std::vector<std::string> keys;
-    
+
     keys.push_back("window.width");
     keys.push_back("window.height");
     keys.push_back("window.title");
@@ -132,7 +131,7 @@ std::vector<std::string> CommandRegistry::getConfigKeys() const {
     keys.push_back("scripting.script_directory");
     keys.push_back("graphics.antialiasing");
     keys.push_back("graphics.texture_filter");
-    
+
     return keys;
 }
 

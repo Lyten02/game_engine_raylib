@@ -5,17 +5,16 @@
 #include <spdlog/spdlog.h>
 
 namespace GameEngine {
-
 template<>
 void ComponentRegistry::registerComponent<TransformComponent>(const std::string& name) {
     ComponentInfo info;
     info.name = name;
-    
+
     info.serialize = [](entt::entity entity, entt::registry& registry) -> nlohmann::json {
         if (!registry.all_of<TransformComponent>(entity)) {
             return {};
         }
-        
+
         const auto& transform = registry.get<TransformComponent>(entity);
         return {
             {"position", {transform.position.x, transform.position.y, transform.position.z}},
@@ -23,10 +22,10 @@ void ComponentRegistry::registerComponent<TransformComponent>(const std::string&
             {"scale", {transform.scale.x, transform.scale.y, transform.scale.z}}
         };
     };
-    
+
     info.deserialize = [](entt::entity entity, entt::registry& registry, const nlohmann::json& data) {
         auto& transform = registry.emplace_or_replace<TransformComponent>(entity);
-        
+
         if (data.contains("position")) {
             const auto& pos = data["position"];
             transform.position = {pos[0], pos[1], pos[2]};
@@ -40,7 +39,7 @@ void ComponentRegistry::registerComponent<TransformComponent>(const std::string&
             transform.scale = {scale[0], scale[1], scale[2]};
         }
     };
-    
+
     components[name] = info;
     spdlog::info("Registered component: {}", name);
 }
@@ -49,12 +48,12 @@ template<>
 void ComponentRegistry::registerComponent<Sprite>(const std::string& name) {
     ComponentInfo info;
     info.name = name;
-    
+
     info.serialize = [](entt::entity entity, entt::registry& registry) -> nlohmann::json {
         if (!registry.all_of<Sprite>(entity)) {
             return {};
         }
-        
+
         const auto& sprite = registry.get<Sprite>(entity);
         return {
             {"texture", sprite.texturePath},
@@ -62,10 +61,10 @@ void ComponentRegistry::registerComponent<Sprite>(const std::string& name) {
             {"tint", {sprite.tint.r, sprite.tint.g, sprite.tint.b, sprite.tint.a}}
         };
     };
-    
+
     info.deserialize = [](entt::entity entity, entt::registry& registry, const nlohmann::json& data) {
         auto& sprite = registry.emplace_or_replace<Sprite>(entity);
-        
+
         if (data.contains("texture")) {
             sprite.texturePath = data["texture"];
         }
@@ -83,7 +82,7 @@ void ComponentRegistry::registerComponent<Sprite>(const std::string& name) {
             };
         }
     };
-    
+
     components[name] = info;
     spdlog::info("Registered component: {}", name);
 }
@@ -92,12 +91,12 @@ template<>
 void ComponentRegistry::registerComponent<CameraComponent>(const std::string& name) {
     ComponentInfo info;
     info.name = name;
-    
+
     info.serialize = [](entt::entity entity, entt::registry& registry) -> nlohmann::json {
         if (!registry.all_of<CameraComponent>(entity)) {
             return {};
         }
-        
+
         const auto& camera = registry.get<CameraComponent>(entity);
         return {
             {"target", {camera.target.x, camera.target.y}},
@@ -107,10 +106,10 @@ void ComponentRegistry::registerComponent<CameraComponent>(const std::string& na
             {"active", camera.active}
         };
     };
-    
+
     info.deserialize = [](entt::entity entity, entt::registry& registry, const nlohmann::json& data) {
         auto& camera = registry.emplace_or_replace<CameraComponent>(entity);
-        
+
         if (data.contains("target")) {
             const auto& target = data["target"];
             camera.target = {target[0], target[1]};
@@ -129,7 +128,7 @@ void ComponentRegistry::registerComponent<CameraComponent>(const std::string& na
             camera.active = data["active"];
         }
     };
-    
+
     components[name] = info;
     spdlog::info("Registered component: {}", name);
 }

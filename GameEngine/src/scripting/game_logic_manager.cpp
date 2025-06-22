@@ -13,7 +13,7 @@
         inline void error(const std::string& fmt, Args... args) {}
     }
 #else
-    #include <spdlog/spdlog.h>
+#include <spdlog/spdlog.h>
 #endif
 
 GameLogicManager::~GameLogicManager() {
@@ -22,81 +22,80 @@ GameLogicManager::~GameLogicManager() {
     }
 }
 
-bool GameLogicManager::initialize() {
-    {
+bool GameLogicManager::initialize() { {
         std::lock_guard<std::mutex> lock(mutex);
-        
+
         if (initialized) {
             spdlog::warn("GameLogicManager already initialized");
             return true;
         }
-        
+
         initialized = true;
     }
-    
+
     spdlog::info("Initializing GameLogicManager");
-    
+
     // Initialize plugin manager
     pluginManager = std::make_unique<GameEngine::GameLogicPluginManager>();
-    
+
     // Register built-in game logic factories (without holding the lock)
     registerBuiltinLogics();
-    
+
     return true;
 }
 
 void GameLogicManager::shutdown() {
     std::lock_guard<std::mutex> lock(mutex);
-    
+
     if (!initialized) {
         return;
     }
-    
+
     spdlog::info("Shutting down GameLogicManager");
-    
+
     // Shutdown all active logics
     for (auto& logic : activeLogics) {
         if (logic) {
             logic->shutdown();
         }
     }
-    
+
     activeLogics.clear();
     registeredFactories.clear();
-    
+
     // Cleanup plugin manager
     if (pluginManager) {
         pluginManager.reset();
     }
-    
+
     initialized = false;
 }
 
 void GameLogicManager::registerLogicFactory(const std::string& name, GameLogicFactory factory) {
     std::lock_guard<std::mutex> lock(mutex);
-    
+
     if (!initialized) {
         spdlog::error("GameLogicManager not initialized");
         return;
     }
-    
+
     if (factory == nullptr) {
         spdlog::error("Cannot register null factory for: {}", name);
         return;
     }
-    
+
     registeredFactories[name] = factory;
     spdlog::info("Registered game logic factory: {}", name);
 }
 
 bool GameLogicManager::createLogic(const std::string& name, entt::registry& registry) {
     std::lock_guard<std::mutex> lock(mutex);
-    
+
     if (!initialized) {
         spdlog::error("GameLogicManager not initialized");
         return false;
     }
-    
+
     // First try local factories
     auto it = registeredFactories.find(name);
     if (it != registeredFactories.end()) {
@@ -112,7 +111,7 @@ bool GameLogicManager::createLogic(const std::string& name, entt::registry& regi
             spdlog::error("Failed to create game logic {}: {}", name, e.what());
         }
     }
-    
+
     // Try plugin manager
     if (pluginManager) {
         try {
@@ -127,16 +126,16 @@ bool GameLogicManager::createLogic(const std::string& name, entt::registry& regi
             spdlog::error("Failed to create game logic {} from plugin: {}", name, e.what());
         }
     }
-    
+
     spdlog::error("Game logic factory not found: {}", name);
     return false;
 }
 
 void GameLogicManager::update(entt::registry& registry, float deltaTime, const InputState& input) {
     if (!initialized) return;
-    
+
     std::lock_guard<std::mutex> lock(mutex);
-    
+
     for (auto& logic : activeLogics) {
         if (logic) {
             try {
@@ -150,9 +149,9 @@ void GameLogicManager::update(entt::registry& registry, float deltaTime, const I
 
 void GameLogicManager::fixedUpdate(entt::registry& registry, float fixedDeltaTime, const InputState& input) {
     if (!initialized) return;
-    
+
     std::lock_guard<std::mutex> lock(mutex);
-    
+
     for (auto& logic : activeLogics) {
         if (logic) {
             try {
@@ -166,9 +165,9 @@ void GameLogicManager::fixedUpdate(entt::registry& registry, float fixedDeltaTim
 
 void GameLogicManager::lateUpdate(entt::registry& registry, float deltaTime, const InputState& input) {
     if (!initialized) return;
-    
+
     std::lock_guard<std::mutex> lock(mutex);
-    
+
     for (auto& logic : activeLogics) {
         if (logic) {
             try {
@@ -182,9 +181,9 @@ void GameLogicManager::lateUpdate(entt::registry& registry, float deltaTime, con
 
 void GameLogicManager::onEntityCreated(entt::registry& registry, entt::entity entity) {
     if (!initialized) return;
-    
+
     std::lock_guard<std::mutex> lock(mutex);
-    
+
     for (auto& logic : activeLogics) {
         if (logic) {
             try {
@@ -198,9 +197,9 @@ void GameLogicManager::onEntityCreated(entt::registry& registry, entt::entity en
 
 void GameLogicManager::onEntityDestroyed(entt::registry& registry, entt::entity entity) {
     if (!initialized) return;
-    
+
     std::lock_guard<std::mutex> lock(mutex);
-    
+
     for (auto& logic : activeLogics) {
         if (logic) {
             try {
@@ -214,7 +213,7 @@ void GameLogicManager::onEntityDestroyed(entt::registry& registry, entt::entity 
 
 std::vector<std::string> GameLogicManager::getActiveLogics() const {
     std::lock_guard<std::mutex> lock(mutex);
-    
+
     std::vector<std::string> names;
     for (const auto& logic : activeLogics) {
         if (logic) {
@@ -226,13 +225,13 @@ std::vector<std::string> GameLogicManager::getActiveLogics() const {
 
 bool GameLogicManager::removeLogic(const std::string& name) {
     std::lock_guard<std::mutex> lock(mutex);
-    
+
     if (!initialized) {
         spdlog::error("GameLogicManager not initialized");
         return false;
     }
-    
-    auto it = std::remove_if(activeLogics.begin(), activeLogics.end(),
+
+    auto it = std::remove_if (activeLogics.begin(), activeLogics.end(),
         [&name](const std::unique_ptr<IGameLogic>& logic) {
             if (logic && logic->getName() == name) {
                 logic->shutdown();
@@ -240,29 +239,29 @@ bool GameLogicManager::removeLogic(const std::string& name) {
             }
             return false;
         });
-    
+
     if (it != activeLogics.end()) {
         activeLogics.erase(it, activeLogics.end());
         spdlog::info("Removed game logic: {}", name);
         return true;
     }
-    
+
     return false;
 }
 
 void GameLogicManager::clearLogics() {
     std::lock_guard<std::mutex> lock(mutex);
-    
+
     if (!initialized) {
         return;
     }
-    
+
     for (auto& logic : activeLogics) {
         if (logic) {
             logic->shutdown();
         }
     }
-    
+
     activeLogics.clear();
     spdlog::info("Cleared all game logics");
 }
@@ -278,7 +277,7 @@ bool GameLogicManager::loadProjectPlugins(const std::string& projectPath) {
         spdlog::error("GameLogicManager not initialized or plugin manager missing");
         return false;
     }
-    
+
     spdlog::info("Loading plugins for project: {}", projectPath);
     return pluginManager->loadProjectPlugins(projectPath);
 }

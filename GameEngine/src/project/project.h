@@ -6,7 +6,6 @@
 #include "nlohmann/json.hpp"
 
 namespace GameEngine {
-
 class Project {
 private:
     std::string name;
@@ -24,12 +23,12 @@ public:
     std::vector<std::string> getScenes() const;
     const std::string& getName() const;
     const std::string& getPath() const;
-    
+
     // Start scene methods
     bool hasStartScene() const { return !startScene.empty(); }
     const std::string& getStartScene() const { return startScene; }
     void setStartScene(const std::string& sceneName) { startScene = sceneName; }
-    
+
     // Game logic
     std::string getGameLogic() const;
 };

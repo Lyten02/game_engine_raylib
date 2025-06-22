@@ -24,7 +24,6 @@ namespace GameEngine {
 }
 
 namespace GameEngine {
-
 class SystemsManager {
 public:
     SystemsManager();
@@ -32,10 +31,10 @@ public:
 
     // Initialize all systems
     bool initialize(bool headlessMode);
-    
+
     // Shutdown all systems
     void shutdown();
-    
+
     // System getters
     RenderSystem* getRenderSystem() const { return renderSystem.get(); }
     ResourceManager* getResourceManager() const { return resourceManager.get(); }
@@ -50,7 +49,7 @@ public:
     PackageManager* getPackageManager() const { return packageManager.get(); }
     PackageLoader* getPackageLoader() const { return packageLoader.get(); }
     PluginManager* getPluginManager() const { return pluginManager.get(); }
-    
+
     // Special initialization for components
     void registerComponents();
 
@@ -65,7 +64,7 @@ private:
     bool initializeBuildSystems();
     bool initializePlayMode();
     bool initializePackageManager();
-    
+
     // System instances
     std::unique_ptr<RenderSystem> renderSystem;
     std::unique_ptr<ResourceManager> resourceManager;
@@ -80,7 +79,7 @@ private:
     std::unique_ptr<PackageManager> packageManager;
     std::unique_ptr<PackageLoader> packageLoader;
     std::unique_ptr<PluginManager> pluginManager;
-    
+
     bool headlessMode = false;
 };
 

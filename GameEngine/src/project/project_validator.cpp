@@ -6,25 +6,23 @@
 #include <spdlog/spdlog.h>
 
 namespace GameEngine {
-
-
 ProjectValidator::ValidationResult ProjectValidator::validateProject(const std::string& projectPath) {
     ValidationResult result;
     result.valid = true;
-    
+
     // Check project structure
     if (!validateProjectStructure(projectPath)) {
         result.errors.push_back("Invalid project structure");
         result.valid = false;
     }
-    
+
     // Check project.json
     std::string projectFile = projectPath + "/project.json";
     if (!validateProjectFile(projectFile)) {
         result.errors.push_back("Invalid project.json file");
         result.valid = false;
     }
-    
+
     // Check scene files
     std::string scenesPath = projectPath + "/scenes";
     if (std::filesystem::exists(scenesPath)) {
@@ -37,12 +35,12 @@ ProjectValidator::ValidationResult ProjectValidator::validateProject(const std::
             }
         }
     }
-    
+
     // Check resource references
     if (!validateResourceReferences(projectPath)) {
         result.warnings.push_back("Some resource references could not be validated");
     }
-    
+
     return result;
 }
 
@@ -51,13 +49,13 @@ bool ProjectValidator::validateProjectStructure(const std::string& projectPath) 
         spdlog::error("Project path does not exist: {}", projectPath);
         return false;
     }
-    
+
     // Check required files
     if (!std::filesystem::exists(projectPath + "/project.json")) {
         spdlog::error("project.json not found in: {}", projectPath);
         return false;
     }
-    
+
     // Check required directories (create if missing)
     std::vector<std::string> requiredDirs = {"scenes", "assets", "scripts"};
     for (const auto& dir : requiredDirs) {
@@ -73,7 +71,7 @@ bool ProjectValidator::validateProjectStructure(const std::string& projectPath) 
             }
         }
     }
-    
+
     return true;
 }
 
@@ -81,34 +79,34 @@ bool ProjectValidator::validateProjectFile(const std::string& projectFile) {
     if (!std::filesystem::exists(projectFile)) {
         return false;
     }
-    
+
     try {
         std::string content = FileUtils::readFile(projectFile);
         nlohmann::json projectData = nlohmann::json::parse(content);
-        
+
         // Check required fields
         if (!projectData.contains("name") || !projectData["name"].is_string()) {
             spdlog::error("Project file missing 'name' field");
             return false;
         }
-        
+
         if (!projectData.contains("version") || !projectData["version"].is_string()) {
             spdlog::error("Project file missing 'version' field");
             return false;
         }
-        
+
         if (projectData.contains("scenes") && !projectData["scenes"].is_array()) {
             spdlog::error("Project file 'scenes' field must be an array");
             return false;
         }
-        
+
         if (projectData.contains("settings")) {
             if (!projectData["settings"].is_object()) {
                 spdlog::error("Project file 'settings' field must be an object");
                 return false;
             }
         }
-        
+
         return true;
     }
     catch (const nlohmann::json::exception& e) {
@@ -125,40 +123,40 @@ bool ProjectValidator::validateSceneFile(const std::string& sceneFile) {
     if (!std::filesystem::exists(sceneFile)) {
         return false;
     }
-    
+
     try {
         std::string content = FileUtils::readFile(sceneFile);
         nlohmann::json sceneData = nlohmann::json::parse(content);
-        
+
         // Check required fields
         if (!sceneData.contains("name") || !sceneData["name"].is_string()) {
             spdlog::error("Scene file missing 'name' field: {}", sceneFile);
             return false;
         }
-        
+
         if (!sceneData.contains("entities") || !sceneData["entities"].is_array()) {
             spdlog::error("Scene file missing 'entities' array: {}", sceneFile);
             return false;
         }
-        
+
         // Validate entities
         for (const auto& entity : sceneData["entities"]) {
             if (!entity.is_object()) {
                 spdlog::error("Invalid entity in scene file: {}", sceneFile);
                 return false;
             }
-            
+
             if (!entity.contains("name") || !entity["name"].is_string()) {
                 spdlog::error("Entity missing 'name' field in scene file: {}", sceneFile);
                 return false;
             }
-            
+
             if (entity.contains("components") && !entity["components"].is_object()) {
                 spdlog::error("Entity 'components' must be an object in scene file: {}", sceneFile);
                 return false;
             }
         }
-        
+
         return true;
     }
     catch (const nlohmann::json::exception& e) {
@@ -173,7 +171,7 @@ bool ProjectValidator::validateSceneFile(const std::string& sceneFile) {
 
 bool ProjectValidator::validateResourceReferences(const std::string& projectPath) {
     bool allValid = true;
-    
+
     // Check scene files for resource references
     std::string scenesPath = projectPath + "/scenes";
     if (std::filesystem::exists(scenesPath)) {
@@ -182,7 +180,7 @@ bool ProjectValidator::validateResourceReferences(const std::string& projectPath
                 try {
                     std::string content = FileUtils::readFile(entry.path().string());
                     nlohmann::json sceneData = nlohmann::json::parse(content);
-                    
+
                     // Check entities for resource references
                     if (sceneData.contains("entities") && sceneData["entities"].is_array()) {
                         for (const auto& entity : sceneData["entities"]) {
@@ -193,8 +191,8 @@ bool ProjectValidator::validateResourceReferences(const std::string& projectPath
                                     if (sprite.contains("texture") && sprite["texture"].is_string()) {
                                         std::string texturePath = projectPath + "/assets/" + sprite["texture"].get<std::string>();
                                         if (!std::filesystem::exists(texturePath)) {
-                                            spdlog::warn("Missing texture resource: {} in scene {}", 
-                                                       sprite["texture"].get<std::string>(), 
+                                            spdlog::warn("Missing texture resource: {} in scene {}",
+                                                       sprite["texture"].get<std::string>(),
                                                        entry.path().filename().string());
                                             allValid = false;
                                         }
@@ -205,13 +203,13 @@ bool ProjectValidator::validateResourceReferences(const std::string& projectPath
                     }
                 }
                 catch (const std::exception& e) {
-                    spdlog::warn("Failed to validate resources in scene {}: {}", 
+                    spdlog::warn("Failed to validate resources in scene {}: {}",
                                entry.path().filename().string(), e.what());
                 }
             }
         }
     }
-    
+
     return allValid;
 }
 

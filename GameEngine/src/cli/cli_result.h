@@ -7,18 +7,18 @@ struct CLIResult {
     std::string output;
     std::string error;
     int exitCode;
-    
+
     // For structured results
     nlohmann::json data;
-    
+
     static CLIResult Success(const std::string& output, const nlohmann::json& data = {}) {
         return {true, output, "", 0, data};
     }
-    
+
     static CLIResult Failure(const std::string& error, int exitCode = 1) {
         return {false, "", error, exitCode, {}};
     }
-    
+
     // JSON serialization for Claude Coder
     nlohmann::json toJson() const {
         return {

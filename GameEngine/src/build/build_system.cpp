@@ -10,61 +10,61 @@
 #include <sstream>
 #include <cstdlib>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 namespace GameEngine {
-
 bool BuildSystem::buildProject(Project* project, const std::string& buildConfig) {
     if (!project) {
         spdlog::error("BuildSystem: No project to build");
         return false;
     }
-    
+
     spdlog::info("Building project: {} ({})", project->getName(), buildConfig);
-    
+
     std::string projectName = project->getName();
     std::string buildDir = EnginePaths::getProjectOutputDir(projectName).string();
-    
+
     // Create build directory structure
     if (!createBuildDirectory(projectName)) {
         return false;
     }
-    
+
     // Generate game code from template
     if (!generateGameCode(project, buildDir)) {
         spdlog::error("Failed to generate game code");
         return false;
     }
-    
+
     // Generate CMakeLists.txt
     if (!generateCMakeLists(project, buildDir)) {
         spdlog::error("Failed to generate CMakeLists.txt");
         return false;
     }
-    
+
     // Copy runtime library
     if (!copyRuntimeLibrary(buildDir)) {
         spdlog::error("Failed to copy runtime library");
         return false;
     }
-    
+
     // Process and copy scenes
     if (!processScenes(project, buildDir)) {
         spdlog::error("Failed to process scenes");
         return false;
     }
-    
+
     // Package assets
     if (!packageAssets(project, buildDir)) {
         spdlog::error("Failed to package assets");
         return false;
     }
-    
+
     // Compile the project
     if (!compileProject(project, buildDir, buildDir)) {
         spdlog::error("Failed to compile project");
         return false;
     }
-    
+
     spdlog::info("Project built successfully: {}/game", buildDir);
     return true;
 }
@@ -79,22 +79,22 @@ bool BuildSystem::generateGameCode(Project* project, const std::string& outputDi
             spdlog::error("Current directory: {}", std::filesystem::current_path().string());
             return false;
         }
-        
+
         std::string templateContent = FileUtils::readFile(templatePath.string());
-        
+
         // Process template variables
         std::string gameCode = processTemplate(templateContent, project);
-        
+
         // Write main.cpp
         std::ofstream file(outputDir + "/main.cpp");
         if (!file.is_open()) {
             spdlog::error("Failed to create main.cpp");
             return false;
         }
-        
+
         file << gameCode;
         file.close();
-        
+
         spdlog::info("Generated main.cpp for project");
         return true;
     }
@@ -109,24 +109,24 @@ bool BuildSystem::compileProject(Project* project, const std::string& projectDir
         // Create build directory for CMake
         std::string buildDir = projectDir + "/build";
         std::filesystem::create_directories(buildDir);
-        
+
         // Change to build directory and run CMake
         std::string currentDir = std::filesystem::current_path().string();
         std::filesystem::current_path(buildDir);
-        
+
         // Configure with CMake - explicitly set compilers on macOS
         std::vector<std::string> cmakeArgs = {"-DCMAKE_BUILD_TYPE=Release"};
-        #ifdef __APPLE__
+#ifdef __APPLE__
             // On macOS, explicitly set the compilers to avoid issues
             cmakeArgs.push_back("-DCMAKE_C_COMPILER=clang");
             cmakeArgs.push_back("-DCMAKE_CXX_COMPILER=clang++");
-        #endif
+#endif
         cmakeArgs.push_back("..");
-        
+
         auto result = ProcessExecutor::execute("cmake", cmakeArgs, buildDir);
         if (!result.success) {
             // Check if CMakeLists.txt was generated despite warnings
-            if (!std::filesystem::exists("Makefile") && !std::filesystem::exists("build.ninja") && 
+            if (!std::filesystem::exists("Makefile") && !std::filesystem::exists("build.ninja") &&
                 !std::filesystem::exists(project->getName() + ".sln") && !std::filesystem::exists("CMakeCache.txt")) {
                 spdlog::error("CMake configuration failed - no build files generated: {}", result.error);
                 std::filesystem::current_path(currentDir);
@@ -134,21 +134,21 @@ bool BuildSystem::compileProject(Project* project, const std::string& projectDir
             }
             spdlog::warn("CMake returned non-zero exit code but build files exist - likely due to warnings");
         }
-        
+
         // Build with CMake
         std::vector<std::string> buildArgs = {"--build", ".", "--config", "Release"};
         auto buildResult = ProcessExecutor::execute("cmake", buildArgs, buildDir);
-        
+
         // Check if executable was actually created despite return code
         std::string exeName = project->getName();
-        #ifdef _WIN32
+#ifdef _WIN32
             exeName += ".exe";
-        #endif
-        
-        bool executableExists = std::filesystem::exists(exeName) || 
+#endif
+
+        bool executableExists = std::filesystem::exists(exeName) ||
                                std::filesystem::exists("Debug/" + exeName) ||
                                std::filesystem::exists("Release/" + exeName);
-        
+
         if (!buildResult.success && !executableExists) {
             spdlog::error("CMake build failed - no executable generated: {}", buildResult.error);
             std::filesystem::current_path(currentDir);
@@ -156,29 +156,29 @@ bool BuildSystem::compileProject(Project* project, const std::string& projectDir
         } else if (!buildResult.success && executableExists) {
             spdlog::warn("CMake build returned non-zero exit code but executable exists - likely due to warnings");
         }
-        
+
         // Restore original directory
         std::filesystem::current_path(currentDir);
-        
+
         // Create output directory
         std::filesystem::create_directories(outputPath);
-        
+
         // Copy executable to output
         // The executable is expected to be named "game" for consistency
         std::string projectName = project->getName();
-        #ifdef _WIN32
+#ifdef _WIN32
             std::string builtExeName = projectName + ".exe";
             std::string gameExeName = "game.exe";
-        #else
+#else
             std::string builtExeName = projectName;
             std::string gameExeName = "game";
-        #endif
-        
+#endif
+
         std::string sourcePath = buildDir + "/" + builtExeName;
         std::string destPath = outputPath + "/" + gameExeName;
-        
+
         try {
-            std::filesystem::copy_file(sourcePath, destPath, 
+            std::filesystem::copy_file(sourcePath, destPath,
                 std::filesystem::copy_options::overwrite_existing);
         } catch (const std::filesystem::filesystem_error& e) {
             // Ignore file exists errors, they're harmless
@@ -186,7 +186,7 @@ bool BuildSystem::compileProject(Project* project, const std::string& projectDir
                 throw;
             }
         }
-        
+
         // Also copy config and other files to bin directory
         std::string configSource = projectDir + "/game_config.json";
         std::string configDest = outputPath + "/game_config.json";
@@ -194,7 +194,7 @@ bool BuildSystem::compileProject(Project* project, const std::string& projectDir
             try {
                 std::filesystem::copy_file(configSource, configDest,
                     std::filesystem::copy_options::overwrite_existing);
-                
+
                 // Also create a copy with project name for backward compatibility
                 std::string projectConfigDest = outputPath + "/" + project->getName() + "_config.json";
                 std::filesystem::copy_file(configSource, projectConfigDest,
@@ -206,7 +206,7 @@ bool BuildSystem::compileProject(Project* project, const std::string& projectDir
                 }
             }
         }
-        
+
         // Copy scenes directory to bin (skip if source and dest are the same)
         std::string scenesSource = projectDir + "/scenes";
         std::string scenesDest = outputPath + "/scenes";
@@ -229,7 +229,7 @@ bool BuildSystem::compileProject(Project* project, const std::string& projectDir
                 }
             }
         }
-        
+
         // Copy assets directory to bin (skip if source and dest are the same)
         std::string assetsSource = projectDir + "/assets";
         std::string assetsDest = outputPath + "/assets";
@@ -252,7 +252,7 @@ bool BuildSystem::compileProject(Project* project, const std::string& projectDir
                 }
             }
         }
-        
+
         spdlog::info("Project compiled successfully");
         return true;
     }
@@ -266,19 +266,19 @@ bool BuildSystem::packageAssets(Project* project, const std::string& outputDir) 
     try {
         std::string assetsSource = project->getPath() + "/assets";
         std::string assetsDest = outputDir + "/assets";
-        
+
         if (std::filesystem::exists(assetsSource)) {
             std::filesystem::create_directories(assetsDest);
-            
+
             // Copy all assets recursively
             for (const auto& entry : std::filesystem::recursive_directory_iterator(assetsSource)) {
                 if (entry.is_regular_file()) {
                     std::string relativePath = std::filesystem::relative(entry.path(), assetsSource).string();
                     std::string destPath = assetsDest + "/" + relativePath;
-                    
+
                     // Create parent directories
                     std::filesystem::create_directories(std::filesystem::path(destPath).parent_path());
-                    
+
                     // Copy file
                     try {
                         std::filesystem::copy_file(entry.path(), destPath,
@@ -291,10 +291,10 @@ bool BuildSystem::packageAssets(Project* project, const std::string& outputDir) 
                     }
                 }
             }
-            
+
             spdlog::info("Assets packaged successfully");
         }
-        
+
         return true;
     }
     catch (const std::exception& e) {
@@ -306,18 +306,18 @@ bool BuildSystem::packageAssets(Project* project, const std::string& outputDir) 
 bool BuildSystem::createBuildDirectory(const std::string& projectName) {
     try {
         std::filesystem::path buildPath = EnginePaths::getProjectOutputDir(projectName);
-        
+
         // Remove existing build directory if it exists
         if (std::filesystem::exists(buildPath)) {
             std::filesystem::remove_all(buildPath);
         }
-        
+
         // Create directory structure
         std::filesystem::create_directories(buildPath);
         std::filesystem::create_directories(buildPath / "scenes");
         std::filesystem::create_directories(buildPath / "assets");
         std::filesystem::create_directories(buildPath / "bin");
-        
+
         spdlog::info("Created build directory: {}", buildPath.string());
         return true;
     }
@@ -331,7 +331,7 @@ bool BuildSystem::generateCMakeLists(Project* project, const std::string& output
     try {
         // Use the full template that downloads dependencies
         std::filesystem::path templatePath = EnginePaths::getTemplatesDir() / "basic" / "CMakeLists_template.txt";
-        
+
         if (!std::filesystem::exists(templatePath)) {
             // Create a default CMakeLists.txt if template doesn't exist
             std::stringstream cmake;
@@ -375,7 +375,7 @@ bool BuildSystem::generateCMakeLists(Project* project, const std::string& output
             cmake << "    ${CMAKE_SOURCE_DIR}/game_config.json $<TARGET_FILE_DIR:" << project->getName() << ">/game_config.json\n";
             cmake << "    COMMENT \"Copying game resources to executable directory\"\n";
             cmake << ")\n";
-            
+
             std::ofstream file(outputDir + "/CMakeLists.txt");
             file << cmake.str();
             file.close();
@@ -384,7 +384,7 @@ bool BuildSystem::generateCMakeLists(Project* project, const std::string& output
             // Make sure the template is using game_config.json
             templateContent = StringUtils::replace(templateContent, "{{PROJECT_NAME}}_config.json", "game_config.json");
             std::string cmakeContent = processTemplate(templateContent, project);
-            
+
             std::ofstream file(outputDir + "/CMakeLists.txt");
             if (!file.is_open()) {
                 spdlog::error("Failed to open CMakeLists.txt for writing");
@@ -393,7 +393,7 @@ bool BuildSystem::generateCMakeLists(Project* project, const std::string& output
             file << cmakeContent;
             file.close();
         }
-        
+
         spdlog::info("Generated CMakeLists.txt");
         return true;
     }
@@ -407,17 +407,17 @@ bool BuildSystem::generateCMakeListsFast(Project* project, const std::string& ou
     try {
         // Use fast template that assumes pre-built dependencies
         std::filesystem::path templatePath = EnginePaths::getTemplatesDir() / "basic" / "CMakeLists_fast.txt";
-        
+
         if (!std::filesystem::exists(templatePath)) {
             // Fall back to regular template
             return generateCMakeLists(project, outputDir);
         }
-        
+
         std::string templateContent = FileUtils::readFile(templatePath.string());
         // Make sure the template is using game_config.json
         templateContent = StringUtils::replace(templateContent, "{{PROJECT_NAME}}_config.json", "game_config.json");
         std::string cmakeContent = processTemplate(templateContent, project);
-        
+
         std::ofstream file(outputDir + "/CMakeLists.txt");
         if (!file.is_open()) {
             spdlog::error("Failed to open CMakeLists.txt for writing");
@@ -425,7 +425,7 @@ bool BuildSystem::generateCMakeListsFast(Project* project, const std::string& ou
         }
         file << cmakeContent;
         file.close();
-        
+
         spdlog::info("Generated CMakeLists.txt (fast mode)");
         return true;
     }
@@ -446,15 +446,15 @@ bool BuildSystem::processScenes(Project* project, const std::string& outputDir) 
     try {
         std::string scenesSource = project->getPath() + "/scenes";
         std::string scenesDest = outputDir + "/scenes";
-        
+
         if (std::filesystem::exists(scenesSource)) {
             std::filesystem::create_directories(scenesDest);
-            
+
             // Copy all scene files
             for (const auto& entry : std::filesystem::directory_iterator(scenesSource)) {
                 if (entry.path().extension() == ".json") {
                     try {
-                        std::filesystem::copy_file(entry.path(), 
+                        std::filesystem::copy_file(entry.path(),
                             scenesDest + "/" + entry.path().filename().string(),
                             std::filesystem::copy_options::overwrite_existing);
                     } catch (const std::filesystem::filesystem_error& e) {
@@ -465,26 +465,26 @@ bool BuildSystem::processScenes(Project* project, const std::string& outputDir) 
                     }
                 }
             }
-            
+
             spdlog::info("Scenes processed successfully");
         }
-        
+
         // Create game config file
         nlohmann::json gameConfig;
         gameConfig["name"] = project->getName();
         gameConfig["version"] = "1.0.0";
         gameConfig["main_scene"] = project->getScenes().empty() ? "main_scene" : project->getScenes()[0];
-        
+
         // Remove existing config file if it exists to avoid copy errors
         std::string configPath = outputDir + "/game_config.json";
         if (std::filesystem::exists(configPath)) {
             std::filesystem::remove(configPath);
         }
-        
+
         std::ofstream configFile(configPath);
         configFile << gameConfig.dump(4);
         configFile.close();
-        
+
         return true;
     }
     catch (const std::exception& e) {
@@ -495,17 +495,17 @@ bool BuildSystem::processScenes(Project* project, const std::string& outputDir) 
 
 std::string BuildSystem::processTemplate(const std::string& templateContent, Project* project) {
     std::string result = templateContent;
-    
+
     // Replace template variables
     result = StringUtils::replace(result, "{{PROJECT_NAME}}", project->getName());
-    
+
     // Get main scene
     std::string mainScene = "main_scene";
     if (!project->getScenes().empty()) {
         mainScene = project->getScenes()[0];
     }
     result = StringUtils::replace(result, "{{MAIN_SCENE}}", mainScene);
-    
+
     return result;
 }
 

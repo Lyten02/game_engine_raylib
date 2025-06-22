@@ -18,20 +18,20 @@ class Engine {
 public:
     Engine();
     ~Engine();
-    
+
     // Initialize the engine (loads config and uses those parameters)
     bool initialize();
-    
+
     // Main game loop
     void run();
-    
+
     // Shutdown and cleanup
     void shutdown();
-    
+
     // Headless mode support
     void setHeadlessMode(bool headless) { headlessMode = headless; }
     bool isHeadlessMode() const { return headlessMode; }
-    
+
     // Getters for systems (delegated to SystemsManager)
     class RenderSystem* getRenderSystem() const;
     Scene* getCurrentScene() const { return currentScene.get(); }
@@ -41,31 +41,31 @@ public:
     class ScriptManager* getScriptManager() const;
     class GameLogicManager* getGameLogicManager() const;
     GameEngine::ProjectManager* getProjectManager() const;
-    
+
     // Engine control
     void requestQuit();
-    
+
     // Debug info
     bool isShowingDebugInfo() const { return showDebugInfo; }
-    
+
     // Scene management for commands
     void createScene();
     void destroyScene();
-    
+
 private:
     // Cleanup helper for partial initialization
     void cleanup();
-    
+
     // Headless mode game loop
     void runHeadless();
     // Core modules
     std::unique_ptr<GameEngine::EngineCore> engineCore;
     std::unique_ptr<GameEngine::SystemsManager> systemsManager;
     std::unique_ptr<GameEngine::CommandRegistry> commandRegistry;
-    
+
     // Current active scene
     std::unique_ptr<Scene> currentScene;
-    
+
     // Engine state
     bool headlessMode = false;
     bool showDebugInfo = true;

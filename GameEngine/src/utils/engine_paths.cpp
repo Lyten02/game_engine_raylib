@@ -12,18 +12,17 @@
 #endif
 
 namespace GameEngine {
-
 // Static member definitions
 std::filesystem::path EnginePaths::engineRoot;
 bool EnginePaths::initialized = false;
 
 void EnginePaths::initialize() {
     if (initialized) return;
-    
+
     // Get executable path
     std::filesystem::path execPath;
-    
-    #ifdef __APPLE__
+
+#ifdef __APPLE__
         char pathBuf[PATH_MAX];
         uint32_t size = sizeof(pathBuf);
         if (_NSGetExecutablePath(pathBuf, &size) == 0) {
@@ -31,11 +30,11 @@ void EnginePaths::initialize() {
         } else {
             execPath = std::filesystem::current_path() / "game";
         }
-    #elif _WIN32
+#elif _WIN32
         char pathBuf[MAX_PATH];
         GetModuleFileName(NULL, pathBuf, MAX_PATH);
         execPath = std::filesystem::canonical(pathBuf);
-    #elif __linux__
+#elif __linux__
         char pathBuf[PATH_MAX];
         ssize_t count = readlink("/proc/self/exe", pathBuf, PATH_MAX);
         if (count != -1) {
@@ -44,22 +43,22 @@ void EnginePaths::initialize() {
         } else {
             execPath = std::filesystem::current_path() / "game";
         }
-    #else
+#else
         execPath = std::filesystem::current_path() / "game";
-    #endif
-    
+#endif
+
     // Determine engine root
     // If we're in build directory, go up one level
     engineRoot = execPath.parent_path();
     if (engineRoot.filename() == "build") {
         engineRoot = engineRoot.parent_path();
     }
-    
+
     // Ensure engine root is absolute
     engineRoot = std::filesystem::absolute(engineRoot);
-    
+
     initialized = true;
-    
+
     spdlog::info("EnginePaths initialized with root: {}", engineRoot.string());
 }
 
@@ -154,62 +153,62 @@ std::filesystem::path EnginePaths::makeRelative(const std::filesystem::path& abs
 
 void EnginePaths::displayPaths() {
     ensureInitialized();
-    
+
     std::cout << "========================================\n";
     std::cout << "Engine Paths Information:\n";
     std::cout << "========================================\n";
-    
+
     auto cwd = std::filesystem::current_path();
-    
+
     std::cout << "Current Working Directory:\n";
     std::cout << "  Absolute: " << cwd.string() << "\n";
-    
+
     std::cout << "Engine Root:\n";
     std::cout << "  Relative: " << makeRelative(engineRoot).string() << "\n";
     std::cout << "  Absolute: " << engineRoot.string() << "\n";
-    
+
     auto projectsDir = getProjectsDir();
     std::cout << "Projects Directory:\n";
     std::cout << "  Relative: " << makeRelative(projectsDir).string() << "\n";
     std::cout << "  Absolute: " << projectsDir.string() << "\n";
     std::cout << "  Exists: " << (std::filesystem::exists(projectsDir) ? "Yes" : "No") << "\n";
-    
+
     auto outputDir = getOutputDir();
     std::cout << "Output Directory:\n";
     std::cout << "  Relative: " << makeRelative(outputDir).string() << "\n";
     std::cout << "  Absolute: " << outputDir.string() << "\n";
     std::cout << "  Exists: " << (std::filesystem::exists(outputDir) ? "Yes" : "No") << "\n";
-    
+
     auto buildDir = getBuildDir();
     std::cout << "Build Directory:\n";
     std::cout << "  Relative: " << makeRelative(buildDir).string() << "\n";
     std::cout << "  Absolute: " << buildDir.string() << "\n";
     std::cout << "  Exists: " << (std::filesystem::exists(buildDir) ? "Yes" : "No") << "\n";
-    
+
     auto depsDir = getDependenciesDir();
     std::cout << "Dependencies Directory:\n";
     std::cout << "  Relative: " << makeRelative(depsDir).string() << "\n";
     std::cout << "  Absolute: " << depsDir.string() << "\n";
     std::cout << "  Exists: " << (std::filesystem::exists(depsDir) ? "Yes" : "No") << "\n";
-    
+
     auto templatesDir = getTemplatesDir();
     std::cout << "Templates Directory:\n";
     std::cout << "  Relative: " << makeRelative(templatesDir).string() << "\n";
     std::cout << "  Absolute: " << templatesDir.string() << "\n";
     std::cout << "  Exists: " << (std::filesystem::exists(templatesDir) ? "Yes" : "No") << "\n";
-    
+
     auto logsDir = getLogsDir();
     std::cout << "Logs Directory:\n";
     std::cout << "  Relative: " << makeRelative(logsDir).string() << "\n";
     std::cout << "  Absolute: " << logsDir.string() << "\n";
     std::cout << "  Exists: " << (std::filesystem::exists(logsDir) ? "Yes" : "No") << "\n";
-    
+
     auto configFile = getConfigFile();
     std::cout << "Config File:\n";
     std::cout << "  Relative: " << makeRelative(configFile).string() << "\n";
     std::cout << "  Absolute: " << configFile.string() << "\n";
     std::cout << "  Exists: " << (std::filesystem::exists(configFile) ? "Yes" : "No") << "\n";
-    
+
     std::cout << "========================================\n";
     std::cout << "Project paths will be:\n";
     std::cout << "  Project: " << makeRelative(getProjectDir("<ProjectName>")).string() << "\n";

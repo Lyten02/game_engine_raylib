@@ -5,7 +5,6 @@
 #include <memory>
 
 namespace GameEngine {
-
 // Package dependency information
 struct PackageDependency {
     std::string name;
@@ -34,7 +33,7 @@ struct PackagePluginInfo {
 class Package {
 public:
     Package(const std::string& name, const std::string& version);
-    
+
     // Getters
     const std::string& getName() const { return name; }
     const std::string& getVersion() const { return version; }
@@ -45,27 +44,27 @@ public:
     const std::vector<PackageDependency>& getDependencies() const { return dependencies; }
     const std::vector<ComponentInfo>& getComponents() const { return components; }
     const std::vector<SystemInfo>& getSystems() const { return systems; }
-    
+
     // Setters
     void setDescription(const std::string& desc) { description = desc; }
     void setAuthor(const std::string& auth) { author = auth; }
     void setLicense(const std::string& lic) { license = lic; }
     void setEngineVersion(const std::string& ver) { engineVersion = ver; }
-    
+
     // Dependencies
     void addDependency(const std::string& name, const std::string& version);
-    
+
     // Components
     void addComponent(const ComponentInfo& component);
-    
+
     // Systems
     void addSystem(const SystemInfo& system);
-    
+
     // Plugin
     void setPluginInfo(const PackagePluginInfo& info) { pluginInfo = info; hasPlugin = true; }
     bool hasPluginInfo() const { return hasPlugin; }
     const PackagePluginInfo& getPluginInfo() const { return pluginInfo; }
-    
+
 private:
     std::string name;
     std::string version;
@@ -73,11 +72,11 @@ private:
     std::string author;
     std::string license;
     std::string engineVersion;
-    
+
     std::vector<PackageDependency> dependencies;
     std::vector<ComponentInfo> components;
     std::vector<SystemInfo> systems;
-    
+
     bool hasPlugin = false;
     PackagePluginInfo pluginInfo;
 };

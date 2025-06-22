@@ -90,7 +90,21 @@ jobs:
     - name: Install dependencies (macOS)
       if: matrix.os == 'macos-latest'
       run: |
-        brew install cmake ccache
+        # Update Homebrew and install/upgrade dependencies
+        brew update || true
+        
+        # Install build tools
+        brew install --formula cmake ccache || brew upgrade cmake ccache || true
+        
+        # Install raylib dependencies
+        brew install --formula glfw openal-soft || brew upgrade glfw openal-soft || true
+        
+        # Show installed versions
+        echo "=== Installed versions ==="
+        cmake --version
+        ccache --version
+        echo "GLFW: $(brew list --versions glfw || echo 'not installed')"
+        echo "OpenAL: $(brew list --versions openal-soft || echo 'not installed')"
     
     - name: Install dependencies (Windows)
       if: matrix.os == 'windows-latest'
@@ -103,6 +117,10 @@ jobs:
         echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
         echo "CCACHE_COMPRESS=1" >> $GITHUB_ENV
         echo "CCACHE_MAXSIZE=500M" >> $GITHUB_ENV
+        # On macOS, ensure ccache is in PATH
+        if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+          echo "/usr/local/opt/ccache/libexec" >> $GITHUB_PATH
+        fi
         which ccache && ccache --version && ccache --zero-stats || true
     
     - name: Configure CMake
@@ -110,10 +128,17 @@ jobs:
         cd GameEngine
         mkdir -p build
         cd build
-        cmake .. -G "${{ matrix.cmake_generator }}" \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        # Additional flags for macOS
+        CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
+        if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+          # Use ccache wrappers on macOS
+          CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+          # Ensure we can find OpenGL on macOS
+          CMAKE_ARGS="$CMAKE_ARGS -DOPENGL_INCLUDE_DIR=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks"
+        else
+          CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+        fi
+        cmake .. -G "${{ matrix.cmake_generator }}" $CMAKE_ARGS
     
     - name: Build
       run: |

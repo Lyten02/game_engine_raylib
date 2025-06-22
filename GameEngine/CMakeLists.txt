@@ -10,6 +10,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Find Python3 for running tests
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
+if(NOT Python3_FOUND)
+    message(WARNING "Python3 not found, tests will be disabled")
+    set(Python3_EXECUTABLE "python3")
+endif()
 
 # Set global cache directory for dependencies
 set(GLOBAL_DEPS_CACHE "${CMAKE_SOURCE_DIR}/.deps_cache" CACHE PATH "Global dependencies cache directory")
@@ -202,8 +206,28 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/projects)
 # Include test discovery module
 include(${CMAKE_SOURCE_DIR}/cmake/TestDiscovery.cmake)
 
-# Include platform-specific configuration
-include(${CMAKE_SOURCE_DIR}/cmake/PlatformConfig.cmake)
+# Include platform-specific configuration if it exists
+if(EXISTS ${CMAKE_SOURCE_DIR}/cmake/PlatformConfig.cmake)
+    include(${CMAKE_SOURCE_DIR}/cmake/PlatformConfig.cmake)
+else()
+    # Fallback platform configuration
+    if(APPLE)
+        set(TEST_CXX_FLAGS "-std=c++20 -stdlib=libc++")
+        set(TEST_PLATFORM_INCLUDES "-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
+        set(TEST_FRAMEWORKS "-framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation")
+        set(TEST_OBJ_EXT "o")
+    elseif(WIN32)
+        set(TEST_CXX_FLAGS "-std=c++20")
+        set(TEST_PLATFORM_INCLUDES "")
+        set(TEST_FRAMEWORKS "-lopengl32 -lgdi32 -lwinmm")
+        set(TEST_OBJ_EXT "obj")
+    else()
+        set(TEST_CXX_FLAGS "-std=c++20")
+        set(TEST_PLATFORM_INCLUDES "")
+        set(TEST_FRAMEWORKS "-lGL -lX11 -lpthread -ldl -lm")
+        set(TEST_OBJ_EXT "o")
+    endif()
+endif()
 
 # Discover all tests
 discover_all_tests(${CMAKE_SOURCE_DIR}/tests)

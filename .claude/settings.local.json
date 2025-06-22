@@ -46,7 +46,8 @@
       "Bash(./*.sh)",
       "Bash(sh:*)",
       "Bash(bash:*)",
-      "Bash(gh run view:*)"
+      "Bash(gh run view:*)",
+      "Bash(gh pr checks:*)"
     ],
     "deny": [
       "Bash(git:add:*)",

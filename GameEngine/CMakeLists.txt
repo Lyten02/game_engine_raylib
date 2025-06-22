@@ -28,6 +28,8 @@ FetchContent_Declare(
     raylib
     GIT_REPOSITORY https://github.com/raysan5/raylib.git
     GIT_TAG 5.0
+    PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/patches/raylib-cmake-fix.patch <SOURCE_DIR>/
+                  COMMAND patch -p1 < raylib-cmake-fix.patch || true
 )
 
 # Download and configure spdlog

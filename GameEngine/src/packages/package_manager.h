@@ -58,6 +58,8 @@ public:
     DependencyResolution checkDependencies(const std::string& packageName) const;
     bool isVersionCompatible(const std::string& required, const std::string& actual) const;
     bool checkEngineCompatibility(const Package& package) const;
+    bool hasCircularDependency(const std::string& packageName) const;
+    std::vector<std::string> getDependencyOrder(const std::string& packageName) const;
     
     // Package details
     std::vector<ComponentInfo> getAllComponents() const;

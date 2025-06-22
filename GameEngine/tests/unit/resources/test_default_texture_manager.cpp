@@ -4,7 +4,7 @@
 #include <atomic>
 #include <chrono>
 #include <mutex>
-#include "../src/resources/resource_manager.h"
+#include "resources/resource_manager.h"
 #include <raylib.h>
 
 // Test counters

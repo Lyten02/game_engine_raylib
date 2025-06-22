@@ -1,6 +1,6 @@
 #include <iostream>
 #include <cassert>
-#include "../src/resources/resource_manager.h"
+#include "resources/resource_manager.h"
 
 void test_texture_functionality() {
     std::cout << "Testing ResourceManager texture functionality...\n";

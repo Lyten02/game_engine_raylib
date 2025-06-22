@@ -3,7 +3,7 @@
 #include <cassert>
 #include <vector>
 #include <string>
-#include "../src/resources/resource_manager.h"
+#include "resources/resource_manager.h"
 
 int main() {
     std::cout << "=== Testing ResourceManager pointer consistency ===" << std::endl;

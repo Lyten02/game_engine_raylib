@@ -1,11 +1,11 @@
 #include <iostream>
 #include <cassert>
 #include <memory>
-#include "../src/engine.h"
-#include "../src/systems/render_system.h"
-#include "../src/resources/resource_manager.h"
-#include "../src/console/console.h"
-#include "../src/scripting/game_logic_manager.h"
+#include "engine.h"
+#include "systems/render_system.h"
+#include "resources/resource_manager.h"
+#include "console/console.h"
+#include "scripting/game_logic_manager.h"
 
 // Simple test framework
 #define REQUIRE(condition) do { if (!(condition)) { std::cerr << "FAILED: " << #condition << " at " << __FILE__ << ":" << __LINE__ << std::endl; exit(1); } } while(0)

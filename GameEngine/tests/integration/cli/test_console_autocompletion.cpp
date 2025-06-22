@@ -1,10 +1,10 @@
 #include <iostream>
 #include <vector>
 #include <memory>
-#include "../src/console/console.h"
-#include "../src/console/command_processor.h"
-#include "../src/console/command_registry.h"
-#include "../src/utils/config.h"
+#include "console/console.h"
+#include "console/command_processor.h"
+#include "console/command_registry.h"
+#include "utils/config.h"
 #include <spdlog/spdlog.h>
 
 void test_basic_autocompletion() {

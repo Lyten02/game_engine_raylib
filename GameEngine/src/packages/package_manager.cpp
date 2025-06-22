@@ -7,6 +7,7 @@
 #include <sstream>
 #include <unordered_set>
 #include <algorithm>
+#include <functional>
 #include <spdlog/spdlog.h>
 
 namespace GameEngine {
@@ -467,6 +468,65 @@ std::vector<int> PackageManager::splitVersion(const std::string& version) const 
     }
     
     return parts;
+}
+
+bool PackageManager::hasCircularDependency(const std::string& packageName) const {
+    std::unordered_set<std::string> visited;
+    std::unordered_set<std::string> recursionStack;
+    
+    std::function<bool(const std::string&)> dfs = [&](const std::string& pkg) -> bool {
+        if (recursionStack.count(pkg)) {
+            return true; // Circular dependency found
+        }
+        if (visited.count(pkg)) {
+            return false; // Already processed
+        }
+        
+        visited.insert(pkg);
+        recursionStack.insert(pkg);
+        
+        // Check package dependencies
+        auto package = getPackage(pkg);
+        if (package) {
+            for (const auto& dep : package->getDependencies()) {
+                if (dfs(dep.name)) {
+                    return true;
+                }
+            }
+        }
+        
+        recursionStack.erase(pkg);
+        return false;
+    };
+    
+    return dfs(packageName);
+}
+
+std::vector<std::string> PackageManager::getDependencyOrder(const std::string& packageName) const {
+    std::vector<std::string> result;
+    std::unordered_set<std::string> visited;
+    
+    std::function<void(const std::string&)> topologicalSort = [&](const std::string& pkg) {
+        if (visited.count(pkg)) {
+            return;
+        }
+        
+        visited.insert(pkg);
+        
+        // First, recursively visit all dependencies
+        auto package = getPackage(pkg);
+        if (package) {
+            for (const auto& dep : package->getDependencies()) {
+                topologicalSort(dep.name);
+            }
+        }
+        
+        // Then add current package to result
+        result.push_back(pkg);
+    };
+    
+    topologicalSort(packageName);
+    return result;
 }
 
 } // namespace GameEngine

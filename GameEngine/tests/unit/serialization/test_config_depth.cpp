@@ -3,7 +3,7 @@
 #include <vector>
 #include <sstream>
 #include <fstream>
-#include "../src/utils/config.h"
+#include "utils/config.h"
 #include <nlohmann/json.hpp>
 
 // Simple test framework

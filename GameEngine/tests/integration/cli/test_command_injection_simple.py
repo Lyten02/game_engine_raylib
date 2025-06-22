@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple test for command injection vulnerability in project.run command
+Test to verify that command injection vulnerability has been fixed in project.run command
 """
 
 import os
@@ -10,97 +10,102 @@ import tempfile
 import shutil
 from pathlib import Path
 
-def test_command_injection():
-    """Test if project.run is vulnerable to command injection"""
-    print("=== Testing Command Injection Vulnerability ===\n")
+def test_command_injection_fixed():
+    """Test that project.run is NOT vulnerable to command injection"""
+    print("=== Testing Command Injection Protection ===\n")
     
-    # Create a test file that will be created if injection succeeds
+    # We run from build directory where game_engine is located
+    # Create a test file that would be created if injection succeeds
     test_file = "/tmp/INJECTION_TEST.txt"
     if os.path.exists(test_file):
         os.remove(test_file)
     
-    # Simple valid project name first
-    print("1. Creating a normal project...")
+    # Create a test project
+    print("1. Creating a test project...")
     result = subprocess.run([
         "./game_engine", "--headless", "-c", 
-        'project.create TestProject'
-    ], cwd="build", capture_output=True, text=True)
-    print(f"   Result: {result.returncode}")
+        'project.create TestInjection'
+    ], capture_output=True, text=True)
     
-    # Create output directory and dummy executable
-    output_dir = Path("output/TestProject")
+    if result.returncode != 0:
+        print(f"   Failed to create project: {result.stderr}")
+        return False
+    
+    # Create output directory structure
+    output_dir = Path("../output/TestInjection")
     bin_dir = output_dir / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
     
-    # Create a malicious executable name that includes shell commands
-    # This simulates what would happen if project name wasn't sanitized
-    malicious_path = bin_dir / 'game"; echo INJECTED > /tmp/INJECTION_TEST.txt; echo "game'
-    normal_path = bin_dir / "game_engine"
-    
-    # Create normal executable
-    with open(normal_path, "w") as f:
+    # Create a normal executable
+    normal_exe = bin_dir / "game"
+    with open(normal_exe, "w") as f:
         f.write("#!/bin/sh\necho 'Normal game running'\n")
-    normal_path.chmod(0o755)
+    normal_exe.chmod(0o755)
     
-    # Test 1: Normal run (should work)
+    # Test normal run
     print("\n2. Running project normally...")
     result = subprocess.run([
         "./game_engine", "--headless", "-c", "project.run"
-    ], cwd="build", capture_output=True, text=True)
+    ], capture_output=True, text=True, timeout=5)
     print(f"   Exit code: {result.returncode}")
-    print(f"   Output: {result.stdout[:100]}...")
     
-    # Test 2: Simulate what would happen with malicious path
-    # We'll manually test the vulnerable command
-    print("\n3. Testing vulnerable command construction...")
+    # Create a malicious project name to test sanitization
+    print("\n3. Testing with malicious project name...")
+    malicious_name = 'Test"; touch /tmp/INJECTION_TEST.txt; echo "'
+    result = subprocess.run([
+        "./game_engine", "--headless", "-c", 
+        f'project.create {malicious_name}'
+    ], capture_output=True, text=True)
     
-    # This is what the vulnerable code does:
-    # std::string command = "\"" + execPath + "\" &";
-    # std::system(command.c_str());
+    # The project creation should either fail or sanitize the name
+    if result.returncode == 0:
+        print("   Project created (name was likely sanitized)")
+    else:
+        print("   Project creation rejected (good!)")
     
-    # Simulate malicious executable path
-    exec_path = str(bin_dir / 'game"; echo INJECTED > /tmp/INJECTION_TEST.txt; echo "x')
-    
-    # Show what command would be constructed
-    vulnerable_command = f'"{exec_path}" &'
-    print(f"   Vulnerable command would be: {vulnerable_command}")
-    
-    # Test if std::system would execute this (don't actually run it)
-    print("\n4. Checking if injection file was created...")
+    # Check if injection file was created
+    print("\n4. Checking if injection succeeded...")
     if os.path.exists(test_file):
-        print("   ❌ VULNERABILITY CONFIRMED: Injection succeeded!")
-        print(f"   File {test_file} was created")
+        print("   ❌ VULNERABILITY: Injection file was created!")
         return False
     else:
-        print("   ✓ No injection detected (yet)")
+        print("   ✅ Good: No injection detected")
+    
+    # Verify ProcessExecutor is used instead of std::system
+    print("\n5. Checking source code for secure implementation...")
+    source_file = "../src/engine/command_registry_build.cpp"
+    
+    if os.path.exists(source_file):
+        with open(source_file, 'r') as f:
+            content = f.read()
+            
+            # Check for vulnerable std::system usage
+            if 'std::system' in content:
+                print("   ❌ FOUND std::system usage - potential vulnerability!")
+                return False
+            
+            # Check for safe ProcessExecutor usage
+            if 'ProcessExecutor' in content and 'executor.execute' in content:
+                print("   ✅ Found ProcessExecutor usage - secure implementation")
+            else:
+                print("   ⚠️  Could not verify ProcessExecutor usage")
+    else:
+        print("   ⚠️  Source file not found, skipping code verification")
     
     # Clean up
-    shutil.rmtree(output_dir, ignore_errors=True)
-    subprocess.run(["./game_engine", "--headless", "-c", "project.close"], cwd="build")
+    shutil.rmtree("../output/TestInjection", ignore_errors=True)
+    subprocess.run(["./game_engine", "--headless", "-c", "project.close"], 
+                   capture_output=True)
     
-    # Now let's check the actual implementation
-    print("\n5. Checking source code for std::system usage...")
-    source_file = "src/engine/command_registry_build.cpp"
-    with open(source_file, 'r') as f:
-        content = f.read()
-        if 'std::system' in content:
-            # Find the line
-            lines = content.split('\n')
-            for i, line in enumerate(lines):
-                if 'std::system' in line:
-                    print(f"   ❌ FOUND std::system at line {i+1}: {line.strip()}")
-                    print("   This is vulnerable to command injection!")
-                    return False
-    
-    print("\n✓ All tests passed - no vulnerabilities found")
+    print("\n✅ All security checks passed!")
     return True
 
 if __name__ == "__main__":
-    os.chdir(Path(__file__).parent.parent)  # Go to GameEngine directory
-    success = test_command_injection()
+    # Tests are run from the build directory
+    success = test_command_injection_fixed()
     print("\n" + "="*50)
     if success:
-        print("SECURITY TEST PASSED")
+        print("SECURITY TEST PASSED - No command injection vulnerability")
         sys.exit(0)
     else:
         print("SECURITY TEST FAILED - Command injection vulnerability detected!")

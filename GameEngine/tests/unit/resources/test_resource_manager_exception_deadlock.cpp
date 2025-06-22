@@ -3,7 +3,7 @@
 #include <vector>
 #include <chrono>
 #include <atomic>
-#include "../src/resources/resource_manager.h"
+#include "resources/resource_manager.h"
 
 // Test class that can inject exceptions
 class TestResourceManager : public ResourceManager {

@@ -361,6 +361,11 @@ void ResourceManager::unloadAll() {
     sounds.clear();
 }
 
+void ResourceManager::clearAll() {
+    // Alias for unloadAll for backwards compatibility
+    unloadAll();
+}
+
 void ResourceManager::unloadTexture(const std::string& name) {
     std::unique_lock<std::shared_mutex> lock(resourceMutex);
     auto it = textures.find(name);

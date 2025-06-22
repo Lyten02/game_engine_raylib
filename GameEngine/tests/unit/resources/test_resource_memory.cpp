@@ -1,6 +1,6 @@
 #include <iostream>
 #include <cassert>
-#include "../src/resources/resource_manager.h"
+#include "resources/resource_manager.h"
 
 void testDefaultTextureCreatedOnce() {
     std::cout << "Test: Default texture created only once" << std::endl;

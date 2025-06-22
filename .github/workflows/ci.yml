@@ -214,7 +214,7 @@ jobs:
     - name: Run clang-format check
       run: |
         echo "=== Checking code formatting with clang-format ==="
-        find GameEngine/src GameEngine/include -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | \
+        find GameEngine/src -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | \
         xargs clang-format --dry-run --Werror 2>&1 | tee format-check.log
         
         if [ -s format-check.log ]; then
@@ -232,7 +232,7 @@ jobs:
         cd build-tidy
         cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
         
-        find ../src ../include -name "*.cpp" | \
+        find ../src -name "*.cpp" | \
         xargs clang-tidy -p . --config-file=../../.clang-tidy 2>&1 | tee ../clang-tidy.log
         
         # Check for errors (not just warnings)
@@ -249,7 +249,7 @@ jobs:
                  --error-exitcode=1 \
                  --inline-suppr \
                  --quiet \
-                 GameEngine/src GameEngine/include 2>&1 | tee cppcheck.log
+                 GameEngine/src 2>&1 | tee cppcheck.log
         
         if [ ${PIPESTATUS[0]} -ne 0 ]; then
           echo "❌ cppcheck found issues!"

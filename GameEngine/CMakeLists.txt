@@ -24,10 +24,13 @@ set(FETCHCONTENT_QUIET FALSE)
 set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
 
 # Download and configure raylib
+# Note: raylib 5.0 uses cmake_minimum_required(VERSION 3.0) which is incompatible
+# with modern CMake versions (3.28+). We'll fix this after download.
 FetchContent_Declare(
     raylib
     GIT_REPOSITORY https://github.com/raysan5/raylib.git
     GIT_TAG 5.0
+    CMAKE_ARGS -DCMAKE_POLICY_DEFAULT_CMP0000=NEW
 )
 
 # Download and configure spdlog
@@ -66,6 +69,11 @@ if(NOT raylib_POPULATED)
     # Read the CMakeLists.txt file
     file(READ ${raylib_SOURCE_DIR}/CMakeLists.txt RAYLIB_CMAKE_CONTENT)
     
+    # Check what version is currently required
+    string(REGEX MATCH "cmake_minimum_required\\(VERSION ([0-9\\.]+)\\)" 
+           CURRENT_VERSION "${RAYLIB_CMAKE_CONTENT}")
+    message(STATUS "Raylib current CMake minimum version: ${CMAKE_MATCH_1}")
+    
     # Replace the cmake_minimum_required line
     string(REGEX REPLACE "cmake_minimum_required\\(VERSION [0-9\\.]+\\)" 
            "cmake_minimum_required(VERSION 3.11)" 
@@ -73,15 +81,20 @@ if(NOT raylib_POPULATED)
     
     # Write the modified content back
     file(WRITE ${raylib_SOURCE_DIR}/CMakeLists.txt "${RAYLIB_CMAKE_CONTENT}")
+    message(STATUS "Updated raylib CMake minimum version to 3.11")
     
-    # Also fix src/CMakeLists.txt if it exists
-    if(EXISTS ${raylib_SOURCE_DIR}/src/CMakeLists.txt)
-        file(READ ${raylib_SOURCE_DIR}/src/CMakeLists.txt RAYLIB_SRC_CMAKE_CONTENT)
-        string(REGEX REPLACE "cmake_minimum_required\\(VERSION [0-9\\.]+\\)" 
-               "cmake_minimum_required(VERSION 3.11)" 
-               RAYLIB_SRC_CMAKE_CONTENT "${RAYLIB_SRC_CMAKE_CONTENT}")
-        file(WRITE ${raylib_SOURCE_DIR}/src/CMakeLists.txt "${RAYLIB_SRC_CMAKE_CONTENT}")
-    endif()
+    # Also fix all other CMakeLists.txt files in raylib
+    file(GLOB_RECURSE RAYLIB_CMAKE_FILES ${raylib_SOURCE_DIR}/*/CMakeLists.txt)
+    foreach(CMAKE_FILE ${RAYLIB_CMAKE_FILES})
+        file(READ ${CMAKE_FILE} FILE_CONTENT)
+        if(FILE_CONTENT MATCHES "cmake_minimum_required")
+            string(REGEX REPLACE "cmake_minimum_required\\(VERSION [0-9\\.]+\\)" 
+                   "cmake_minimum_required(VERSION 3.11)" 
+                   FILE_CONTENT "${FILE_CONTENT}")
+            file(WRITE ${CMAKE_FILE} "${FILE_CONTENT}")
+            message(STATUS "Updated ${CMAKE_FILE}")
+        endif()
+    endforeach()
     
     # Add raylib manually
     add_subdirectory(${raylib_SOURCE_DIR} ${raylib_BINARY_DIR})

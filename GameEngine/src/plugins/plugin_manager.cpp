@@ -3,9 +3,9 @@
 #include <spdlog/spdlog.h>
 
 #ifdef _WIN32
-    #include <windows.h>
+#include <windows.h>
 #else
-    #include <dlfcn.h>
+#include <dlfcn.h>
 #endif
 
 namespace GameEngine {

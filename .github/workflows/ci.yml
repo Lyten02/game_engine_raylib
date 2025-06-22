@@ -214,11 +214,31 @@ jobs:
     - name: Run clang-format check
       run: |
         echo "=== Checking code formatting with clang-format ==="
-        find GameEngine/src -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | \
-        xargs clang-format --dry-run --Werror 2>&1 | tee format-check.log
+        cd GameEngine
         
-        if [ -s format-check.log ]; then
+        # Find all source files
+        FILES=$(find src -name "*.cpp" -o -name "*.h" -o -name "*.hpp" 2>/dev/null | sort)
+        
+        if [ -z "$FILES" ]; then
+          echo "⚠️ No source files found to check"
+          exit 0
+        fi
+        
+        echo "Found $(echo "$FILES" | wc -l) files to check"
+        
+        # Check each file
+        FAILED=0
+        for file in $FILES; do
+          if ! clang-format --dry-run --Werror "$file" 2>&1; then
+            echo "❌ Formatting error in: $file"
+            FAILED=1
+          fi
+        done
+        
+        if [ $FAILED -eq 1 ]; then
+          echo ""
           echo "❌ Code formatting issues found!"
+          echo "To fix, run: find src -name '*.cpp' -o -name '*.h' -o -name '*.hpp' | xargs clang-format -i"
           exit 1
         else
           echo "✅ Code formatting is correct"

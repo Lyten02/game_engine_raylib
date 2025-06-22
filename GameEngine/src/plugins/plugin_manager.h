@@ -14,7 +14,7 @@ class PackageLoader;
 
 // Platform-specific library handle
 #ifdef _WIN32
-    #include <windows.h>
+#include <windows.h>
     using LibraryHandle = HMODULE;
 #else
     using LibraryHandle = void*;

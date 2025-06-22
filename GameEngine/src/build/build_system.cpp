@@ -116,11 +116,11 @@ bool BuildSystem::compileProject(Project* project, const std::string& projectDir
         
         // Configure with CMake - explicitly set compilers on macOS
         std::vector<std::string> cmakeArgs = {"-DCMAKE_BUILD_TYPE=Release"};
-        #ifdef __APPLE__
+#ifdef __APPLE__
             // On macOS, explicitly set the compilers to avoid issues
             cmakeArgs.push_back("-DCMAKE_C_COMPILER=clang");
             cmakeArgs.push_back("-DCMAKE_CXX_COMPILER=clang++");
-        #endif
+#endif
         cmakeArgs.push_back("..");
         
         auto result = ProcessExecutor::execute("cmake", cmakeArgs, buildDir);
@@ -141,9 +141,9 @@ bool BuildSystem::compileProject(Project* project, const std::string& projectDir
         
         // Check if executable was actually created despite return code
         std::string exeName = project->getName();
-        #ifdef _WIN32
+#ifdef _WIN32
             exeName += ".exe";
-        #endif
+#endif
         
         bool executableExists = std::filesystem::exists(exeName) || 
                                std::filesystem::exists("Debug/" + exeName) ||
@@ -166,13 +166,13 @@ bool BuildSystem::compileProject(Project* project, const std::string& projectDir
         // Copy executable to output
         // The executable is expected to be named "game" for consistency
         std::string projectName = project->getName();
-        #ifdef _WIN32
+#ifdef _WIN32
             std::string builtExeName = projectName + ".exe";
             std::string gameExeName = "game.exe";
-        #else
+#else
             std::string builtExeName = projectName;
             std::string gameExeName = "game";
-        #endif
+#endif
         
         std::string sourcePath = buildDir + "/" + builtExeName;
         std::string destPath = outputPath + "/" + gameExeName;

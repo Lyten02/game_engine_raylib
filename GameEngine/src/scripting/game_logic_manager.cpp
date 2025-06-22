@@ -13,7 +13,7 @@
         inline void error(const std::string& fmt, Args... args) {}
     }
 #else
-    #include <spdlog/spdlog.h>
+#include <spdlog/spdlog.h>
 #endif
 
 GameLogicManager::~GameLogicManager() {

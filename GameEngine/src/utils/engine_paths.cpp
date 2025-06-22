@@ -23,7 +23,7 @@ void EnginePaths::initialize() {
     // Get executable path
     std::filesystem::path execPath;
     
-    #ifdef __APPLE__
+#ifdef __APPLE__
         char pathBuf[PATH_MAX];
         uint32_t size = sizeof(pathBuf);
         if (_NSGetExecutablePath(pathBuf, &size) == 0) {
@@ -31,11 +31,11 @@ void EnginePaths::initialize() {
         } else {
             execPath = std::filesystem::current_path() / "game";
         }
-    #elif _WIN32
+#elif _WIN32
         char pathBuf[MAX_PATH];
         GetModuleFileName(NULL, pathBuf, MAX_PATH);
         execPath = std::filesystem::canonical(pathBuf);
-    #elif __linux__
+#elif __linux__
         char pathBuf[PATH_MAX];
         ssize_t count = readlink("/proc/self/exe", pathBuf, PATH_MAX);
         if (count != -1) {
@@ -44,9 +44,9 @@ void EnginePaths::initialize() {
         } else {
             execPath = std::filesystem::current_path() / "game";
         }
-    #else
+#else
         execPath = std::filesystem::current_path() / "game";
-    #endif
+#endif
     
     // Determine engine root
     // If we're in build directory, go up one level

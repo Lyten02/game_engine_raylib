@@ -7,14 +7,14 @@
 #include <iostream>
 
 #ifdef __APPLE__
-    #include <pthread.h>
+#include <pthread.h>
 #endif
 
 int main(int argc, char* argv[]) {
-    #ifdef __APPLE__
+#ifdef __APPLE__
         // Set thread priority for macOS to prevent throttling
         pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
-    #endif
+#endif
     
     // Parse command line arguments FIRST
     auto args = CLIArgumentParser::parse(argc, argv);

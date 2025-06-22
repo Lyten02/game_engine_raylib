@@ -18,19 +18,19 @@ namespace PathUtils {
 std::filesystem::path getExecutablePath() {
     std::filesystem::path exePath;
     
-    #ifdef __APPLE__
+#ifdef __APPLE__
         // macOS specific
         char pathbuf[1024];
         uint32_t bufsize = sizeof(pathbuf);
         if (_NSGetExecutablePath(pathbuf, &bufsize) == 0) {
             exePath = std::filesystem::canonical(pathbuf);
         }
-    #elif _WIN32
+#elif _WIN32
         // Windows specific
         char pathbuf[MAX_PATH];
         GetModuleFileNameA(NULL, pathbuf, MAX_PATH);
         exePath = pathbuf;
-    #else
+#else
         // Linux
         char pathbuf[1024];
         ssize_t len = readlink("/proc/self/exe", pathbuf, sizeof(pathbuf)-1);
@@ -38,7 +38,7 @@ std::filesystem::path getExecutablePath() {
             pathbuf[len] = '\0';
             exePath = pathbuf;
         }
-    #endif
+#endif
     
     return exePath;
 }

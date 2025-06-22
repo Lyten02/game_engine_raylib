@@ -8,11 +8,86 @@ on:
 
 jobs:
   build:
-    name: Build
-    runs-on: ubuntu-latest
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            cmake_generator: "Unix Makefiles"
+            build_command: make -j$(nproc)
+          - os: macos-latest  
+            cmake_generator: "Unix Makefiles"
+            build_command: make -j$(sysctl -n hw.ncpu)
+          - os: windows-latest
+            cmake_generator: "MinGW Makefiles"
+            build_command: mingw32-make -j4
     
     steps:
     - uses: actions/checkout@v3
+      with:
+        submodules: recursive
     
-    - name: Placeholder Build Step
-      run: echo "Build step will be implemented in next task"
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          build/_deps
+          build/.deps_cache
+          ~/.ccache
+        key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-deps-
+    
+    - name: Install dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          libx11-dev \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxcursor-dev \
+          libxi-dev \
+          libxxf86vm-dev \
+          libasound2-dev \
+          ccache
+    
+    - name: Install dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install cmake ccache
+    
+    - name: Install dependencies (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        choco install mingw cmake -y
+        echo "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    
+    - name: Configure CMake
+      run: |
+        cd GameEngine
+        mkdir -p build
+        cd build
+        cmake .. -G "${{ matrix.cmake_generator }}" -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build
+      run: |
+        cd GameEngine/build
+        ${{ matrix.build_command }}
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: game_engine-${{ matrix.os }}
+        path: |
+          GameEngine/build/game_engine*
+          GameEngine/build/*.exe
+          GameEngine/build/*.app
+        if-no-files-found: error

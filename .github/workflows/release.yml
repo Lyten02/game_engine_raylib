@@ -1,0 +1,160 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'v*.*.*-*'
+
+jobs:
+  build-release:
+    name: Build Release on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            cmake_generator: "Unix Makefiles"
+            build_command: make -j$(nproc)
+            archive_name: game_engine-linux-x64
+            archive_ext: tar.gz
+            archive_cmd: tar czf
+          - os: macos-latest
+            cmake_generator: "Unix Makefiles"  
+            build_command: make -j$(sysctl -n hw.ncpu)
+            archive_name: game_engine-macos-x64
+            archive_ext: tar.gz
+            archive_cmd: tar czf
+          - os: windows-latest
+            cmake_generator: "MinGW Makefiles"
+            build_command: mingw32-make -j4
+            archive_name: game_engine-windows-x64
+            archive_ext: zip
+            archive_cmd: powershell Compress-Archive -Path
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    
+    - name: Get version from tag
+      id: version
+      shell: bash
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+    
+    - name: Install dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          libx11-dev \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxcursor-dev \
+          libxi-dev \
+          libxxf86vm-dev \
+          libasound2-dev
+    
+    - name: Install dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install cmake
+    
+    - name: Install dependencies (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        choco install mingw cmake -y
+        echo "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    
+    - name: Configure CMake
+      run: |
+        cd GameEngine
+        mkdir -p build
+        cd build
+        cmake .. -G "${{ matrix.cmake_generator }}" -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build
+      run: |
+        cd GameEngine/build
+        ${{ matrix.build_command }}
+    
+    - name: Create release archive (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        cd GameEngine/build
+        mkdir -p release
+        cp game_engine* release/ || true
+        cd release
+        ${{ matrix.archive_cmd }} ../../${{ matrix.archive_name }}-${{ steps.version.outputs.VERSION }}.${{ matrix.archive_ext }} *
+    
+    - name: Create release archive (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd GameEngine/build
+        New-Item -ItemType Directory -Force -Path release
+        Copy-Item -Path "*.exe" -Destination release/ -Force
+        cd release
+        Compress-Archive -Path * -DestinationPath "../../${{ matrix.archive_name }}-${{ steps.version.outputs.VERSION }}.${{ matrix.archive_ext }}"
+    
+    - name: Upload release artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.archive_name }}-${{ steps.version.outputs.VERSION }}
+        path: GameEngine/${{ matrix.archive_name }}-${{ steps.version.outputs.VERSION }}.${{ matrix.archive_ext }}
+        if-no-files-found: error
+  
+  create-release:
+    name: Create GitHub Release
+    needs: build-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Get version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: ./artifacts
+    
+    - name: List artifacts
+      run: ls -la ./artifacts/*/
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        name: Release ${{ steps.version.outputs.VERSION }}
+        draft: false
+        prerelease: ${{ contains(steps.version.outputs.VERSION, '-') }}
+        body: |
+          ## Game Engine Release ${{ steps.version.outputs.VERSION }}
+          
+          ### Downloads
+          - 🐧 **Linux**: game_engine-linux-x64-${{ steps.version.outputs.VERSION }}.tar.gz
+          - 🍎 **macOS**: game_engine-macos-x64-${{ steps.version.outputs.VERSION }}.tar.gz  
+          - 🪟 **Windows**: game_engine-windows-x64-${{ steps.version.outputs.VERSION }}.zip
+          
+          ### Installation
+          1. Download the archive for your platform
+          2. Extract the archive
+          3. Run the `game_engine` executable
+          
+          ### What's Changed
+          See [full changelog](https://github.com/${{ github.repository }}/compare/previous-tag...${{ steps.version.outputs.VERSION }})
+        files: |
+          ./artifacts/**/*.tar.gz
+          ./artifacts/**/*.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

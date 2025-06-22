@@ -82,7 +82,41 @@ jobs:
         cd GameEngine/build
         ${{ matrix.build_command }}
     
-    - name: Upload artifacts
+    - name: Run Unit Tests
+      run: |
+        cd GameEngine/build
+        make test-unit || true
+      continue-on-error: false
+    
+    - name: Run Integration Tests
+      run: |
+        cd GameEngine/build
+        make test-integration || true
+      continue-on-error: false
+    
+    - name: Run System Tests
+      run: |
+        cd GameEngine/build
+        make test-system || true
+      continue-on-error: false
+    
+    - name: Run All Tests
+      run: |
+        cd GameEngine/build
+        make all-tests
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-${{ matrix.os }}
+        path: |
+          GameEngine/build/test_results.json
+          GameEngine/build/test_log_*.log
+          GameEngine/logs/test_log_*.log
+        if-no-files-found: warn
+    
+    - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
         name: game_engine-${{ matrix.os }}
